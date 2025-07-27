@@ -1,12 +1,3 @@
-// Paste your Firebase config here
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAzWYy20gqe68KUEJti1Kj5YLCsLWVfLW8",
   authDomain: "trivia-ef1de.firebaseapp.com",
@@ -18,10 +9,6 @@ const firebaseConfig = {
   measurementId: "G-6RVHEQ5XKV"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -29,7 +16,7 @@ let playerName = "";
 let playerId = "";
 let currentQuestionIndex = 0;
 let questions = [];
-let answeredPlayers = {};
+let hasAnswered = false;
 
 function joinGame() {
   playerName = document.getElementById("playerName").value.trim();
@@ -43,11 +30,22 @@ function joinGame() {
 
   db.ref("questions").once("value").then((snapshot) => {
     questions = snapshot.val();
+    if (!questions || questions.length === 0) {
+      document.getElementById("question-text").innerText = "Waiting for host to start the game...";
+      return;
+    }
     showQuestion();
   });
 }
 
 function showQuestion() {
+  if (currentQuestionIndex >= questions.length) {
+    document.getElementById("question-text").innerText = "Game Over! Thanks for playing!";
+    document.getElementById("options").innerHTML = "";
+    return;
+  }
+
+  hasAnswered = false;
   const q = questions[currentQuestionIndex];
   document.getElementById("question-text").innerText = q.question;
 
@@ -64,20 +62,35 @@ function showQuestion() {
 }
 
 function submitAnswer(selected) {
+  if (hasAnswered) return;
+  hasAnswered = true;
+
   const correct = questions[currentQuestionIndex].answer;
   const isCorrect = selected === correct;
 
-  db.ref("answers/" + playerId).set({
-    question: currentQuestionIndex,
+  db.ref("answers/" + playerId + "/" + currentQuestionIndex).set({
     answer: selected,
     correct: isCorrect
   });
 
+  if (isCorrect) {
+    db.ref("players/" + playerId + "/score").get().then(snapshot => {
+      const currentScore = snapshot.val() || 0;
+      db.ref("players/" + playerId).update({ score: currentScore + 1 });
+    });
+  }
+
   document.getElementById("feedback").innerText = isCorrect ? "✅ Correct!" : "❌ Wrong!";
+
+  // Go to next question after delay
+  setTimeout(() => {
+    currentQuestionIndex++;
+    showQuestion();
+  }, 1500);
 }
 
 function startGame() {
-  db.ref("questions").set([
+  const questions = [
     {
       question: "What is the capital of France?",
       options: ["Paris", "London", "Berlin", "Rome"],
@@ -88,5 +101,7 @@ function startGame() {
       options: ["Earth", "Venus", "Mars", "Jupiter"],
       answer: "Mars"
     }
-  ]);
+  ];
+  db.ref("questions").set(questions);
+  alert("Game started. Players can now join.");
 }
