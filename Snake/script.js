@@ -37,6 +37,7 @@ function loop() {
     ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
     if (cell.x === apple.x && cell.y === apple.y) {
       snake.maxCells++;
+      document.getElementById('score').textContent = 'Score: ' + (snake.maxCells - 4);
       apple.x = getRandomInt(0, 25) * grid;
       apple.y = getRandomInt(0, 25) * grid;
     }
