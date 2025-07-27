@@ -18,7 +18,7 @@ function getRandomInt(min, max) {
 
 function loop() {
   requestAnimationFrame(loop);
-  if (++count < 6) return;
+  if (++count < 7) return;
   count = 0;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   snake.x += snake.dx;
