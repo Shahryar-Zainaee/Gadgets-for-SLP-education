@@ -1,62 +1,83 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+var canvas = document.getElementById('game');
+var context = canvas.getContext('2d');
 
-const gridSize = 20;
-let snake = [{ x: 160, y: 200 }];
-let direction = { x: gridSize, y: 0 };
-let food = { x: 200, y: 200 };
-let score = 0;
+var grid = 16;
+var count = 0;
 
-document.addEventListener("keydown", changeDirection);
+var snake = {
+  x: 160,
+  y: 160,
+  dx: grid,
+  dy: 0,
+  cells: [],
+  maxCells: 4
+};
+var apple = {
+  x: 320,
+  y: 320
+};
 
-function changeDirection(e) {
-  const key = e.key;
-  if (key === "ArrowUp" && direction.y === 0) direction = { x: 0, y: -gridSize };
-  if (key === "ArrowDown" && direction.y === 0) direction = { x: 0, y: gridSize };
-  if (key === "ArrowLeft" && direction.x === 0) direction = { x: -gridSize, y: 0 };
-  if (key === "ArrowRight" && direction.x === 0) direction = { x: gridSize, y: 0 };
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function drawSnake() {
-  ctx.fillStyle = "#4CAF50";
-  snake.forEach(part => ctx.fillRect(part.x, part.y, gridSize, gridSize));
+function loop() {
+  requestAnimationFrame(loop);
+  if (++count < 7) return;
+
+  count = 0;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  snake.x += snake.dx;
+  snake.y += snake.dy;
+
+  if (snake.x < 0) snake.x = canvas.width - grid;
+  else if (snake.x >= canvas.width) snake.x = 0;
+  if (snake.y < 0) snake.y = canvas.height - grid;
+  else if (snake.y >= canvas.height) snake.y = 0;
+
+  snake.cells.unshift({ x: snake.x, y: snake.y });
+  if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+  context.fillStyle = 'red';
+  context.fillRect(apple.x, apple.y, grid - 1, grid - 1);
+
+  context.fillStyle = 'green';
+  snake.cells.forEach(function (cell, index) {
+    context.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+
+    if (cell.x === apple.x && cell.y === apple.y) {
+      snake.maxCells++;
+      apple.x = getRandomInt(0, 25) * grid;
+      apple.y = getRandomInt(0, 25) * grid;
+    }
+
+    for (var i = index + 1; i < snake.cells.length; i++) {
+      if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+        snake.x = 160;
+        snake.y = 160;
+        snake.cells = [];
+        snake.maxCells = 4;
+        snake.dx = grid;
+        snake.dy = 0;
+
+        apple.x = getRandomInt(0, 25) * grid;
+        apple.y = getRandomInt(0, 25) * grid;
+      }
+    }
+  });
 }
 
-function drawFood() {
-  ctx.fillStyle = "#FF6347";
-  ctx.fillRect(food.x, food.y, gridSize, gridSize);
-}
-
-function update() {
-  const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
-  snake.unshift(head);
-
-  if (head.x === food.x && head.y === food.y) {
-    score++;
-    document.getElementById("score").innerText = "Score: " + score;
-    food = {
-      x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
-      y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
-    };
-  } else {
-    snake.pop();
+document.addEventListener('keydown', function (e) {
+  if (e.which === 37 && snake.dx === 0) {
+    snake.dx = -grid; snake.dy = 0;
+  } else if (e.which === 38 && snake.dy === 0) {
+    snake.dy = -grid; snake.dx = 0;
+  } else if (e.which === 39 && snake.dx === 0) {
+    snake.dx = grid; snake.dy = 0;
+  } else if (e.which === 40 && snake.dy === 0) {
+    snake.dy = grid; snake.dx = 0;
   }
+});
 
-  if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height ||
-      snake.slice(1).some(part => part.x === head.x && part.y === head.y)) {
-    alert("Game Over! Your score was: " + score);
-    snake = [{ x: 160, y: 200 }];
-    direction = { x: gridSize, y: 0 };
-    score = 0;
-    document.getElementById("score").innerText = "Score: 0";
-  }
-}
-
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawSnake();
-  drawFood();
-  update();
-}
-
-setInterval(gameLoop, 150);
+requestAnimationFrame(loop);
