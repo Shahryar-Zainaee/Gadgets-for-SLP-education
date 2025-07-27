@@ -25,6 +25,14 @@ function startGame() {
   };
   let score = 0;
 
+  function changeDirection(e) {
+    const key = e.key;
+    if (key === "ArrowUp" && direction.y === 0) direction = { x: 0, y: -gridSize };
+    if (key === "ArrowDown" && direction.y === 0) direction = { x: 0, y: gridSize };
+    if (key === "ArrowLeft" && direction.x === 0) direction = { x: -gridSize, y: 0 };
+    if (key === "ArrowRight" && direction.x === 0) direction = { x: gridSize, y: 0 };
+  }
+
   document.addEventListener("keydown", changeDirection);
 
   function changeDirection(e) {
