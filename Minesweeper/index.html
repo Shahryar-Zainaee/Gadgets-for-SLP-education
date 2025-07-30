@@ -5,25 +5,16 @@
 
 <head>
   <title>Minesweeper</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Language" content="en-US" />
-  <meta content="all" name="robots" />
-  <meta name="title" content="" />
-  <meta name="author" content="VincentChen" />
-  <meta name="subject" content="" />
-  <meta name="language" content="en-US" />
-  <meta name="keywords" content="" />
-  <link rel="icon" href="" type="image/x-icon" />
-  <link rel="shortcut icon" href="" type="image/x-icon" />
-  <link rel="stylesheet" href="Mine.Style.css" type="text/css" media="all" />
-  <script language="JavaScript" type="text/javascript" src="Mine.Code.js"></script>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" type="text/css" media="all" />
+  <script type="text/javascript" src="script.js"></script>
 </head>
 
 <body>
   <div id="playground">
   </div>
   <script language="JavaScript" type="text/javascript">
-      var the_row = 8, the_col = 8, the_mine = 10;
+    var the_row = 8, the_col = 8, the_mine = 10;
     var num_arr;
     var queryStr = document.location.search;
     //var pat = /^\?{1}row=(\d+)\&{1}col=(\d+)\&{1}mine=(\d+)$/ig;
