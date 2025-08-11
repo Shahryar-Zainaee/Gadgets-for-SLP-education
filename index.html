@@ -2,65 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Gadgets for Speech & Language Pthology education</title>
+  <title>Gadgets for Speech & Language Pathology Education</title>
   <style>
     body {
       font-family: sans-serif;
       background-color: #111;
       color: #fff;
+      margin: 0;
+      padding: 1em;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
     }
 
     h1 {
+      text-align: center;
       font-size: 1.5em;
-      margin-bottom: 1em;
+      margin-bottom: 0.5em;
+    }
+
+    p {
+      text-align: center;
+      max-width: 600px;
+    }
+
+    h2 {
+      margin-top: 2em;
+      color: #00ff88;
+      font-size: 1.3em;
+      border-bottom: 1px solid #00ff88;
+      padding-bottom: 0.3em;
+      text-align: center;
     }
 
     ul {
       list-style: none;
       padding: 0;
+      max-width: 600px;
+      width: 100%;
     }
 
     li {
       margin: 1em 0;
+      text-align: center;
     }
 
     a {
       color: #00ff88;
       text-decoration: none;
       font-size: 1.2em;
+      display: inline-block;
+      padding: 0.3em 0.6em;
+      border-radius: 5px;
+      transition: background 0.3s;
     }
 
     a:hover {
+      background: rgba(0, 255, 136, 0.1);
       text-decoration: underline;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.2em;
+      }
+      a {
+        font-size: 1em;
+      }
     }
   </style>
 </head>
 <body>
   <h1>
-  <span>🎓 Dear learners,</span> 
-  <span style="display:block;">The following gadgets have been prepared</span>
-  <span style="display:block;">to help you with learning about Speech &amp; Language Pathology!</span>
-  <span style="display:block;">I hope they help make your learning experience enjoyable.</span>
-  <span style="display:block;">Regards,</span>
-  <span style="display:block;">Shahryar Zainaee</span>
-</h1>
+    🎓 Dear learners,<br>
+    The following gadgets have been prepared to help you with learning about Speech &amp; Language Pathology!<br>
+    I hope they make your learning experience enjoyable.<br>
+    Regards,<br>
+    Shahryar Zainaee
+  </h1>
   <p>Select a gadget to proceed:</p>
+
+  <!-- ================== INTRODUCTION TO COMMUNICATION DISORDERS ================== -->
+  <h2>Introduction to Communication Disorders</h2>
   <ul>
-    <li><a href="Snake/index.html">🐍 Snake Game</a></li>  <!-- by https://gist.github.com/straker/ff00b4b49669ad3dec890306d348adc4 -->
-    <li><a href="Pacman/index.html">ᗧ Pacman Game</a></li>  <!-- Minesweeper game adapted from https://github.com/artyyouth/minesweeper Originally created by artyyouth and licensed under the MIT License This version adapted by Shahryar Zainaee for educational use in the Introduction to Communication Disorders course -->
-     <!-- <li><a href="Trivia/index.html">❓ Multiplayer Trivia Game</a></li>  <!-- by https://github.com/shaan1337/quiz -->
-     <li><a href="Minesweeper/index.html">☺ Minesweeper</a></li> <!-- by https://github.com/artyyouth/minesweeper -->
-    <li><a href="Fundamental Frequency/index.html">F0 (Fundamental Frequency)</a></li> <!-- by ChatGPT 5 -->
-    <li><a href="Harmonics/index.html">Hn (Harmonics)</a></li> <!-- by ChatGPT 5 -->
-    <li><a href="Communication process/index.html">The Process of Communication (animation)</a></li> <!-- by ChatGPT 5 -->    
-    <!-- Add more gadget as needed -->
+    <li><a href="Snake/index.html">🐍 Snake Game</a></li>  
+    <li><a href="Pacman/index.html">ᗧ Pacman Game</a></li>  
+    <li><a href="Minesweeper/index.html">☺ Minesweeper</a></li>
+    <li><a href="Communication process/index.html">The Process of Communication (animation)</a></li>
+    <!-- 💡 ADD MORE "Introduction to Communication Disorders" GADGETS BELOW -->
+    <!-- Example:
+    <li><a href="YourNewFolder/index.html">New Gadget Name</a></li>
+    -->
   </ul>
+
+  <!-- ================== SPEECH SCIENCE ================== -->
+  <h2>Speech Science</h2>
+  <ul>
+    <li><a href="Fundamental Frequency/index.html">F0 (Fundamental Frequency)</a></li>
+    <li><a href="Harmonics/index.html">Hn (Harmonics)</a></li>
+    <!-- 💡 ADD MORE "Speech Science" GADGETS BELOW -->
+    <!-- Example:
+    <li><a href="VocalTractResonance/index.html">Vocal Tract Resonance Simulation</a></li>
+    -->
+  </ul>
+
+  <!-- ================== FUTURE COURSES ================== -->
+  <!-- 💡 HOW TO ADD A NEW COURSE:
+    1. Copy the <h2> ... </h2> and <ul> ... </ul> block above.
+    2. Replace the course name in <h2> with your new course title.
+    3. Add the gadget links in <li> ... </li> format inside the <ul>.
+  -->
 </body>
 </html>
-
