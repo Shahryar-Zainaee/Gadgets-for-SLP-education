@@ -1,32 +1,94 @@
-.controls {
-  display: flex;
-  flex-wrap: wrap;          /* lets things move to a new line on small screens */
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: #171a21;
-  padding: 12px 14px;       /* a bit more breathing room */
-  width: min(600px, 100%);
-}
+<style>
+  :root {
+    --bg: #0f1115;
+    --circle: #0a1b3d;
+    --text: #ffffff;
+    --muted: #bbbbbb;
+    --border: #273043;
+    --panel: #171a21;
+    --chip: #0f1320;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 20px;
+    padding: 20px;
+    place-items: center;
+  }
+  .circle {
+    width: min(80vmin, 400px);
+    height: min(80vmin, 400px);
+    border-radius: 50%;
+    background: var(--circle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,.4);
+    user-select: none;
+    text-align: center;
+  }
+  .f0 { font-size: clamp(48px, 10vmin, 120px); font-weight: 800; line-height: 1; }
+  .units { font-size: clamp(16px, 3vmin, 28px); margin-top: 4px; }
+  .period { font-size: clamp(12px, 2.2vmin, 18px); color: var(--muted); margin-top: 2px; }
 
-.controls label {
-  display: grid;
-  gap: 4px;
-  flex: 1 1 260px;          /* label+select takes available space */
-  min-width: 220px;
-}
+  /* Controls bar */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    padding: 12px;
+    align-items: center;
+    width: min(720px, 100%); /* wider so it contains all buttons */
+  }
+  label {
+    font-size: 13px;
+    color: var(--muted);
+    display: grid;
+    gap: 6px;
+  }
+  select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--chip);
+    color: var(--text);
+    width: 100%;
+  }
 
-.controls > div:nth-child(2) {  /* the Start/Stop wrapper */
-  display: flex;
-  gap: 10px;
-  flex: 0 0 auto;
-}
+  /* Button group that wraps nicely if space is tight */
+  .btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #121826;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 90px;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
 
-.controls .status {
-  margin-left: auto;        /* pushes status to the far right when space allows */
-  flex: 0 0 auto;
-}
+  .status { font-size: 13px; color: var(--muted); margin-left: 4px; justify-self: end; }
 
-select { height: 36px; }    /* ensures consistent height with buttons */
-button { line-height: 1; }  /* avoids vertical overflow from default line-height */
+  /* Stack nicely on small screens */
+  @media (max-width: 560px) {
+    .controls { grid-template-columns: 1fr; }
+    .status { justify-self: start; }
+    .btns { justify-content: flex-start; }
+  }
+</style>
