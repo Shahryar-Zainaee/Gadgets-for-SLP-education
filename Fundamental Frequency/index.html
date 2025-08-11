@@ -1,99 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>F0 — Big Circle</title>
-  <style>
-    :root {
-      --bg: #0f1115; --card: #171a21; --text: #f2f5f9; --muted: #9aa4b2; --border: #273043;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-      display: grid; grid-template-rows: 1fr auto; gap: 16px; padding: 16px;
-    }
-
-    /* Circle with F0 */
-    .center {
-      display: grid; place-items: center;
-    }
-    .circle {
-      width: min(80vmin, 520px);
-      height: min(80vmin, 520px);
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: radial-gradient(120% 120% at 50% 35%, #121826 0%, #0a0d16 60%, #070a12 100%);
-      display: grid; place-items: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,.35), inset 0 0 40px rgba(255,255,255,.04);
-      position: relative;
-    }
-    .f0 {
-      font-size: clamp(48px, 10vmin, 120px);
-      font-weight: 800;
-      letter-spacing: .5px;
-      line-height: 1;
-      text-align: center;
-      filter: drop-shadow(0 2px 10px rgba(0,0,0,.4));
-      user-select: none;
-    }
-    .units {
-      font-size: clamp(16px, 2.4vmin, 22px);
-      color: var(--muted);
-      margin-top: 8px;
-      text-align: center;
-      user-select: none;
-    }
-
-    /* Subtle ring that tints with pitch */
-    .ring {
-      position: absolute; inset: 10px;
-      border-radius: 50%;
-      border: 3px solid #1f2a3a;
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,.02);
-      opacity: .9;
-    }
-
-    /* Controls */
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 10px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      border-radius: 14px;
-      padding: 10px;
-      align-items: center;
-    }
-    label { font-size: 13px; color: var(--muted); }
-    select, input[type="range"] {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0f1320;
-      color: var(--text);
-    }
-    .row { display: inline-flex; gap: 8px; align-items: center; }
-    button {
-      padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);
-      background: #121826; color: var(--text); cursor: pointer;
-    }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .status { color: var(--muted); font-size: 13px; margin-left: 8px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>F0 — Navy Circle</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --circle: #0a1b3d; /* navy dark blue */
+    --text: #ffffff;
+    --muted: #bbbbbb;
+    --border: #273043;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 20px;
+    padding: 20px;
+    place-items: center;
+  }
+  .circle {
+    width: min(80vmin, 400px);
+    height: min(80vmin, 400px);
+    border-radius: 50%;
+    background: var(--circle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,.4);
+    user-select: none;
+    text-align: center;
+  }
+  .f0 {
+    font-size: clamp(48px, 10vmin, 120px);
+    font-weight: 800;
+    line-height: 1;
+  }
+  .units {
+    font-size: clamp(16px, 3vmin, 28px);
+    color: var(--text);
+    margin-top: 4px;
+  }
+  .period {
+    font-size: clamp(12px, 2.2vmin, 18px);
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #171a21;
+    padding: 10px;
+    align-items: center;
+    width: min(500px, 100%);
+  }
+  label {
+    font-size: 13px;
+    color: var(--muted);
+    display: grid;
+    gap: 4px;
+  }
+  select {
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0f1320;
+    color: var(--text);
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #121826;
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+  .status {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+</style>
 </head>
 <body>
-  <div class="center">
-    <div class="circle" id="circle">
-      <div class="ring" id="ring"></div>
-      <div>
-        <div class="f0" id="hz">—</div>
-        <div class="units">Hz</div>
-      </div>
-    </div>
+  <div class="circle">
+    <div class="f0" id="hz">—</div>
+    <div class="units">Hz</div>
+    <div class="period" id="period">— s</div>
   </div>
 
   <div class="controls">
@@ -101,197 +108,138 @@
       Microphone
       <select id="deviceSelect"></select>
     </label>
-
-    <label class="row" title="Higher = smoother, slower changes">
-      Responsiveness
-      <input id="smoothMs" type="range" min="60" max="400" value="160" />
-      <span id="smoothVal" aria-hidden="true">160 ms</span>
-    </label>
-
-    <div class="row">
+    <div>
       <button id="startBtn">Start</button>
       <button id="stopBtn" disabled>Stop</button>
-      <span class="status" id="status">Idle</span>
     </div>
+    <div class="status" id="status">Idle</div>
   </div>
 
-  <script>
-    // --- Config
-    const MIN_HZ = 60;   // set to 80 for adult male-only, or 50 for bass voices
-    const MAX_HZ = 600;  // bump to 800–1000 for child voices
-    const HUE_MIN = 200; // blue
-    const HUE_MAX = 10;  // red
+<script>
+const MIN_HZ = 50, MAX_HZ = 600;
+let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
+let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
 
-    // --- State
-    let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
-    let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+// DOM refs
+const hzEl = document.getElementById('hz');
+const periodEl = document.getElementById('period');
+const deviceSelect = document.getElementById('deviceSelect');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
 
-    // --- DOM
-    const hzEl = document.getElementById('hz');
-    const ringEl = document.getElementById('ring');
-    const circleEl = document.getElementById('circle');
-    const deviceSelect = document.getElementById('deviceSelect');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const smoothMs = document.getElementById('smoothMs');
-    const smoothVal = document.getElementById('smoothVal');
-    const statusEl = document.getElementById('status');
+// Mic list
+listMics();
+async function listMics() {
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const mics = devices.filter(d => d.kind === 'audioinput');
+  deviceSelect.innerHTML = '';
+  mics.forEach((d, i) => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Microphone ${i + 1}`;
+    deviceSelect.appendChild(opt);
+  });
+}
 
-    // Init mic list
-    listMics();
+// Events
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
 
-    async function listMics() {
-      try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const mics = devices.filter(d => d.kind === 'audioinput');
-      deviceSelect.innerHTML = '';
-      mics.forEach((d, i) => {
-        const opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || `Microphone ${i + 1}`;
-        deviceSelect.appendChild(opt);
-      });
-    }
-
-    function updateEMAAlpha() {
-      const frameMs = 1000 / 60; // ~RAF
-      const windowMs = Number(smoothMs.value);
-      smoothVal.textContent = windowMs + ' ms';
-      const k = Math.max(1, windowMs / frameMs);
-      emaAlpha = 1 / k; // bigger window -> smaller alpha -> smoother
-    }
-    smoothMs.addEventListener('input', updateEMAAlpha);
-    updateEMAAlpha();
-
-    startBtn.addEventListener('click', start);
-    stopBtn.addEventListener('click', stop);
-
-    async function start() {
-      stop();
-      try {
-        const constraints = {
-          audio: {
-            deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
-            echoCancellation: false, noiseSuppression: false, autoGainControl: false
-          }
-        };
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        source = audioCtx.createMediaStreamSource(mediaStream);
-
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0;
-        source.connect(analyser);
-
-        sampleRate = audioCtx.sampleRate;
-        workBuf = new Float32Array(analyser.fftSize);
-
-        statusEl.textContent = 'Listening…';
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-
-        animate();
-      } catch (e) {
-        console.error(e);
-        statusEl.textContent = 'Mic blocked';
+async function start() {
+  stop();
+  try {
+    const constraints = {
+      audio: {
+        deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false
       }
-    }
+    };
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioCtx.createMediaStreamSource(mediaStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    source.connect(analyser);
+    sampleRate = audioCtx.sampleRate;
+    workBuf = new Float32Array(analyser.fftSize);
+    statusEl.textContent = 'Listening…';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    animate();
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Mic blocked';
+  }
+}
 
-    function stop() {
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-      if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
-      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      statusEl.textContent = 'Idle';
-      lastHz = 0;
-      hzEl.textContent = '—';
-      tintRing(null);
-    }
+function stop() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  statusEl.textContent = 'Idle';
+  hzEl.textContent = '—';
+  periodEl.textContent = '— s';
+  lastHz = 0;
+}
 
-    function animate() {
-      analyser.getFloatTimeDomainData(workBuf);
-      const hz = detectPitchACF(workBuf, sampleRate);
-      const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
+function animate() {
+  analyser.getFloatTimeDomainData(workBuf);
+  const hz = detectPitchACF(workBuf, sampleRate);
+  const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
 
-      // EMA smoothing
-      if (isFinite(inRange)) {
-        if (lastHz === 0) lastHz = inRange;
-        lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
-      } else {
-        // gentle decay toward zero to avoid flicker on unvoiced frames
-        lastHz = (1 - emaAlpha) * lastHz;
-        if (lastHz < 1) lastHz = 0;
-      }
+  if (isFinite(inRange)) {
+    if (lastHz === 0) lastHz = inRange;
+    lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
+  } else {
+    lastHz = (1 - emaAlpha) * lastHz;
+    if (lastHz < 1) lastHz = 0;
+  }
 
-      if (lastHz > 0) {
-        hzEl.textContent = lastHz.toFixed(0);
-        tintRing(lastHz);
-      } else {
-        hzEl.textContent = '—';
-        tintRing(null);
-      }
+  if (lastHz > 0) {
+    hzEl.textContent = lastHz.toFixed(0);
+    periodEl.textContent = (1 / lastHz).toFixed(3) + ' s';
+  } else {
+    hzEl.textContent = '—';
+    periodEl.textContent = '— s';
+  }
 
-      rafId = requestAnimationFrame(animate);
-    }
+  rafId = requestAnimationFrame(animate);
+}
 
-    // Pitch -> ring tint
-    function tintRing(hz) {
-      if (!hz || !isFinite(hz)) {
-        ringEl.style.borderColor = '#1f2a3a';
-        ringEl.style.boxShadow = 'inset 0 0 0 2px rgba(255,255,255,.02)';
-        return;
-      }
-      const t = Math.min(1, Math.max(0, (hz - MIN_HZ) / (MAX_HZ - MIN_HZ)));
-      const hue = (1 - t) * HUE_MIN + t * HUE_MAX;
-      const col = `hsl(${hue}, 80%, 55%)`;
-      ringEl.style.borderColor = col;
-      ringEl.style.boxShadow = `inset 0 0 30px 2px ${col}22, 0 0 30px 2px ${col}11`;
-    }
-
-    // Time-domain autocorrelation with parabolic interpolation
-    function detectPitchACF(buf, sr) {
-      const n = buf.length;
-      // DC remove
-      let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
-
-      // Hann window
-      const x = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
-        x[i] = (buf[i] - mean) * w;
-      }
-
-      // Autocorrelation
-      const corr = new Float32Array(n);
-      for (let lag = 0; lag < n; lag++) {
-        let sum = 0;
-        for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
-        corr[lag] = sum;
-      }
-
-      const minLag = Math.floor(sr / MAX_HZ);
-      const maxLag = Math.floor(sr / MIN_HZ);
-      if (maxLag >= n) return NaN;
-
-      // find best peak
-      let bestLag = -1, bestVal = -Infinity;
-      for (let lag = minLag; lag <= maxLag; lag++) {
-        if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
-      }
-      if (bestLag <= 0) return NaN;
-
-      // parabolic refine
-      const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
-      const denom = (y1 - 2 * y2 + y3);
-      const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
-      const refinedLag = bestLag + shift;
-
-      const freq = sr / refinedLag;
-      return isFinite(freq) ? freq : NaN;
-    }
-  </script>
+function detectPitchACF(buf, sr) {
+  const n = buf.length;
+  let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+    x[i] = (buf[i] - mean) * w;
+  }
+  const corr = new Float32Array(n);
+  for (let lag = 0; lag < n; lag++) {
+    let sum = 0;
+    for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
+    corr[lag] = sum;
+  }
+  const minLag = Math.floor(sr / MAX_HZ);
+  const maxLag = Math.floor(sr / MIN_HZ);
+  if (maxLag >= n) return NaN;
+  let bestLag = -1, bestVal = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
+  }
+  if (bestLag <= 0) return NaN;
+  const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
+  const denom = (y1 - 2 * y2 + y3);
+  const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
+  const refinedLag = bestLag + shift;
+  const freq = sr / refinedLag;
+  return isFinite(freq) ? freq : NaN;
+}
+</script>
 </body>
 </html>
