@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>F0 — Navy Circle + Harmonics</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --circle: #0a1b3d; /* navy dark blue */
+    --text: #ffffff;
+    --muted: #cfd6e3;
+    --border: #273043;
+    --panel: #171a21;
+    --chip: #101725;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 18px;
+    padding: 20px;
+    place-items: center;
+  }
+
+  /* Circle */
+  .circle {
+    width: min(80vmin, 420px);
+    height: min(80vmin, 420px);
+    border-radius: 50%;
+    background: var(--circle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,.4);
+    user-select: none;
+    text-align: center;
+    padding: 12px;
+  }
+  .f0 { font-size: clamp(52px, 11vmin, 128px); font-weight: 800; line-height: 1; }
+  .units { font-size: clamp(16px, 3vmin, 26px); margin-top: 4px; }
+  .period { font-size: clamp(12px, 2.2vmin, 18px); color: var(--muted); margin-top: 2px; }
+
+  /* Harmonics panel */
+  .harmonics {
+    width: min(900px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .harmonics h2 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .2px;
+  }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .chip {
+    background: var(--chip);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    gap: 4px;
+    text-align: center;
+  }
+  .chip .label { font-size: 12px; color: var(--muted); }
+  .chip .val { font-size: 18px; font-weight: 700; }
+
+  /* Controls */
+  .controls {
+    width: min(900px, 100%);
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    padding: 10px;
+    align-items: center;
+  }
+  label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+  select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0f1320;
+    color: var(--text);
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #121826;
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .status { font-size: 13px; color: var(--muted); margin-left: 8px; }
+</style>
+</head>
+<body>
+  <!-- Circle -->
+  <div class="circle">
+    <div class="f0" id="hz">—</div>
+    <div class="units">Hz</div>
+    <div class="period" id="period">— s</div>
+  </div>
+
+  <!-- Harmonics -->
+  <section class="harmonics">
+    <h2>Harmonics (H1–H10)</h2>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>
+      Microphone
+      <select id="deviceSelect"></select>
+    </label>
+    <div>
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+    <div class="status" id="status">Idle</div>
+  </div>
+
+<script>
+const MIN_HZ = 50, MAX_HZ = 600;
+let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
+let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+
+// DOM
+const hzEl = document.getElementById('hz');
+const periodEl = document.getElementById('period');
+const deviceSelect = document.getElementById('deviceSelect');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
+const chips = document.getElementById('chips');
+
+// Build harmonic chips H1..H10
+const chipEls = [];
+for (let n = 1; n <= 10; n++) {
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  const lab = document.createElement('div');
+  lab.className = 'label';
+  lab.textContent = `H${n}`;
+  const val = document.createElement('div');
+  val.className = 'val';
+  val.textContent = '— Hz';
+  chip.appendChild(lab);
+  chip.appendChild(val);
+  chips.appendChild(chip);
+  chipEls.push(val);
+}
+
+// Mic list
+listMics();
+async function listMics() {
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const mics = devices.filter(d => d.kind === 'audioinput');
+  deviceSelect.innerHTML = '';
+  mics.forEach((d, i) => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Microphone ${i + 1}`;
+    deviceSelect.appendChild(opt);
+  });
+}
+
+// Events
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+
+async function start() {
+  stop();
+  try {
+    const constraints = {
+      audio: {
+        deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false
+      }
+    };
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioCtx.createMediaStreamSource(mediaStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    source.connect(analyser);
+    sampleRate = audioCtx.sampleRate;
+    workBuf = new Float32Array(analyser.fftSize);
+    statusEl.textContent = 'Listening…';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    animate();
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Mic blocked';
+  }
+}
+
+function stop() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  statusEl.textContent = 'Idle';
+  lastHz = 0;
+  hzEl.textContent = '—';
+  periodEl.textContent = '— s';
+  for (const el of chipEls) el.textContent = '— Hz';
+}
+
+function animate() {
+  analyser.getFloatTimeDomainData(workBuf);
+  const hz = detectPitchACF(workBuf, sampleRate);
+  const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
+
+  // EMA smoothing for readability
+  if (isFinite(inRange)) {
+    if (lastHz === 0) lastHz = inRange;
+    lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
+  } else {
+    lastHz = (1 - emaAlpha) * lastHz;
+    if (lastHz < 1) lastHz = 0;
+  }
+
+  if (lastHz > 0) {
+    hzEl.textContent = lastHz.toFixed(0);
+    periodEl.textContent = (1 / lastHz).toFixed(3) + ' s';
+
+    // Update harmonics H1..H10
+    for (let i = 0; i < 10; i++) {
+      const h = (i + 1) * lastHz;
+      chipEls[i].textContent = h.toFixed(0) + ' Hz';
+    }
+  } else {
+    hzEl.textContent = '—';
+    periodEl.textContent = '— s';
+    for (const el of chipEls) el.textContent = '— Hz';
+  }
+
+  rafId = requestAnimationFrame(animate);
+}
+
+// Time-domain autocorrelation with Hann window + parabolic interp
+function detectPitchACF(buf, sr) {
+  const n = buf.length;
+  let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
+
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+    x[i] = (buf[i] - mean) * w;
+  }
+
+  const corr = new Float32Array(n);
+  for (let lag = 0; lag < n; lag++) {
+    let sum = 0;
+    for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
+    corr[lag] = sum;
+  }
+
+  const minLag = Math.floor(sr / MAX_HZ);
+  const maxLag = Math.floor(sr / MIN_HZ);
+  if (maxLag >= n) return NaN;
+
+  let bestLag = -1, bestVal = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
+  }
+  if (bestLag <= 0) return NaN;
+
+  const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
+  const denom = (y1 - 2 * y2 + y3);
+  const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
+
+  const refinedLag = bestLag + shift;
+  const freq = sr / refinedLag;
+  return isFinite(freq) ? freq : NaN;
+}
+</script>
+</body>
+</html>
