@@ -2,16 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<!-- harden viewport for LMS/iframes -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Venturi Tube • Bernoulli Demo</title>
+<title>Venturi Tube • Bernoulli's Principle (Glottis)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#121722; --tube:#1e2a3b; --tubeEdge:#2b3b55;
     --text:#e8eefc; --muted:#a8b3c7; --accent:#5ab0ff; --good:#4ade80; --warn:#f59e0b; --particle:#ffff00;
   }
-
-  /* Reset + stop horizontal overflow cold */
   *,*::before,*::after{box-sizing:border-box}
   html,body{height:100%; width:100%; overflow-x:hidden}
   body{
@@ -19,15 +16,12 @@
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
     padding:12px;
   }
-
-  /* Container: never wider than the viewport */
   .app{
     max-width:100vw;
     margin:0 auto;
     display:grid; gap:10px;
     background:var(--panel); border:1px solid #243046; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.25);
   }
-
   header{
     padding:10px 12px; border-bottom:1px solid #1f2a3f;
     display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
@@ -44,18 +38,15 @@
   .btn{
     background:#182036; color:var(--text); border:1px solid #2a3a58; border-radius:10px; padding:10px 14px; font-size:14px; cursor:pointer;
   }
-
-  /* Canvas is strictly responsive: width = 100vw of card, height via aspect-ratio */
-  .canvas-wrap{padding:0 0 0; width:100%}
+  .canvas-wrap{width:100%}
   #sim{
     display:block;
     width:100%;
-    max-width:100vw;        /* never overflow */
+    max-width:100vw;
     height:auto;
-    aspect-ratio: 1100 / 380; /* locks height on phones */
+    aspect-ratio: 1100 / 380;
     background:linear-gradient(#0c1220,#0a0f1a);
   }
-
   .statbar{
     display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
     gap:8px; padding:10px 12px; border-top:1px solid #1f2a3f; background:#0f1523;
@@ -65,8 +56,6 @@
   .stat .val{font-size:16px; font-weight:600}
   .stat.good .val{color:var(--good)} .stat.warn .val{color:var(--warn)}
   footer{font-size:12px; color:var(--muted); text-align:center; padding:8px 12px 12px}
-
-  /* Phone stacking */
   @media (max-width: 640px){
     header{flex-direction:column; align-items:stretch}
     #controls{justify-content:space-between}
@@ -80,7 +69,7 @@
 <body>
   <div class="app">
     <header>
-      <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up in the glottis)</h1>
+      <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up at the glottis)</h1>
       <div id="controls">
         <label for="speed">Time scale: <strong id="speedLabel">1×</strong></label>
         <input id="speed" type="range" min="1" max="100" step="1" value="1" />
@@ -97,7 +86,7 @@
       <div class="stat"><div class="hd">ρ (air density)</div><div class="val"><span id="rho">1.20</span> kg/m³</div></div>
       <div class="stat"><div class="hd">Wide-section velocity</div><div class="val"><span id="vWide">—</span> m/s</div></div>
       <div class="stat warn"><div class="hd">Glottis (narrow) velocity</div><div class="val"><span id="vNarrow">—</span> m/s</div></div>
-      <div class="stat good"><div class="hd">Static pressure drop (wide → tlottis)</div><div class="val"><span id="dP">—</span> kPa</div></div>
+      <div class="stat good"><div class="hd">Static pressure drop (wide → glottis)</div><div class="val"><span id="dP">—</span> kPa</div></div>
     </div>
 
     <footer>
@@ -110,7 +99,6 @@
   const canvas = document.getElementById('sim');
   const ctx = canvas.getContext('2d');
 
-  // UI
   const speedSlider = document.getElementById('speed');
   const speedLabel  = document.getElementById('speedLabel');
   const btnToggle   = document.getElementById('toggle');
@@ -120,14 +108,13 @@
   const dPEl        = document.getElementById('dP');
   const rhoEl       = document.getElementById('rho');
 
-  // Physics (demo scale)
   const rho = 1.20; rhoEl.textContent = rho.toFixed(2);
   const P_ambient = 101.3e3;
-  const tubeLogicalW = 1100, tubeLogicalH = 380; // our logical drawing space
+  const tubeLogicalW = 1100, tubeLogicalH = 380;
   let tubeLen = tubeLogicalW, tubeMid = tubeLogicalH/2;
 
-  const H_wide=120, H_gtlottis=45, gtlottisX=tubeLogicalW*0.50, gtlottisWidthFrac=0.20, sigma=tubeLogicalW*gtlottisWidthFrac*0.35;
-  function halfHeight(x){ const dx=x-gtlottisX; const dip=(H_wide-H_gtlottis)*Math.exp(-(dx*dx)/(2*sigma*sigma)); return H_wide - dip; }
+  const H_wide=120, H_throat=45, throatX=tubeLogicalW*0.50, throatWidthFrac=0.20, sigma=tubeLogicalW*throatWidthFrac*0.35;
+  function halfHeight(x){ const dx=x-throatX; const dip=(H_wide-H_throat)*Math.exp(-(dx*dx)/(2*sigma*sigma)); return H_wide - dip; }
 
   const vWideTarget=1.2, xWideRef=tubeLogicalW*0.05, A_wide=halfHeight(xWideRef), Q=vWideTarget*A_wide;
   function velocityAtX(x){ return Q / Math.max(halfHeight(x),1); }
@@ -135,7 +122,6 @@
   const v_wide_ref=velocityAtX(xWideRef), P_total=P_ambient+0.5*rho*v_wide_ref*v_wide_ref;
   const pressureAtV = v => P_total - 0.5*rho*v*v;
 
-  // Particles
   const particles=[]; const particleColor=getComputedStyle(document.documentElement).getPropertyValue('--particle').trim()||'#ffff00';
   function spawnParticle(){
     const x = -Math.random()*40 - 10;
@@ -162,7 +148,6 @@
   const inTube=(x,y)=>{const h=halfHeight(x); return y>tubeMid-h+2 && y<tubeMid+h-2;}
   function verticalDrift(x,y){ const h=halfHeight(x); const dist=y-tubeMid; return -(0.8/h)*dist; }
 
-  // UI state
   let timeScale=1, running=true;
   speedSlider.addEventListener('input', ()=>{timeScale=+speedSlider.value; speedLabel.textContent=`${timeScale}×`});
   btnToggle.addEventListener('click', ()=>{
@@ -172,9 +157,9 @@
   btnReset.addEventListener('click', ()=>{particles.length=0});
 
   function updateStats(){
-    const vWide=velocityAtX(xWideRef), vGtlottis=velocityAtX(gtlottisX);
-    const dP=(pressureAtV(vWide)-pressureAtV(vGtlottis))/1000;
-    vWideEl.textContent=vWide.toFixed(2); vNarEl.textContent=vGtlottis.toFixed(2); dPEl.textContent=dP.toFixed(2);
+    const vWide=velocityAtX(xWideRef), vThroat=velocityAtX(throatX);
+    const dP=(pressureAtV(vWide)-pressureAtV(vThroat))/1000;
+    vWideEl.textContent=vWide.toFixed(2); vNarEl.textContent=vThroat.toFixed(2); dPEl.textContent=dP.toFixed(2);
   }
 
   let lastT=performance.now();
@@ -183,8 +168,6 @@
     const dt = Math.min((now-lastT)/1000, .05) * timeScale; lastT=now;
 
     updateStats();
-
-    // clear in logical units (we’re drawing with a transform)
     ctx.setTransform(scaleX,0,0,scaleY,0,0);
     ctx.clearRect(0,0,tubeLogicalW,tubeLogicalH);
 
@@ -208,18 +191,16 @@
     // glottis marker
     ctx.save();
     ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.setLineDash([4,6]);
-    ctx.beginPath(); ctx.moveTo(glottisX, tubeMid - halfHeight(glottisX) - 16); ctx.lineTo(glottisX, tubeMid + halfHeight(glottisX) + 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(throatX, tubeMid - halfHeight(throatX) - 16); ctx.lineTo(throatX, tubeMid + halfHeight(throatX) + 16); ctx.stroke();
     ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='12px system-ui, sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Glottis', glottisX, tubeMid - halfHeight(glottisX) - 20);
+    ctx.fillText('Glottis', throatX, tubeMid - halfHeight(throatX) - 20);
     ctx.restore();
 
     requestAnimationFrame(loop);
   }
 
-  // --- Responsive: lock to viewport width, keep aspect, stay crisp on high-DPR ---
   let scaleX=1, scaleY=1;
   function resize(){
-    // CSS size already handled by aspect-ratio; use clientWidth to derive backing store
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const cssW = Math.max(1, canvas.clientWidth);
     const cssH = Math.max(1, canvas.clientHeight);
@@ -227,16 +208,13 @@
     canvas.width  = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
 
-    // scale drawing from logical 1100×380 to the backing store
     scaleX = (canvas.width  / tubeLogicalW);
     scaleY = (canvas.height / tubeLogicalH);
     ctx.setTransform(scaleX,0,0,scaleY,0,0);
 
-    // keep helpers in logical space
     tubeLen = tubeLogicalW;
     tubeMid = tubeLogicalH/2;
   }
-  // first paint + observe size changes
   resize();
   new ResizeObserver(resize).observe(canvas);
 
