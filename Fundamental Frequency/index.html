@@ -7,9 +7,9 @@
 <style>
   :root {
     --bg: #0f1115;
-    --circle: #0a1b3d;
+    --circle: #0a1b3d; /* navy dark blue */
     --text: #ffffff;
-    --muted: #cfd6e3;       /* lighter for readability */
+    --muted: #bbbbbb;
     --border: #273043;
   }
   * { box-sizing: border-box; }
@@ -18,15 +18,13 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    font-family: system-ui, sans-serif;
     display: grid;
     grid-template-rows: 1fr auto;
     gap: 20px;
     padding: 20px;
     place-items: center;
   }
-
-  /* Main display */
   .circle {
     width: min(80vmin, 400px);
     height: min(80vmin, 400px);
@@ -44,80 +42,57 @@
     font-size: clamp(48px, 10vmin, 120px);
     font-weight: 800;
     line-height: 1;
-    color: var(--text);
-    text-shadow: 0 2px 8px rgba(0,0,0,.5);
   }
   .units {
     font-size: clamp(16px, 3vmin, 28px);
     color: var(--text);
-    text-shadow: 0 1px 6px rgba(0,0,0,.5);
     margin-top: 4px;
-    font-weight: 600;
-    letter-spacing: .02em;
   }
   .period {
-    font-size: clamp(14px, 2.4vmin, 20px); /* slightly larger */
-    color: var(--text);                     /* white for contrast */
-    opacity: 0.9;
-    text-shadow: 0 1px 6px rgba(0,0,0,.5);
+    font-size: clamp(12px, 2.2vmin, 18px);
+    color: var(--muted);
     margin-top: 2px;
-    font-weight: 600;
   }
-
-  /* Controls: no rectangle, compact, white text */
   .controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    width: min(700px, 100%);
-    /* removed border/background/padding */
-  }
-  .field {
     display: grid;
-    gap: 6px;
-    min-width: 220px;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #171a21;
+    padding: 10px;
+    align-items: center;
+    width: min(500px, 100%);
   }
-  .field label {
-    font-size: 14px;
-    color: var(--text);               /* white label */
-    font-weight: 700;
-    letter-spacing: .01em;
+  label {
+    font-size: 13px;
+    color: var(--muted);
+    display: grid;
+    gap: 4px;
   }
   select {
-    padding: 8px 10px;
-    border-radius: 10px;
+    padding: 6px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: #0f1320;
-    color: var(--text);               /* white text */
-    font-size: 14px;                  /* bigger for readability */
-    font-weight: 600;
-    outline: none;
-  }
-  .buttons {
-    display: inline-flex;
-    gap: 8px;
+    color: var(--text);
   }
   button {
-    padding: 10px 16px;
-    border-radius: 12px;
+    padding: 8px 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     background: #121826;
-    color: var(--text);               /* white text */
+    color: var(--text);
     cursor: pointer;
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: .01em;
   }
-  button:hover:not(:disabled) { filter: brightness(1.1); }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-
+  button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
   .status {
-    font-size: 12px;                  /* deliberately smaller than buttons */
+    font-size: 13px;
     color: var(--muted);
-    opacity: .95;
-    margin-left: 4px;
-    white-space: nowrap;              /* keep it compact */
+    margin-left: 8px;
   }
 </style>
 </head>
@@ -129,16 +104,14 @@
   </div>
 
   <div class="controls">
-    <div class="field">
-      <label for="deviceSelect">Microphone</label>
+    <label>
+      Microphone
       <select id="deviceSelect"></select>
-    </div>
-
-    <div class="buttons">
+    </label>
+    <div>
       <button id="startBtn">Start</button>
       <button id="stopBtn" disabled>Stop</button>
     </div>
-
     <div class="status" id="status">Idle</div>
   </div>
 
@@ -241,34 +214,25 @@ function animate() {
 function detectPitchACF(buf, sr) {
   const n = buf.length;
   let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
-
-  // window + center
   const x = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
     x[i] = (buf[i] - mean) * w;
   }
-
-  // autocorrelation
   const corr = new Float32Array(n);
   for (let lag = 0; lag < n; lag++) {
     let sum = 0;
     for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
     corr[lag] = sum;
   }
-
   const minLag = Math.floor(sr / MAX_HZ);
   const maxLag = Math.floor(sr / MIN_HZ);
   if (maxLag >= n) return NaN;
-
-  // best lag in range
   let bestLag = -1, bestVal = -Infinity;
   for (let lag = minLag; lag <= maxLag; lag++) {
     if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
   }
   if (bestLag <= 0) return NaN;
-
-  // parabolic interpolation
   const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
   const denom = (y1 - 2 * y2 + y3);
   const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
