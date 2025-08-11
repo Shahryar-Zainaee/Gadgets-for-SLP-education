@@ -1,12 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>F0 — Navy Circle</title>
 <style>
   :root {
     --bg: #0f1115;
     --circle: #0a1b3d;
     --text: #ffffff;
-    --muted: #bbbbbb;
+    --muted: #cfd6e3;       /* lighter for readability */
     --border: #273043;
-    --panel: #171a21;
-    --chip: #0f1320;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -14,13 +18,15 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
     display: grid;
     grid-template-rows: 1fr auto;
     gap: 20px;
     padding: 20px;
     place-items: center;
   }
+
+  /* Main display */
   .circle {
     width: min(80vmin, 400px);
     height: min(80vmin, 400px);
@@ -34,61 +40,242 @@
     user-select: none;
     text-align: center;
   }
-  .f0 { font-size: clamp(48px, 10vmin, 120px); font-weight: 800; line-height: 1; }
-  .units { font-size: clamp(16px, 3vmin, 28px); margin-top: 4px; }
-  .period { font-size: clamp(12px, 2.2vmin, 18px); color: var(--muted); margin-top: 2px; }
-
-  /* Controls bar */
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 12px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--panel);
-    padding: 12px;
-    align-items: center;
-    width: min(720px, 100%); /* wider so it contains all buttons */
+  .f0 {
+    font-size: clamp(48px, 10vmin, 120px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text);
+    text-shadow: 0 2px 8px rgba(0,0,0,.5);
   }
-  label {
-    font-size: 13px;
-    color: var(--muted);
+  .units {
+    font-size: clamp(16px, 3vmin, 28px);
+    color: var(--text);
+    text-shadow: 0 1px 6px rgba(0,0,0,.5);
+    margin-top: 4px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+  .period {
+    font-size: clamp(14px, 2.4vmin, 20px); /* slightly larger */
+    color: var(--text);                     /* white for contrast */
+    opacity: 0.9;
+    text-shadow: 0 1px 6px rgba(0,0,0,.5);
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  /* Controls: no rectangle, compact, white text */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    width: min(700px, 100%);
+    /* removed border/background/padding */
+  }
+  .field {
     display: grid;
     gap: 6px;
+    min-width: 220px;
+  }
+  .field label {
+    font-size: 14px;
+    color: var(--text);               /* white label */
+    font-weight: 700;
+    letter-spacing: .01em;
   }
   select {
     padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--chip);
-    color: var(--text);
-    width: 100%;
-  }
-
-  /* Button group that wraps nicely if space is tight */
-  .btns {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  button {
-    padding: 8px 14px;
     border-radius: 10px;
     border: 1px solid var(--border);
-    background: #121826;
-    color: var(--text);
-    cursor: pointer;
-    min-width: 90px;
+    background: #0f1320;
+    color: var(--text);               /* white text */
+    font-size: 14px;                  /* bigger for readability */
+    font-weight: 600;
+    outline: none;
   }
+  .buttons {
+    display: inline-flex;
+    gap: 8px;
+  }
+  button {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #121826;
+    color: var(--text);               /* white text */
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .01em;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
   button:disabled { opacity: .5; cursor: not-allowed; }
 
-  .status { font-size: 13px; color: var(--muted); margin-left: 4px; justify-self: end; }
-
-  /* Stack nicely on small screens */
-  @media (max-width: 560px) {
-    .controls { grid-template-columns: 1fr; }
-    .status { justify-self: start; }
-    .btns { justify-content: flex-start; }
+  .status {
+    font-size: 12px;                  /* deliberately smaller than buttons */
+    color: var(--muted);
+    opacity: .95;
+    margin-left: 4px;
+    white-space: nowrap;              /* keep it compact */
   }
 </style>
+</head>
+<body>
+  <div class="circle">
+    <div class="f0" id="hz">—</div>
+    <div class="units">Hz</div>
+    <div class="period" id="period">— s</div>
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <label for="deviceSelect">Microphone</label>
+      <select id="deviceSelect"></select>
+    </div>
+
+    <div class="buttons">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="status" id="status">Idle</div>
+  </div>
+
+<script>
+const MIN_HZ = 50, MAX_HZ = 600;
+let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
+let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+
+// DOM refs
+const hzEl = document.getElementById('hz');
+const periodEl = document.getElementById('period');
+const deviceSelect = document.getElementById('deviceSelect');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
+
+// Mic list
+listMics();
+async function listMics() {
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const mics = devices.filter(d => d.kind === 'audioinput');
+  deviceSelect.innerHTML = '';
+  mics.forEach((d, i) => {
+    const opt = document.createElement('option');
+    opt.value = d.deviceId;
+    opt.textContent = d.label || `Microphone ${i + 1}`;
+    deviceSelect.appendChild(opt);
+  });
+}
+
+// Events
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+
+async function start() {
+  stop();
+  try {
+    const constraints = {
+      audio: {
+        deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false
+      }
+    };
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioCtx.createMediaStreamSource(mediaStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    source.connect(analyser);
+    sampleRate = audioCtx.sampleRate;
+    workBuf = new Float32Array(analyser.fftSize);
+    statusEl.textContent = 'Listening…';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    animate();
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = 'Mic blocked';
+  }
+}
+
+function stop() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  statusEl.textContent = 'Idle';
+  hzEl.textContent = '—';
+  periodEl.textContent = '— s';
+  lastHz = 0;
+}
+
+function animate() {
+  analyser.getFloatTimeDomainData(workBuf);
+  const hz = detectPitchACF(workBuf, sampleRate);
+  const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
+
+  if (isFinite(inRange)) {
+    if (lastHz === 0) lastHz = inRange;
+    lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
+  } else {
+    lastHz = (1 - emaAlpha) * lastHz;
+    if (lastHz < 1) lastHz = 0;
+  }
+
+  if (lastHz > 0) {
+    hzEl.textContent = lastHz.toFixed(0);
+    periodEl.textContent = (1 / lastHz).toFixed(3) + ' s';
+  } else {
+    hzEl.textContent = '—';
+    periodEl.textContent = '— s';
+  }
+
+  rafId = requestAnimationFrame(animate);
+}
+
+function detectPitchACF(buf, sr) {
+  const n = buf.length;
+  let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
+
+  // window + center
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
+    x[i] = (buf[i] - mean) * w;
+  }
+
+  // autocorrelation
+  const corr = new Float32Array(n);
+  for (let lag = 0; lag < n; lag++) {
+    let sum = 0;
+    for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
+    corr[lag] = sum;
+  }
+
+  const minLag = Math.floor(sr / MAX_HZ);
+  const maxLag = Math.floor(sr / MIN_HZ);
+  if (maxLag >= n) return NaN;
+
+  // best lag in range
+  let bestLag = -1, bestVal = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
+  }
+  if (bestLag <= 0) return NaN;
+
+  // parabolic interpolation
+  const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
+  const denom = (y1 - 2 * y2 + y3);
+  const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
+  const refinedLag = bestLag + shift;
+  const freq = sr / refinedLag;
+  return isFinite(freq) ? freq : NaN;
+}
+</script>
+</body>
+</html>
