@@ -1,282 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>F0 — Navy Circle</title>
-<style>
-  :root {
-    --bg: #0f1115;
-    --circle: #0a1b3d; /* navy dark blue */
-    --text: #ffffff;
-    --muted: #bbbbbb;
-    --border: #273043;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, sans-serif;
-    display: grid;
-    grid-template-rows: 1fr auto;
-    gap: 20px;
-    padding: 20px;
-    place-items: center;
-  }
-  .circle {
-    width: min(80vmin, 400px);
-    height: min(80vmin, 400px);
-    border-radius: 50%;
-    background: var(--circle);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 25px rgba(0,0,0,.4);
-    user-select: none;
-    text-align: center;
-  }
-  .f0 {
-    font-size: clamp(48px, 10vmin, 120px);
-    font-weight: 800;
-    line-height: 1;
-  }
-  .units {
-    font-size: clamp(16px, 3vmin, 28px);
-    color: var(--text);
-    margin-top: 4px;
-  }
-  .period {
-    font-size: clamp(12px, 2.2vmin, 18px);
-    color: var(--muted);
-    margin-top: 2px;
-  }
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 10px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: #171a21;
-    padding: 10px;
-    align-items: center;
-    width: min(560px, 100%);
-  }
-  label {
-    font-size: 13px;
-    color: var(--muted);
-    display: grid;
-    gap: 4px;
-  }
-  select {
-    padding: 6px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: #0f1320;
-    color: var(--text);
-  }
-  .btns { display: inline-flex; gap: 8px; align-items: center; }
-  button {
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #121826;
-    color: var(--text);
-    cursor: pointer;
-  }
-  button:disabled {
-    opacity: .5;
-    cursor: not-allowed;
-  }
-  .status {
-    font-size: 13px;
-    color: var(--muted);
-    margin-left: 8px;
-  }
-</style>
-</head>
-<body>
-  <div class="circle">
-    <div class="f0" id="hz">—</div>
-    <div class="units">Hz</div>
-    <div class="period" id="period">— ms</div>
-  </div>
-
-  <div class="controls">
-    <label>
-      Microphone
-      <select id="deviceSelect"></select>
-    </label>
-    <div class="btns">
-      <button id="startBtn">Start</button>
-      <button id="pauseBtn" disabled>Pause</button>
-      <button id="stopBtn" disabled>Stop</button>
-      <span class="status" id="status">Idle</span>
-    </div>
-  </div>
-
-<script>
-const MIN_HZ = 50, MAX_HZ = 600;
-let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
-let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
-let paused = false;
-
-// DOM refs
-const hzEl = document.getElementById('hz');
-const periodEl = document.getElementById('period');
-const deviceSelect = document.getElementById('deviceSelect');
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const stopBtn = document.getElementById('stopBtn');
-const statusEl = document.getElementById('status');
-
-// Mic list
-listMics();
-async function listMics() {
-  try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const mics = devices.filter(d => d.kind === 'audioinput');
-  deviceSelect.innerHTML = '';
-  mics.forEach((d, i) => {
-    const opt = document.createElement('option');
-    opt.value = d.deviceId;
-    opt.textContent = d.label || `Microphone ${i + 1}`;
-    deviceSelect.appendChild(opt);
-  });
+.controls {
+  display: flex;
+  flex-wrap: wrap;          /* lets things move to a new line on small screens */
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #171a21;
+  padding: 12px 14px;       /* a bit more breathing room */
+  width: min(600px, 100%);
 }
 
-// Events
-startBtn.addEventListener('click', start);
-pauseBtn.addEventListener('click', togglePause);
-stopBtn.addEventListener('click', stop);
-
-async function start() {
-  stop(); // reset if already running
-  try {
-    const constraints = {
-      audio: {
-        deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
-        echoCancellation: false, noiseSuppression: false, autoGainControl: false
-      }
-    };
-    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    source = audioCtx.createMediaStreamSource(mediaStream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0;
-    source.connect(analyser);
-    sampleRate = audioCtx.sampleRate;
-    workBuf = new Float32Array(analyser.fftSize);
-
-    statusEl.textContent = 'Listening…';
-    startBtn.disabled = true;
-    pauseBtn.disabled = false;
-    stopBtn.disabled = false;
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-
-    animate();
-  } catch (e) {
-    console.error(e);
-    statusEl.textContent = 'Mic blocked';
-  }
+.controls label {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 260px;          /* label+select takes available space */
+  min-width: 220px;
 }
 
-function togglePause() {
-  if (!audioCtx) return;
-  if (!paused) {
-    // Pause: freeze display at current value (stop RAF, keep mic open)
-    paused = true;
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    statusEl.textContent = 'Paused';
-    pauseBtn.textContent = 'Resume';
-  } else {
-    // Resume: continue updating
-    paused = false;
-    statusEl.textContent = 'Listening…';
-    pauseBtn.textContent = 'Pause';
-    animate();
-  }
+.controls > div:nth-child(2) {  /* the Start/Stop wrapper */
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
 }
 
-function stop() {
-  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
-  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-  startBtn.disabled = false;
-  pauseBtn.disabled = true;
-  stopBtn.disabled = true;
-  statusEl.textContent = 'Idle';
-  hzEl.textContent = '—';
-  periodEl.textContent = '— ms';
-  lastHz = 0;
-  paused = false;
-  pauseBtn.textContent = 'Pause';
+.controls .status {
+  margin-left: auto;        /* pushes status to the far right when space allows */
+  flex: 0 0 auto;
 }
 
-function animate() {
-  if (!analyser) return;
-  analyser.getFloatTimeDomainData(workBuf);
-  const hz = detectPitchACF(workBuf, sampleRate);
-  const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
-
-  // EMA smoothing
-  if (isFinite(inRange)) {
-    if (lastHz === 0) lastHz = inRange;
-    lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
-  } else {
-    lastHz = (1 - emaAlpha) * lastHz;
-    if (lastHz < 1) lastHz = 0;
-  }
-
-  if (lastHz > 0) {
-    hzEl.textContent = lastHz.toFixed(0);
-    periodEl.textContent = ((1 / lastHz) * 1000).toFixed(1) + ' ms';
-  } else {
-    hzEl.textContent = '—';
-    periodEl.textContent = '— ms';
-  }
-
-  if (!paused) {
-    rafId = requestAnimationFrame(animate);
-  }
-}
-
-function detectPitchACF(buf, sr) {
-  const n = buf.length;
-  let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
-  const x = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1))); // Hann
-    x[i] = (buf[i] - mean) * w;
-  }
-  const corr = new Float32Array(n);
-  for (let lag = 0; lag < n; lag++) {
-    let sum = 0;
-    for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
-    corr[lag] = sum;
-  }
-  const minLag = Math.floor(sr / MAX_HZ);
-  const maxLag = Math.floor(sr / MIN_HZ);
-  if (maxLag >= n) return NaN;
-
-  let bestLag = -1, bestVal = -Infinity;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
-  }
-  if (bestLag <= 0) return NaN;
-
-  const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
-  const denom = (y1 - 2 * y2 + y3);
-  const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
-  const refinedLag = bestLag + shift;
-
-  const freq = sr / refinedLag;
-  return isFinite(freq) ? freq : NaN;
-}
-</script>
-</body>
-</html>
+select { height: 36px; }    /* ensures consistent height with buttons */
+button { line-height: 1; }  /* avoids vertical overflow from default line-height */
