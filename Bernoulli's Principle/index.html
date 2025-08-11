@@ -80,7 +80,7 @@
 <body>
   <div class="app">
     <header>
-      <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up in the throat)</h1>
+      <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up in the glottis)</h1>
       <div id="controls">
         <label for="speed">Time scale: <strong id="speedLabel">1×</strong></label>
         <input id="speed" type="range" min="1" max="100" step="1" value="1" />
@@ -96,8 +96,8 @@
     <div class="statbar">
       <div class="stat"><div class="hd">ρ (air density)</div><div class="val"><span id="rho">1.20</span> kg/m³</div></div>
       <div class="stat"><div class="hd">Wide-section velocity</div><div class="val"><span id="vWide">—</span> m/s</div></div>
-      <div class="stat warn"><div class="hd">Throat (narrow) velocity</div><div class="val"><span id="vNarrow">—</span> m/s</div></div>
-      <div class="stat good"><div class="hd">Static pressure drop (wide → throat)</div><div class="val"><span id="dP">—</span> kPa</div></div>
+      <div class="stat warn"><div class="hd">Glottis (narrow) velocity</div><div class="val"><span id="vNarrow">—</span> m/s</div></div>
+      <div class="stat good"><div class="hd">Static pressure drop (wide → tlottis)</div><div class="val"><span id="dP">—</span> kPa</div></div>
     </div>
 
     <footer>
@@ -126,8 +126,8 @@
   const tubeLogicalW = 1100, tubeLogicalH = 380; // our logical drawing space
   let tubeLen = tubeLogicalW, tubeMid = tubeLogicalH/2;
 
-  const H_wide=120, H_throat=45, throatX=tubeLogicalW*0.50, throatWidthFrac=0.20, sigma=tubeLogicalW*throatWidthFrac*0.35;
-  function halfHeight(x){ const dx=x-throatX; const dip=(H_wide-H_throat)*Math.exp(-(dx*dx)/(2*sigma*sigma)); return H_wide - dip; }
+  const H_wide=120, H_gtlottis=45, gtlottisX=tubeLogicalW*0.50, gtlottisWidthFrac=0.20, sigma=tubeLogicalW*gtlottisWidthFrac*0.35;
+  function halfHeight(x){ const dx=x-gtlottisX; const dip=(H_wide-H_gtlottis)*Math.exp(-(dx*dx)/(2*sigma*sigma)); return H_wide - dip; }
 
   const vWideTarget=1.2, xWideRef=tubeLogicalW*0.05, A_wide=halfHeight(xWideRef), Q=vWideTarget*A_wide;
   function velocityAtX(x){ return Q / Math.max(halfHeight(x),1); }
@@ -172,9 +172,9 @@
   btnReset.addEventListener('click', ()=>{particles.length=0});
 
   function updateStats(){
-    const vWide=velocityAtX(xWideRef), vThroat=velocityAtX(throatX);
-    const dP=(pressureAtV(vWide)-pressureAtV(vThroat))/1000;
-    vWideEl.textContent=vWide.toFixed(2); vNarEl.textContent=vThroat.toFixed(2); dPEl.textContent=dP.toFixed(2);
+    const vWide=velocityAtX(xWideRef), vGtlottis=velocityAtX(gtlottisX);
+    const dP=(pressureAtV(vWide)-pressureAtV(vGtlottis))/1000;
+    vWideEl.textContent=vWide.toFixed(2); vNarEl.textContent=vGtlottis.toFixed(2); dPEl.textContent=dP.toFixed(2);
   }
 
   let lastT=performance.now();
@@ -205,12 +205,12 @@
       ctx.fillRect(p.x|0, p.y|0, size, size);
     }
 
-    // throat marker
+    // glottis marker
     ctx.save();
     ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.setLineDash([4,6]);
-    ctx.beginPath(); ctx.moveTo(throatX, tubeMid - halfHeight(throatX) - 16); ctx.lineTo(throatX, tubeMid + halfHeight(throatX) + 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(glottisX, tubeMid - halfHeight(glottisX) - 16); ctx.lineTo(glottisX, tubeMid + halfHeight(glottisX) + 16); ctx.stroke();
     ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='12px system-ui, sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Throat', throatX, tubeMid - halfHeight(throatX) - 20);
+    ctx.fillText('Glottis', glottisX, tubeMid - halfHeight(glottisX) - 20);
     ctx.restore();
 
     requestAnimationFrame(loop);
