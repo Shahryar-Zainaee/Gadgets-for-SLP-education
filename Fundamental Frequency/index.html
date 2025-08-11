@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Real‑Time F0</title>
+  <style>
+    :root {
+      --bg: #0f1115; --card: #171a21; --text: #f2f5f9; --muted: #9aa4b2; --accent: #6aa6ff; --border: #273043;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      display: grid; place-items: center; padding: 16px;
+    }
+    .card {
+      width: min(980px, 100%); background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    h1 { margin: 0 0 12px; font-weight: 650; }
+    .controls {
+      display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center;
+      border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+    }
+    .controls label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+    .controls select, input[type="number"], input[type="range"] {
+      width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0f1320; color: var(--text);
+    }
+    .row { display: inline-flex; gap: 8px; align-items: center; }
+    button {
+      padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);
+      background: #121826; color: var(--text); cursor: pointer;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #smoothVal { color: var(--muted); margin-left: 6px; }
+    .readout {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0;
+    }
+    .tile {
+      border: 1px solid var(--border); border-radius: 14px; padding: 12px; display: grid; gap: 6px;
+    }
+    .label { font-size: 13px; color: var(--muted); }
+    .value { font-size: 28px; font-weight: 700; letter-spacing: .5px; }
+    .viz { margin-top: 8px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    #scope { width: 100%; display: block; background: #0a0d16; }
+    footer { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Real‑Time F0</h1>
+
+    <section class="controls">
+      <label>
+        Microphone
+        <select id="deviceSelect"></select>
+      </label>
+
+      <div class="row">
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+      </div>
+
+      <label>
+        Smoothing (ms)
+        <input id="smoothMs" type="range" min="0" max="200" value="80" />
+        <span id="smoothVal">80</span>
+      </label>
+
+      <label>
+        A4 tuning
+        <div class="row">
+          <input id="a4" type="number" value="440" min="400" max="466" step="1" />
+          <span>Hz</span>
+        </div>
+      </label>
+    </section>
+
+    <section class="readout">
+      <div class="tile">
+        <div class="label">F0 (Hz)</div>
+        <div id="hz" class="value">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Note</div>
+        <div id="note" class="value">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Status</div>
+        <div id="status" class="value">Idle</div>
+      </div>
+    </section>
+
+    <section class="viz">
+      <canvas id="scope" width="900" height="160"></canvas>
+    </section>
+
+    <footer>Runs locally in your browser. No audio is uploaded.</footer>
+  </main>
+
+  <script>
+    // --- globals
+    let audioCtx, analyser, mediaStream, source, workBuf;
+    let rafId = null;
+    let lastHz = 0, emaAlpha = 0.2, sampleRate = 48000;
+    const MIN_HZ = 50, MAX_HZ = 600;
+
+    // --- dom
+    const deviceSelect = document.getElementById('deviceSelect');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const smoothMs = document.getElementById('smoothMs');
+    const smoothVal = document.getElementById('smoothVal');
+    const a4Input = document.getElementById('a4');
+    const hzEl = document.getElementById('hz');
+    const noteEl = document.getElementById('note');
+    const statusEl = document.getElementById('status');
+    const scope = document.getElementById('scope');
+    const g = scope.getContext('2d');
+
+    async function listMics() {
+      try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      deviceSelect.innerHTML = '';
+      mics.forEach((d, i) => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Microphone ${i + 1}`;
+        deviceSelect.appendChild(opt);
+      });
+    }
+
+    function noteNameFromHz(hz, a4 = 440) {
+      if (!hz || !isFinite(hz)) return '—';
+      const n = Math.round(12 * Math.log2(hz / a4)) + 69; // MIDI
+      const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+      const name = names[(n % 12 + 12) % 12];
+      const octave = Math.floor(n / 12) - 1;
+      const cents = Math.round(1200 * Math.log2(hz / (a4 * Math.pow(2, (n - 69) / 12))));
+      const centsStr = cents > 0 ? `+${cents}` : `${cents}`;
+      return `${name}${octave} (${centsStr}¢)`;
+    }
+
+    function updateEMAAlpha() {
+      const frameMs = 1000 / 60;
+      const windowMs = Number(smoothMs.value);
+      smoothVal.textContent = windowMs;
+      const k = Math.max(1, windowMs / frameMs);
+      emaAlpha = 1 / k;
+    }
+
+    async function start() {
+      stop();
+      try {
+        const constraints = {
+          audio: {
+            deviceId: deviceSelect.value ? { exact: deviceSelect.value } : undefined,
+            echoCancellation: false, noiseSuppression: false, autoGainControl: false
+          }
+        };
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaStreamSource(mediaStream);
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0;
+        source.connect(analyser);
+
+        sampleRate = audioCtx.sampleRate;
+        workBuf = new Float32Array(analyser.fftSize);
+
+        updateEMAAlpha();
+        statusEl.textContent = 'Listening…';
+        animate();
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (e) {
+        statusEl.textContent = 'Mic blocked';
+        console.error(e);
+      }
+    }
+
+    function stop() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
+      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      hzEl.textContent = '—';
+      noteEl.textContent = '—';
+      statusEl.textContent = 'Idle';
+      drawScope([], 0);
+      lastHz = 0;
+    }
+
+    function animate() {
+      analyser.getFloatTimeDomainData(workBuf);
+      const hz = detectPitchACF(workBuf, sampleRate);
+
+      let showHz = (hz && hz >= MIN_HZ && hz <= MAX_HZ) ? hz : NaN;
+
+      if (isFinite(showHz)) {
+        if (lastHz === 0) lastHz = showHz;
+        lastHz = (1 - emaAlpha) * lastHz + emaAlpha * showHz;
+      } else {
+        lastHz = (1 - emaAlpha) * lastHz;
+        if (lastHz < 1) lastHz = 0;
+      }
+
+      if (lastHz > 0) {
+        hzEl.textContent = lastHz.toFixed(1);
+        noteEl.textContent = noteNameFromHz(lastHz, Number(a4Input.value) || 440);
+      } else {
+        hzEl.textContent = '—';
+        noteEl.textContent = '—';
+      }
+
+      drawScope(workBuf, analyser.fftSize);
+      rafId = requestAnimationFrame(animate);
+    }
+
+    // Autocorrelation + parabolic interp
+    function detectPitchACF(buf, sr) {
+      const n = buf.length;
+      let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
+
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1))); // Hann window
+        x[i] = (buf[i] - mean) * w;
+      }
+
+      const corr = new Float32Array(n);
+      for (let lag = 0; lag < n; lag++) {
+        let sum = 0;
+        for (let i = 0; i < n - lag; i++) sum += x[i] * x[i + lag];
+        corr[lag] = sum;
+      }
+
+      const minLag = Math.floor(sr / MAX_HZ);
+      const maxLag = Math.floor(sr / MIN_HZ);
+      if (maxLag >= n) return NaN;
+
+      let bestLag = -1, bestVal = -Infinity;
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
+      }
+      if (bestLag <= 0) return NaN;
+
+      const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
+      const denom = (y1 - 2 * y2 + y3);
+      let shift = 0; if (denom !== 0) shift = 0.5 * (y1 - y3) / denom;
+
+      const refinedLag = bestLag + shift;
+      const freq = sr / refinedLag;
+      return isFinite(freq) ? freq : NaN;
+    }
+
+    function drawScope(data, N) {
+      const w = scope.width, h = scope.height;
+      g.clearRect(0, 0, w, h);
+
+      // grid
+      g.globalAlpha = 0.5; g.lineWidth = 1; g.beginPath();
+      for (let x = 0; x < w; x += 50) { g.moveTo(x, 0); g.lineTo(x, h); }
+      for (let y = 0; y < h; y += 40) { g.moveTo(0, y); g.lineTo(w, y); }
+      g.strokeStyle = '#1f2a3a'; g.stroke(); g.globalAlpha = 1;
+
+      if (!data || data.length === 0) return;
+      g.lineWidth = 2; g.beginPath();
+      const mid = h / 2;
+      for (let i = 0; i < data.length; i++) {
+        const x = (i / (data.length - 1)) * w;
+        const y = mid - data[i] * (h * 0.45);
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.strokeStyle = '#6aa6ff'; g.stroke();
+    }
+
+    startBtn.addEventListener('click', start);
+    stopBtn.addEventListener('click', stop);
+    smoothMs.addEventListener('input', updateEMAAlpha);
+    a4Input.addEventListener('change', () => {});
+    listMics();
+  </script>
+</body>
+</html>
