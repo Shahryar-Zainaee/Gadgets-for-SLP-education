@@ -15,8 +15,9 @@
     --accent:#5ab0ff;
     --good:#4ade80;
     --warn:#f59e0b;
-    --particle:#ffff00; /* requested particle color */
+    --particle:#ffff00; /* particle color */
   }
+
   /* Reset */
   *,*::before,*::after{box-sizing:border-box}
   html,body{height:100%}
@@ -28,12 +29,14 @@
     display:flex; align-items:center; justify-content:center;
     padding:16px;
   }
+
   .app{
     width:min(1100px, 100%);
     display:grid;
     grid-template-columns: 1fr;
     gap:12px;
   }
+
   .card{
     background:var(--panel);
     border:1px solid #243046;
@@ -41,24 +44,59 @@
     box-shadow:0 6px 24px rgba(0,0,0,.25);
     overflow:hidden;
   }
-  .row{display:flex; gap:12px; flex-wrap:wrap}
+
   header{
     padding:12px 16px;
     border-bottom:1px solid #1f2a3f;
     display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   }
-  header h1{font-size:18px; margin:0; font-weight:600; letter-spacing:.2px}
-  #controls{
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  header h1{
+    margin:0;
+    font-weight:600; letter-spacing:.2px;
+    /* scales nicely from phones to desktop */
+    font-size:clamp(14px, 2.6vw, 18px);
+    line-height:1.25;
+    flex:1 1 280px; /* let it wrap before squishing controls */
   }
-  label{font-size:14px; color:var(--muted)}
-  input[type=range]{width:200px}
+
+  #controls{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    justify-content:flex-end;
+    flex:1 1 260px;
+  }
+
+  label{font-size:14px; color:var(--muted); white-space:nowrap}
+  #speedLabel{color:var(--text)}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none;
+    width:220px; max-width:100%;
+    height:6px; border-radius:999px; background:#1b2640; outline:none;
+    flex:1 1 160px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:22px; height:22px; border-radius:50%;
+    background:var(--accent); border:2px solid #0b1222;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px; height:22px; border-radius:50%;
+    background:var(--accent); border:2px solid #0b1222;
+  }
+
   .btn{
     background:#182036; color:var(--text);
-    border:1px solid #2a3a58; border-radius:10px; padding:8px 12px; cursor:pointer;
-    font-size:14px;
+    border:1px solid #2a3a58; border-radius:10px; padding:10px 14px; cursor:pointer;
+    font-size:14px; line-height:1;
+    touch-action:manipulation;
   }
+  .btn:active{transform:translateY(1px)}
   .btn:hover{border-color:#3b5281}
+
+  canvas{
+    display:block; width:100%; height:auto;
+    background:linear-gradient(#0c1220,#0a0f1a)
+  }
+
   .statbar{
     display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
     gap:8px; padding:10px 12px; border-top:1px solid #1f2a3f; background:#0f1523;
@@ -70,8 +108,42 @@
   .stat .val{font-size:16px; font-weight:600}
   .stat.good .val{color:var(--good)}
   .stat.warn .val{color:var(--warn)}
-  canvas{display:block; width:100%; height:auto; background:linear-gradient(#0c1220,#0a0f1a)}
-  footer{font-size:12px; color:var(--muted); text-align:center; padding-top:6px}
+
+  footer{font-size:12px; color:var(--muted); text-align:center; padding:8px 12px 12px}
+
+  /* ---------- Responsive tweaks ---------- */
+
+  /* Tablets and down */
+  @media (max-width: 900px){
+    body{padding:12px}
+    .app{gap:10px}
+    header{gap:10px}
+    #controls{justify-content:space-between}
+    .stat .val{font-size:15px}
+  }
+
+  /* Phones */
+  @media (max-width: 600px){
+    header{flex-direction:column; align-items:stretch}
+    header h1{flex:none}
+    #controls{
+      width:100%;
+      gap:8px;
+    }
+    /* Make controls a tidy 2-row stack on narrow screens */
+    #controls > label{order:0}
+    #controls > input[type=range]{order:1; width:100%}
+    #controls > .btn{order:2; flex:1 1 48%}
+    .statbar{grid-template-columns: repeat(2, minmax(0,1fr));}
+  }
+
+  /* Very small phones */
+  @media (max-width: 400px){
+    .btn{padding:12px 14px; font-size:15px}
+    label{font-size:13px}
+    .statbar{grid-template-columns: 1fr}
+    .stat .val{font-size:15px}
+  }
 </style>
 </head>
 <body>
@@ -81,7 +153,7 @@
       <div id="controls">
         <label for="speed">Time scale: <strong id="speedLabel">1×</strong></label>
         <input id="speed" type="range" min="1" max="100" step="1" value="1" />
-        <button id="toggle" class="btn" aria-pressed="false">Pause</button>
+        <button id="toggle" class="btn" aria-pressed="false" aria-controls="sim">Pause</button>
         <button id="reset" class="btn">Reset</button>
       </div>
     </header>
@@ -134,37 +206,31 @@
   const tubeLen = canvas.width;     // horizontal model length (px)
   const tubeMid = Math.floor(canvas.height/2);
 
-  // Tube shape: smooth contraction to throat then expansion
-  // Define half-height H(x) (px) for the inner wall relative to centerline.
+  // Tube shape
   const H_wide   = 120;  // half-height in wide sections
   const H_throat = 45;   // half-height at the narrowest point
   const throatX  = tubeLen * 0.50;
-  const throatWidthFrac = 0.20; // fraction of length influenced by throat shape
+  const throatWidthFrac = 0.20;
   const sigma = tubeLen * throatWidthFrac * 0.35;
 
   function halfHeight(x){
-    // Gaussian dip centered at throatX, clamped to H_throat minimum
     const dx = x - throatX;
     const dip = (H_wide - H_throat) * Math.exp(-(dx*dx)/(2*sigma*sigma));
-    return H_wide - dip; // ranges between H_throat and H_wide
+    return H_wide - dip;
   }
 
-  // Convert 2D tube to an effective "area" (unit depth), so A(x) ∝ H(x)
-  // Continuity: v(x) * A(x) = constant = Q
-  // We'll choose Q so that v_wide ≈ 1.2 m/s for nice motion on screen.
-  const vWideTarget = 1.2; // m/s (arbitrary demo baseline)
-  // Pick a representative "wide" x near inlet
+  // Flow continuity
+  const vWideTarget = 1.2; // m/s (demo baseline)
   const xWideRef = tubeLen * 0.05;
-  const A_wide = halfHeight(xWideRef);    // proportional area (px units)
-  const Q = vWideTarget * A_wide;         // arbitrary units: m/s * px
+  const A_wide = halfHeight(xWideRef);
+  const Q = vWideTarget * A_wide;
 
   function velocityAtX(x){
-    const A = Math.max(halfHeight(x), 1); // avoid divide-by-zero
-    return Q / A; // m/s (scaled)
+    const A = Math.max(halfHeight(x), 1);
+    return Q / A;
   }
 
-  // Bernoulli: P + 1/2 rho v^2 = constant along a streamline (neglect height, losses)
-  // Set static pressure in the wide section to ~ambient; compute total pressure.
+  // Bernoulli
   const v_wide_ref = velocityAtX(xWideRef);
   const P_total = P_ambient + 0.5 * rho * v_wide_ref * v_wide_ref;
 
@@ -175,31 +241,25 @@
   // Particles
   const particles = [];
   const particleColor = getComputedStyle(document.documentElement)
-    .getPropertyValue('--particle').trim() || '#700000';
+    .getPropertyValue('--particle').trim() || '#ffff00';
 
   function spawnParticle(){
-    const x = -Math.random()*40 - 10; // just before inlet
-    // start y uniformly inside tube at inlet
+    const x = -Math.random()*40 - 10;
     const H0 = halfHeight(0);
-    const y = tubeMid + (Math.random()*2 - 1) * (H0 - 6); // keep off walls
+    const y = tubeMid + (Math.random()*2 - 1) * (H0 - 6);
     particles.push({ x, y, age: 0 });
   }
 
-  // Keep a target particle density independent of speed
   let spawnAccumulator = 0;
 
-  // Rendering helpers
   function drawTube(){
     ctx.save();
     ctx.lineWidth = 2;
-    // Fill interior
     ctx.beginPath();
-    // upper wall
     ctx.moveTo(0, tubeMid - halfHeight(0));
     for(let x=0; x<=tubeLen; x+=4){
       ctx.lineTo(x, tubeMid - halfHeight(x));
     }
-    // lower wall back
     for(let x=tubeLen; x>=0; x-=4){
       ctx.lineTo(x, tubeMid + halfHeight(x));
     }
@@ -209,7 +269,6 @@
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--tubeEdge');
     ctx.stroke();
 
-    // Centerline
     ctx.setLineDash([6,6]);
     ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.beginPath();
@@ -224,12 +283,10 @@
     return (y > tubeMid - h + 2) && (y < tubeMid + h - 2);
   }
 
-  // Map vertical position to a slight vertical drift toward centerline (streamline curvature)
   function verticalDrift(x, y){
     const h = halfHeight(x);
     const center = tubeMid;
     const dist = y - center;
-    // Gentle restoring toward center, stronger in throat (h smaller)
     const k = 0.8 / h;
     return -k * dist;
   }
@@ -255,7 +312,6 @@
     particles.length = 0;
   });
 
-  // Stats update (wide vs throat)
   function updateStats(){
     const vWide = velocityAtX(xWideRef);
     const xThroat = throatX;
@@ -272,59 +328,49 @@
   let lastT = performance.now();
   function loop(now){
     if(!running) return;
-    const rawDt = Math.min((now - lastT)/1000, 0.05); // s
+    const rawDt = Math.min((now - lastT)/1000, 0.05);
     lastT = now;
-    const dt = rawDt * timeScale; // scaled simulation time
+    const dt = rawDt * timeScale;
 
-    // Update stats early so UI feels responsive even when paused/play toggles
     updateStats();
 
     // Clear
+    ctx.setTransform(1,0,0,1,0,0);         // ensure clearRect works in device pixels
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // Draw tube background
     drawTube();
 
-    // Spawn new particles based on inlet speed and desired density
-    // Aim for ~ N particles per second at 1×; scale with velocity a bit for visuals
+    // Spawn new particles
     const inletSpeed = velocityAtX(0);
-    const targetRate = 180 * Math.sqrt(inletSpeed); // particles per sec (visual tuning)
+    const targetRate = 180 * Math.sqrt(inletSpeed);
     spawnAccumulator += targetRate * dt;
     while(spawnAccumulator >= 1){
       spawnParticle();
       spawnAccumulator -= 1;
     }
 
-    // Update and draw particles
+    // Draw particles
     ctx.fillStyle = particleColor;
-    const size = 4; // tiny particles
+    const size = 4;
+    const metersToPixels = 100; // px per m
     for(let i=particles.length-1; i>=0; i--){
       const p = particles[i];
-      // Velocity field (x-direction from continuity)
-      const vx = velocityAtX(p.x); // m/s
-      // Convert model m/s to pixels per second: scale factor
-      // Choose scaling so that vWideTarget ≈ 1.2 m/s moves ~120 px/s for nice visuals
-      const metersToPixels = 100; // px per m (arbitrary visualization scale)
-      const px_vx = vx * metersToPixels;
+      const vx = velocityAtX(p.x);
+      const vy = verticalDrift(p.x, p.y);
 
-      // Small vertical drift toward centerline to hint at streamline curvature
-      const vy = verticalDrift(p.x, p.y) * metersToPixels;
-
-      p.x += px_vx * dt;
-      p.y += vy * dt;
+      p.x += vx * metersToPixels * dt;
+      p.y += vy * metersToPixels * dt;
       p.age += dt;
 
-      // If particle leaves bounds or tube, recycle it
       if(p.x > canvas.width + 10 || !inTube(p.x, p.y) || p.age > 20){
         particles.splice(i,1);
         continue;
       }
-
-      // Draw
       ctx.fillRect(p.x|0, p.y|0, size, size);
     }
 
-    // Overlay throat marker & labels
+    // Throat marker
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.25)';
     ctx.setLineDash([4,6]);
@@ -346,17 +392,23 @@
   updateStats();
   requestAnimationFrame((t)=>{ lastT = t; loop(t); });
 
-  // Resize handling (keep internal math stable by resizing canvas CSS only)
+  // Responsive canvas: keep crisp on high-DPR devices while sizing via CSS only
   const ro = new ResizeObserver(entries=>{
     for(const entry of entries){
-      // Maintain device-pixel crispness
       const dpr = window.devicePixelRatio || 1;
-      const displayW = entry.contentRect.width;
-      const displayH = displayW * (canvas.height / canvas.width);
+      const displayW = Math.max(1, Math.floor(entry.contentRect.width));
+      const displayH = Math.max(1, Math.floor(displayW * (canvas.height / canvas.width)));
+
+      // Match the backing store to CSS size × DPR for sharpness
       canvas.style.width  = displayW + 'px';
       canvas.style.height = displayH + 'px';
-      // keep internal buffer fixed to original to avoid recomputing geometry
-      ctx.setTransform(dpr,0,0,dpr,0,0);
+      canvas.width  = Math.floor(displayW * dpr);
+      canvas.height = Math.floor(displayH * dpr);
+
+      // Recreate drawing scale to map 1100×380 logical space to new backing pixels
+      const scaleX = canvas.width / 1100;
+      const scaleY = canvas.height / 380;
+      ctx.setTransform(scaleX,0,0,scaleY,0,0);
     }
   });
   ro.observe(canvas);
