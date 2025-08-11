@@ -3,31 +3,78 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Real‑Time F0</title>
+  <title>F0 — Big Circle</title>
   <style>
     :root {
-      --bg: #0f1115; --card: #171a21; --text: #f2f5f9; --muted: #9aa4b2; --accent: #6aa6ff; --border: #273043;
+      --bg: #0f1115; --card: #171a21; --text: #f2f5f9; --muted: #9aa4b2; --border: #273043;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
       margin: 0; background: var(--bg); color: var(--text);
       font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-      display: grid; place-items: center; padding: 16px;
+      display: grid; grid-template-rows: 1fr auto; gap: 16px; padding: 16px;
     }
-    .card {
-      width: min(980px, 100%); background: var(--card); border: 1px solid var(--border);
-      border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+
+    /* Circle with F0 */
+    .center {
+      display: grid; place-items: center;
     }
-    h1 { margin: 0 0 12px; font-weight: 650; }
+    .circle {
+      width: min(80vmin, 520px);
+      height: min(80vmin, 520px);
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: radial-gradient(120% 120% at 50% 35%, #121826 0%, #0a0d16 60%, #070a12 100%);
+      display: grid; place-items: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35), inset 0 0 40px rgba(255,255,255,.04);
+      position: relative;
+    }
+    .f0 {
+      font-size: clamp(48px, 10vmin, 120px);
+      font-weight: 800;
+      letter-spacing: .5px;
+      line-height: 1;
+      text-align: center;
+      filter: drop-shadow(0 2px 10px rgba(0,0,0,.4));
+      user-select: none;
+    }
+    .units {
+      font-size: clamp(16px, 2.4vmin, 22px);
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Subtle ring that tints with pitch */
+    .ring {
+      position: absolute; inset: 10px;
+      border-radius: 50%;
+      border: 3px solid #1f2a3a;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.02);
+      opacity: .9;
+    }
+
+    /* Controls */
     .controls {
-      display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center;
-      border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 14px;
+      padding: 10px;
+      align-items: center;
     }
-    .controls label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
-    .controls select, input[type="number"], input[type="range"] {
-      width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
-      background: #0f1320; color: var(--text);
+    label { font-size: 13px; color: var(--muted); }
+    select, input[type="range"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f1320;
+      color: var(--text);
     }
     .row { display: inline-flex; gap: 8px; align-items: center; }
     button {
@@ -35,91 +82,63 @@
       background: #121826; color: var(--text); cursor: pointer;
     }
     button:disabled { opacity: .5; cursor: not-allowed; }
-    #smoothVal { color: var(--muted); margin-left: 6px; }
-    .readout {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0;
-    }
-    .tile {
-      border: 1px solid var(--border); border-radius: 14px; padding: 12px; display: grid; gap: 6px;
-    }
-    .label { font-size: 13px; color: var(--muted); }
-    .value { font-size: 28px; font-weight: 700; letter-spacing: .5px; }
-    .viz { margin-top: 8px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-    #scope { width: 100%; display: block; background: #0a0d16; }
-    footer { margin-top: 10px; color: var(--muted); font-size: 13px; }
+    .status { color: var(--muted); font-size: 13px; margin-left: 8px; }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Real‑Time F0</h1>
-
-    <section class="controls">
-      <label>
-        Microphone
-        <select id="deviceSelect"></select>
-      </label>
-
-      <div class="row">
-        <button id="startBtn">Start</button>
-        <button id="stopBtn" disabled>Stop</button>
+  <div class="center">
+    <div class="circle" id="circle">
+      <div class="ring" id="ring"></div>
+      <div>
+        <div class="f0" id="hz">—</div>
+        <div class="units">Hz</div>
       </div>
+    </div>
+  </div>
 
-      <label>
-        Smoothing (ms)
-        <input id="smoothMs" type="range" min="0" max="200" value="80" />
-        <span id="smoothVal">80</span>
-      </label>
+  <div class="controls">
+    <label>
+      Microphone
+      <select id="deviceSelect"></select>
+    </label>
 
-      <label>
-        A4 tuning
-        <div class="row">
-          <input id="a4" type="number" value="440" min="400" max="466" step="1" />
-          <span>Hz</span>
-        </div>
-      </label>
-    </section>
+    <label class="row" title="Higher = smoother, slower changes">
+      Responsiveness
+      <input id="smoothMs" type="range" min="60" max="400" value="160" />
+      <span id="smoothVal" aria-hidden="true">160 ms</span>
+    </label>
 
-    <section class="readout">
-      <div class="tile">
-        <div class="label">F0 (Hz)</div>
-        <div id="hz" class="value">—</div>
-      </div>
-      <div class="tile">
-        <div class="label">Note</div>
-        <div id="note" class="value">—</div>
-      </div>
-      <div class="tile">
-        <div class="label">Status</div>
-        <div id="status" class="value">Idle</div>
-      </div>
-    </section>
-
-    <section class="viz">
-      <canvas id="scope" width="900" height="160"></canvas>
-    </section>
-
-    <footer>Runs locally in your browser. No audio is uploaded.</footer>
-  </main>
+    <div class="row">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <span class="status" id="status">Idle</span>
+    </div>
+  </div>
 
   <script>
-    // --- globals
-    let audioCtx, analyser, mediaStream, source, workBuf;
-    let rafId = null;
-    let lastHz = 0, emaAlpha = 0.2, sampleRate = 48000;
-    const MIN_HZ = 50, MAX_HZ = 600;
+    // --- Config
+    const MIN_HZ = 60;   // set to 80 for adult male-only, or 50 for bass voices
+    const MAX_HZ = 600;  // bump to 800–1000 for child voices
+    const HUE_MIN = 200; // blue
+    const HUE_MAX = 10;  // red
 
-    // --- dom
+    // --- State
+    let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
+    let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+
+    // --- DOM
+    const hzEl = document.getElementById('hz');
+    const ringEl = document.getElementById('ring');
+    const circleEl = document.getElementById('circle');
     const deviceSelect = document.getElementById('deviceSelect');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const smoothMs = document.getElementById('smoothMs');
     const smoothVal = document.getElementById('smoothVal');
-    const a4Input = document.getElementById('a4');
-    const hzEl = document.getElementById('hz');
-    const noteEl = document.getElementById('note');
     const statusEl = document.getElementById('status');
-    const scope = document.getElementById('scope');
-    const g = scope.getContext('2d');
+
+    // Init mic list
+    listMics();
 
     async function listMics() {
       try { await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {}
@@ -134,24 +153,18 @@
       });
     }
 
-    function noteNameFromHz(hz, a4 = 440) {
-      if (!hz || !isFinite(hz)) return '—';
-      const n = Math.round(12 * Math.log2(hz / a4)) + 69; // MIDI
-      const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
-      const name = names[(n % 12 + 12) % 12];
-      const octave = Math.floor(n / 12) - 1;
-      const cents = Math.round(1200 * Math.log2(hz / (a4 * Math.pow(2, (n - 69) / 12))));
-      const centsStr = cents > 0 ? `+${cents}` : `${cents}`;
-      return `${name}${octave} (${centsStr}¢)`;
-    }
-
     function updateEMAAlpha() {
-      const frameMs = 1000 / 60;
+      const frameMs = 1000 / 60; // ~RAF
       const windowMs = Number(smoothMs.value);
-      smoothVal.textContent = windowMs;
+      smoothVal.textContent = windowMs + ' ms';
       const k = Math.max(1, windowMs / frameMs);
-      emaAlpha = 1 / k;
+      emaAlpha = 1 / k; // bigger window -> smaller alpha -> smoother
     }
+    smoothMs.addEventListener('input', updateEMAAlpha);
+    updateEMAAlpha();
+
+    startBtn.addEventListener('click', start);
+    stopBtn.addEventListener('click', stop);
 
     async function start() {
       stop();
@@ -175,15 +188,14 @@
         sampleRate = audioCtx.sampleRate;
         workBuf = new Float32Array(analyser.fftSize);
 
-        updateEMAAlpha();
         statusEl.textContent = 'Listening…';
-        animate();
-
         startBtn.disabled = true;
         stopBtn.disabled = false;
+
+        animate();
       } catch (e) {
-        statusEl.textContent = 'Mic blocked';
         console.error(e);
+        statusEl.textContent = 'Mic blocked';
       }
     }
 
@@ -193,50 +205,66 @@
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       startBtn.disabled = false;
       stopBtn.disabled = true;
-      hzEl.textContent = '—';
-      noteEl.textContent = '—';
       statusEl.textContent = 'Idle';
-      drawScope([], 0);
       lastHz = 0;
+      hzEl.textContent = '—';
+      tintRing(null);
     }
 
     function animate() {
       analyser.getFloatTimeDomainData(workBuf);
       const hz = detectPitchACF(workBuf, sampleRate);
+      const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
 
-      let showHz = (hz && hz >= MIN_HZ && hz <= MAX_HZ) ? hz : NaN;
-
-      if (isFinite(showHz)) {
-        if (lastHz === 0) lastHz = showHz;
-        lastHz = (1 - emaAlpha) * lastHz + emaAlpha * showHz;
+      // EMA smoothing
+      if (isFinite(inRange)) {
+        if (lastHz === 0) lastHz = inRange;
+        lastHz = (1 - emaAlpha) * lastHz + emaAlpha * inRange;
       } else {
+        // gentle decay toward zero to avoid flicker on unvoiced frames
         lastHz = (1 - emaAlpha) * lastHz;
         if (lastHz < 1) lastHz = 0;
       }
 
       if (lastHz > 0) {
-        hzEl.textContent = lastHz.toFixed(1);
-        noteEl.textContent = noteNameFromHz(lastHz, Number(a4Input.value) || 440);
+        hzEl.textContent = lastHz.toFixed(0);
+        tintRing(lastHz);
       } else {
         hzEl.textContent = '—';
-        noteEl.textContent = '—';
+        tintRing(null);
       }
 
-      drawScope(workBuf, analyser.fftSize);
       rafId = requestAnimationFrame(animate);
     }
 
-    // Autocorrelation + parabolic interp
+    // Pitch -> ring tint
+    function tintRing(hz) {
+      if (!hz || !isFinite(hz)) {
+        ringEl.style.borderColor = '#1f2a3a';
+        ringEl.style.boxShadow = 'inset 0 0 0 2px rgba(255,255,255,.02)';
+        return;
+      }
+      const t = Math.min(1, Math.max(0, (hz - MIN_HZ) / (MAX_HZ - MIN_HZ)));
+      const hue = (1 - t) * HUE_MIN + t * HUE_MAX;
+      const col = `hsl(${hue}, 80%, 55%)`;
+      ringEl.style.borderColor = col;
+      ringEl.style.boxShadow = `inset 0 0 30px 2px ${col}22, 0 0 30px 2px ${col}11`;
+    }
+
+    // Time-domain autocorrelation with parabolic interpolation
     function detectPitchACF(buf, sr) {
       const n = buf.length;
+      // DC remove
       let mean = 0; for (let i = 0; i < n; i++) mean += buf[i]; mean /= n;
 
+      // Hann window
       const x = new Float32Array(n);
       for (let i = 0; i < n; i++) {
-        const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1))); // Hann window
+        const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
         x[i] = (buf[i] - mean) * w;
       }
 
+      // Autocorrelation
       const corr = new Float32Array(n);
       for (let lag = 0; lag < n; lag++) {
         let sum = 0;
@@ -248,47 +276,22 @@
       const maxLag = Math.floor(sr / MIN_HZ);
       if (maxLag >= n) return NaN;
 
+      // find best peak
       let bestLag = -1, bestVal = -Infinity;
       for (let lag = minLag; lag <= maxLag; lag++) {
         if (corr[lag] > bestVal) { bestVal = corr[lag]; bestLag = lag; }
       }
       if (bestLag <= 0) return NaN;
 
+      // parabolic refine
       const y1 = corr[bestLag - 1] || 0, y2 = corr[bestLag], y3 = corr[bestLag + 1] || 0;
       const denom = (y1 - 2 * y2 + y3);
-      let shift = 0; if (denom !== 0) shift = 0.5 * (y1 - y3) / denom;
-
+      const shift = denom !== 0 ? 0.5 * (y1 - y3) / denom : 0;
       const refinedLag = bestLag + shift;
+
       const freq = sr / refinedLag;
       return isFinite(freq) ? freq : NaN;
     }
-
-    function drawScope(data, N) {
-      const w = scope.width, h = scope.height;
-      g.clearRect(0, 0, w, h);
-
-      // grid
-      g.globalAlpha = 0.5; g.lineWidth = 1; g.beginPath();
-      for (let x = 0; x < w; x += 50) { g.moveTo(x, 0); g.lineTo(x, h); }
-      for (let y = 0; y < h; y += 40) { g.moveTo(0, y); g.lineTo(w, y); }
-      g.strokeStyle = '#1f2a3a'; g.stroke(); g.globalAlpha = 1;
-
-      if (!data || data.length === 0) return;
-      g.lineWidth = 2; g.beginPath();
-      const mid = h / 2;
-      for (let i = 0; i < data.length; i++) {
-        const x = (i / (data.length - 1)) * w;
-        const y = mid - data[i] * (h * 0.45);
-        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-      }
-      g.strokeStyle = '#6aa6ff'; g.stroke();
-    }
-
-    startBtn.addEventListener('click', start);
-    stopBtn.addEventListener('click', stop);
-    smoothMs.addEventListener('input', updateEMAAlpha);
-    a4Input.addEventListener('change', () => {});
-    listMics();
   </script>
 </body>
 </html>
