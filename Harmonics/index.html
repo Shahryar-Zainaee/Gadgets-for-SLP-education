@@ -99,6 +99,7 @@
     background: #0f1320;
     color: var(--text);
   }
+  .btns { display: inline-flex; gap: 8px; align-items: center; }
   button {
     padding: 8px 14px;
     border-radius: 10px;
@@ -116,7 +117,7 @@
   <div class="circle">
     <div class="f0" id="hz">—</div>
     <div class="units">Hz</div>
-    <div class="period" id="period">— s</div>
+    <div class="period" id="period">— ms</div>
   </div>
 
   <!-- Harmonics -->
@@ -131,23 +132,26 @@
       Microphone
       <select id="deviceSelect"></select>
     </label>
-    <div>
+    <div class="btns">
       <button id="startBtn">Start</button>
+      <button id="pauseBtn" disabled>Pause</button>
       <button id="stopBtn" disabled>Stop</button>
+      <span class="status" id="status">Idle</span>
     </div>
-    <div class="status" id="status">Idle</div>
   </div>
 
 <script>
 const MIN_HZ = 50, MAX_HZ = 600;
 let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
 let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+let paused = false;
 
 // DOM
 const hzEl = document.getElementById('hz');
 const periodEl = document.getElementById('period');
 const deviceSelect = document.getElementById('deviceSelect');
 const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusEl = document.getElementById('status');
 const chips = document.getElementById('chips');
@@ -186,10 +190,11 @@ async function listMics() {
 
 // Events
 startBtn.addEventListener('click', start);
+pauseBtn.addEventListener('click', togglePause);
 stopBtn.addEventListener('click', stop);
 
 async function start() {
-  stop();
+  stop(); // reset if already running
   try {
     const constraints = {
       audio: {
@@ -206,13 +211,33 @@ async function start() {
     source.connect(analyser);
     sampleRate = audioCtx.sampleRate;
     workBuf = new Float32Array(analyser.fftSize);
+
     statusEl.textContent = 'Listening…';
     startBtn.disabled = true;
+    pauseBtn.disabled = false;
     stopBtn.disabled = false;
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+
     animate();
   } catch (e) {
     console.error(e);
     statusEl.textContent = 'Mic blocked';
+  }
+}
+
+function togglePause() {
+  if (!audioCtx) return;
+  if (!paused) {
+    paused = true;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    statusEl.textContent = 'Paused';
+    pauseBtn.textContent = 'Resume';
+  } else {
+    paused = false;
+    statusEl.textContent = 'Listening…';
+    pauseBtn.textContent = 'Pause';
+    animate();
   }
 }
 
@@ -221,15 +246,19 @@ function stop() {
   if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
   startBtn.disabled = false;
+  pauseBtn.disabled = true;
   stopBtn.disabled = true;
   statusEl.textContent = 'Idle';
   lastHz = 0;
+  paused = false;
+  pauseBtn.textContent = 'Pause';
   hzEl.textContent = '—';
-  periodEl.textContent = '— s';
+  periodEl.textContent = '— ms';
   for (const el of chipEls) el.textContent = '— Hz';
 }
 
 function animate() {
+  if (!analyser) return;
   analyser.getFloatTimeDomainData(workBuf);
   const hz = detectPitchACF(workBuf, sampleRate);
   const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
@@ -245,7 +274,7 @@ function animate() {
 
   if (lastHz > 0) {
     hzEl.textContent = lastHz.toFixed(0);
-    periodEl.textContent = (1 / lastHz).toFixed(3) + ' s';
+    periodEl.textContent = ((1 / lastHz) * 1000).toFixed(1) + ' ms';
 
     // Update harmonics H1..H10
     for (let i = 0; i < 10; i++) {
@@ -254,11 +283,13 @@ function animate() {
     }
   } else {
     hzEl.textContent = '—';
-    periodEl.textContent = '— s';
+    periodEl.textContent = '— ms';
     for (const el of chipEls) el.textContent = '— Hz';
   }
 
-  rafId = requestAnimationFrame(animate);
+  if (!paused) {
+    rafId = requestAnimationFrame(animate);
+  }
 }
 
 // Time-domain autocorrelation with Hann window + parabolic interp
