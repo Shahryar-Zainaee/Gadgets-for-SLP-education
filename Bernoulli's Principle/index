@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Venturi Tube • Bernoulli Demo</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#121722;
+    --tube:#1e2a3b;
+    --tubeEdge:#2b3b55;
+    --text:#e8eefc;
+    --muted:#a8b3c7;
+    --accent:#5ab0ff;
+    --good:#4ade80;
+    --warn:#f59e0b;
+    --particle:#700000; /* requested particle color */
+  }
+  /* Reset */
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:16px;
+  }
+  .app{
+    width:min(1100px, 100%);
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid #243046;
+    border-radius:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+    overflow:hidden;
+  }
+  .row{display:flex; gap:12px; flex-wrap:wrap}
+  header{
+    padding:12px 16px;
+    border-bottom:1px solid #1f2a3f;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  header h1{font-size:18px; margin:0; font-weight:600; letter-spacing:.2px}
+  #controls{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  label{font-size:14px; color:var(--muted)}
+  input[type=range]{width:200px}
+  .btn{
+    background:#182036; color:var(--text);
+    border:1px solid #2a3a58; border-radius:10px; padding:8px 12px; cursor:pointer;
+    font-size:14px;
+  }
+  .btn:hover{border-color:#3b5281}
+  .statbar{
+    display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
+    gap:8px; padding:10px 12px; border-top:1px solid #1f2a3f; background:#0f1523;
+  }
+  .stat{
+    background:#10182a; border:1px solid #1f2a3f; border-radius:12px; padding:10px;
+  }
+  .stat .hd{font-size:12px; color:var(--muted); margin-bottom:4px}
+  .stat .val{font-size:16px; font-weight:600}
+  .stat.good .val{color:var(--good)}
+  .stat.warn .val{color:var(--warn)}
+  canvas{display:block; width:100%; height:auto; background:linear-gradient(#0c1220,#0a0f1a)}
+  footer{font-size:12px; color:var(--muted); text-align:center; padding-top:6px}
+</style>
+</head>
+<body>
+  <div class="app card">
+    <header>
+      <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up in the throat)</h1>
+      <div id="controls">
+        <label for="speed">Time scale: <strong id="speedLabel">1×</strong></label>
+        <input id="speed" type="range" min="1" max="100" step="1" value="1" />
+        <button id="toggle" class="btn" aria-pressed="false">Pause</button>
+        <button id="reset" class="btn">Reset</button>
+      </div>
+    </header>
+
+    <canvas id="sim" width="1100" height="380" aria-label="Venturi tube simulation with flowing particles"></canvas>
+
+    <div class="statbar">
+      <div class="stat">
+        <div class="hd">ρ (air density)</div>
+        <div class="val"><span id="rho">1.20</span> kg/m³</div>
+      </div>
+      <div class="stat">
+        <div class="hd">Wide-section velocity</div>
+        <div class="val"><span id="vWide">—</span> m/s</div>
+      </div>
+      <div class="stat warn">
+        <div class="hd">Throat (narrow) velocity</div>
+        <div class="val"><span id="vNarrow">—</span> m/s</div>
+      </div>
+      <div class="stat good">
+        <div class="hd">Static pressure drop (wide → throat)</div>
+        <div class="val"><span id="dP">—</span> kPa</div>
+      </div>
+    </div>
+
+    <footer>
+      Pressures from Bernoulli (level flow): P + ½ρv² = constant. Wide static pressure set near 101.3 kPa; values shown update continuously.
+    </footer>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('sim');
+  const ctx = canvas.getContext('2d');
+
+  // UI elements
+  const speedSlider = document.getElementById('speed');
+  const speedLabel  = document.getElementById('speedLabel');
+  const btnToggle   = document.getElementById('toggle');
+  const btnReset    = document.getElementById('reset');
+  const vWideEl     = document.getElementById('vWide');
+  const vNarEl      = document.getElementById('vNarrow');
+  const dPEl        = document.getElementById('dP');
+  const rhoEl       = document.getElementById('rho');
+
+  // Physical assumptions (demonstration scale)
+  const rho = 1.20;                 // kg/m^3 (air)
+  rhoEl.textContent = rho.toFixed(2);
+  const P_ambient = 101.3e3;        // Pa, used for wide static pressure
+  const tubeLen = canvas.width;     // horizontal model length (px)
+  const tubeMid = Math.floor(canvas.height/2);
+
+  // Tube shape: smooth contraction to throat then expansion
+  // Define half-height H(x) (px) for the inner wall relative to centerline.
+  const H_wide   = 120;  // half-height in wide sections
+  const H_throat = 45;   // half-height at the narrowest point
+  const throatX  = tubeLen * 0.50;
+  const throatWidthFrac = 0.20; // fraction of length influenced by throat shape
+  const sigma = tubeLen * throatWidthFrac * 0.35;
+
+  function halfHeight(x){
+    // Gaussian dip centered at throatX, clamped to H_throat minimum
+    const dx = x - throatX;
+    const dip = (H_wide - H_throat) * Math.exp(-(dx*dx)/(2*sigma*sigma));
+    return H_wide - dip; // ranges between H_throat and H_wide
+  }
+
+  // Convert 2D tube to an effective "area" (unit depth), so A(x) ∝ H(x)
+  // Continuity: v(x) * A(x) = constant = Q
+  // We'll choose Q so that v_wide ≈ 1.2 m/s for nice motion on screen.
+  const vWideTarget = 1.2; // m/s (arbitrary demo baseline)
+  // Pick a representative "wide" x near inlet
+  const xWideRef = tubeLen * 0.05;
+  const A_wide = halfHeight(xWideRef);    // proportional area (px units)
+  const Q = vWideTarget * A_wide;         // arbitrary units: m/s * px
+
+  function velocityAtX(x){
+    const A = Math.max(halfHeight(x), 1); // avoid divide-by-zero
+    return Q / A; // m/s (scaled)
+  }
+
+  // Bernoulli: P + 1/2 rho v^2 = constant along a streamline (neglect height, losses)
+  // Set static pressure in the wide section to ~ambient; compute total pressure.
+  const v_wide_ref = velocityAtX(xWideRef);
+  const P_total = P_ambient + 0.5 * rho * v_wide_ref * v_wide_ref;
+
+  function pressureAtV(v){
+    return P_total - 0.5 * rho * v * v; // Pa
+  }
+
+  // Particles
+  const particles = [];
+  const particleColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--particle').trim() || '#700000';
+
+  function spawnParticle(){
+    const x = -Math.random()*40 - 10; // just before inlet
+    // start y uniformly inside tube at inlet
+    const H0 = halfHeight(0);
+    const y = tubeMid + (Math.random()*2 - 1) * (H0 - 6); // keep off walls
+    particles.push({ x, y, age: 0 });
+  }
+
+  // Keep a target particle density independent of speed
+  let spawnAccumulator = 0;
+
+  // Rendering helpers
+  function drawTube(){
+    ctx.save();
+    ctx.lineWidth = 2;
+    // Fill interior
+    ctx.beginPath();
+    // upper wall
+    ctx.moveTo(0, tubeMid - halfHeight(0));
+    for(let x=0; x<=tubeLen; x+=4){
+      ctx.lineTo(x, tubeMid - halfHeight(x));
+    }
+    // lower wall back
+    for(let x=tubeLen; x>=0; x-=4){
+      ctx.lineTo(x, tubeMid + halfHeight(x));
+    }
+    ctx.closePath();
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tube');
+    ctx.fill();
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--tubeEdge');
+    ctx.stroke();
+
+    // Centerline
+    ctx.setLineDash([6,6]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(0, tubeMid);
+    ctx.lineTo(tubeLen, tubeMid);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function inTube(x,y){
+    const h = halfHeight(x);
+    return (y > tubeMid - h + 2) && (y < tubeMid + h - 2);
+  }
+
+  // Map vertical position to a slight vertical drift toward centerline (streamline curvature)
+  function verticalDrift(x, y){
+    const h = halfHeight(x);
+    const center = tubeMid;
+    const dist = y - center;
+    // Gentle restoring toward center, stronger in throat (h smaller)
+    const k = 0.8 / h;
+    return -k * dist;
+  }
+
+  // UI state
+  let timeScale = 1;  // 1–100×
+  let running = true;
+
+  speedSlider.addEventListener('input', () => {
+    timeScale = Number(speedSlider.value);
+    speedLabel.textContent = `${timeScale}×`;
+  });
+
+  btnToggle.addEventListener('click', () => {
+    running = !running;
+    btnToggle.textContent = running ? 'Pause' : 'Play';
+    btnToggle.setAttribute('aria-pressed', String(!running));
+    if(running) lastT = performance.now();
+    requestAnimationFrame(loop);
+  });
+
+  btnReset.addEventListener('click', () => {
+    particles.length = 0;
+  });
+
+  // Stats update (wide vs throat)
+  function updateStats(){
+    const vWide = velocityAtX(xWideRef);
+    const xThroat = throatX;
+    const vThroat = velocityAtX(xThroat);
+    const Pwide = pressureAtV(vWide);
+    const Pthroat = pressureAtV(vThroat);
+    const dP = (Pwide - Pthroat)/1000; // kPa drop
+    vWideEl.textContent = vWide.toFixed(2);
+    vNarEl.textContent  = vThroat.toFixed(2);
+    dPEl.textContent    = dP.toFixed(2);
+  }
+
+  // Animation loop
+  let lastT = performance.now();
+  function loop(now){
+    if(!running) return;
+    const rawDt = Math.min((now - lastT)/1000, 0.05); // s
+    lastT = now;
+    const dt = rawDt * timeScale; // scaled simulation time
+
+    // Update stats early so UI feels responsive even when paused/play toggles
+    updateStats();
+
+    // Clear
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Draw tube background
+    drawTube();
+
+    // Spawn new particles based on inlet speed and desired density
+    // Aim for ~ N particles per second at 1×; scale with velocity a bit for visuals
+    const inletSpeed = velocityAtX(0);
+    const targetRate = 180 * Math.sqrt(inletSpeed); // particles per sec (visual tuning)
+    spawnAccumulator += targetRate * dt;
+    while(spawnAccumulator >= 1){
+      spawnParticle();
+      spawnAccumulator -= 1;
+    }
+
+    // Update and draw particles
+    ctx.fillStyle = particleColor;
+    const size = 2; // tiny particles
+    for(let i=particles.length-1; i>=0; i--){
+      const p = particles[i];
+      // Velocity field (x-direction from continuity)
+      const vx = velocityAtX(p.x); // m/s
+      // Convert model m/s to pixels per second: scale factor
+      // Choose scaling so that vWideTarget ≈ 1.2 m/s moves ~120 px/s for nice visuals
+      const metersToPixels = 100; // px per m (arbitrary visualization scale)
+      const px_vx = vx * metersToPixels;
+
+      // Small vertical drift toward centerline to hint at streamline curvature
+      const vy = verticalDrift(p.x, p.y) * metersToPixels;
+
+      p.x += px_vx * dt;
+      p.y += vy * dt;
+      p.age += dt;
+
+      // If particle leaves bounds or tube, recycle it
+      if(p.x > canvas.width + 10 || !inTube(p.x, p.y) || p.age > 20){
+        particles.splice(i,1);
+        continue;
+      }
+
+      // Draw
+      ctx.fillRect(p.x|0, p.y|0, size, size);
+    }
+
+    // Overlay throat marker & labels
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    ctx.moveTo(throatX, tubeMid - halfHeight(throatX) - 16);
+    ctx.lineTo(throatX, tubeMid + halfHeight(throatX) + 16);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Throat', throatX, tubeMid - halfHeight(throatX) - 20);
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+  }
+
+  // Kick off
+  updateStats();
+  requestAnimationFrame((t)=>{ lastT = t; loop(t); });
+
+  // Resize handling (keep internal math stable by resizing canvas CSS only)
+  const ro = new ResizeObserver(entries=>{
+    for(const entry of entries){
+      // Maintain device-pixel crispness
+      const dpr = window.devicePixelRatio || 1;
+      const displayW = entry.contentRect.width;
+      const displayH = displayW * (canvas.height / canvas.width);
+      canvas.style.width  = displayW + 'px';
+      canvas.style.height = displayH + 'px';
+      // keep internal buffer fixed to original to avoid recomputing geometry
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+  });
+  ro.observe(canvas);
+
+})();
+</script>
+</body>
+</html>
