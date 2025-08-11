@@ -2,152 +2,83 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- harden viewport for LMS/iframes -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Venturi Tube • Bernoulli Demo</title>
 <style>
   :root{
-    --bg:#0f1115;
-    --panel:#121722;
-    --tube:#1e2a3b;
-    --tubeEdge:#2b3b55;
-    --text:#e8eefc;
-    --muted:#a8b3c7;
-    --accent:#5ab0ff;
-    --good:#4ade80;
-    --warn:#f59e0b;
-    --particle:#ffff00; /* particle color */
+    --bg:#0f1115; --panel:#121722; --tube:#1e2a3b; --tubeEdge:#2b3b55;
+    --text:#e8eefc; --muted:#a8b3c7; --accent:#5ab0ff; --good:#4ade80; --warn:#f59e0b; --particle:#ffff00;
   }
 
-  /* Reset */
+  /* Reset + stop horizontal overflow cold */
   *,*::before,*::after{box-sizing:border-box}
-  html,body{height:100%}
+  html,body{height:100%; width:100%; overflow-x:hidden}
   body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
+    margin:0; background:var(--bg); color:var(--text);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
-    display:flex; align-items:center; justify-content:center;
-    padding:16px;
+    padding:12px;
   }
 
+  /* Container: never wider than the viewport */
   .app{
-    width:min(1100px, 100%);
-    display:grid;
-    grid-template-columns: 1fr;
-    gap:12px;
-  }
-
-  .card{
-    background:var(--panel);
-    border:1px solid #243046;
-    border-radius:14px;
-    box-shadow:0 6px 24px rgba(0,0,0,.25);
-    overflow:hidden;
+    max-width:100vw;
+    margin:0 auto;
+    display:grid; gap:10px;
+    background:var(--panel); border:1px solid #243046; border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.25);
   }
 
   header{
-    padding:12px 16px;
-    border-bottom:1px solid #1f2a3f;
-    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:10px 12px; border-bottom:1px solid #1f2a3f;
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;
   }
   header h1{
-    margin:0;
-    font-weight:600; letter-spacing:.2px;
-    /* scales nicely from phones to desktop */
-    font-size:clamp(14px, 2.6vw, 18px);
-    line-height:1.25;
-    flex:1 1 280px; /* let it wrap before squishing controls */
-  }
-
-  #controls{
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    justify-content:flex-end;
+    margin:0; line-height:1.25; font-weight:600; letter-spacing:.2px;
+    font-size:clamp(14px, 4vw, 18px);
     flex:1 1 260px;
   }
-
+  #controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; flex:1 1 240px}
   label{font-size:14px; color:var(--muted); white-space:nowrap}
   #speedLabel{color:var(--text)}
-  input[type=range]{
-    -webkit-appearance:none; appearance:none;
-    width:220px; max-width:100%;
-    height:6px; border-radius:999px; background:#1b2640; outline:none;
-    flex:1 1 160px;
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; appearance:none;
-    width:22px; height:22px; border-radius:50%;
-    background:var(--accent); border:2px solid #0b1222;
-  }
-  input[type=range]::-moz-range-thumb{
-    width:22px; height:22px; border-radius:50%;
-    background:var(--accent); border:2px solid #0b1222;
-  }
-
+  input[type=range]{width:min(220px, 60vw)}
   .btn{
-    background:#182036; color:var(--text);
-    border:1px solid #2a3a58; border-radius:10px; padding:10px 14px; cursor:pointer;
-    font-size:14px; line-height:1;
-    touch-action:manipulation;
+    background:#182036; color:var(--text); border:1px solid #2a3a58; border-radius:10px; padding:10px 14px; font-size:14px; cursor:pointer;
   }
-  .btn:active{transform:translateY(1px)}
-  .btn:hover{border-color:#3b5281}
 
-  canvas{
-    display:block; width:100%; height:auto;
-    background:linear-gradient(#0c1220,#0a0f1a)
+  /* Canvas is strictly responsive: width = 100vw of card, height via aspect-ratio */
+  .canvas-wrap{padding:0 0 0; width:100%}
+  #sim{
+    display:block;
+    width:100%;
+    max-width:100vw;        /* never overflow */
+    height:auto;
+    aspect-ratio: 1100 / 380; /* locks height on phones */
+    background:linear-gradient(#0c1220,#0a0f1a);
   }
 
   .statbar{
     display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
     gap:8px; padding:10px 12px; border-top:1px solid #1f2a3f; background:#0f1523;
   }
-  .stat{
-    background:#10182a; border:1px solid #1f2a3f; border-radius:12px; padding:10px;
-  }
+  .stat{background:#10182a; border:1px solid #1f2a3f; border-radius:12px; padding:10px}
   .stat .hd{font-size:12px; color:var(--muted); margin-bottom:4px}
   .stat .val{font-size:16px; font-weight:600}
-  .stat.good .val{color:var(--good)}
-  .stat.warn .val{color:var(--warn)}
-
+  .stat.good .val{color:var(--good)} .stat.warn .val{color:var(--warn)}
   footer{font-size:12px; color:var(--muted); text-align:center; padding:8px 12px 12px}
 
-  /* ---------- Responsive tweaks ---------- */
-
-  /* Tablets and down */
-  @media (max-width: 900px){
-    body{padding:12px}
-    .app{gap:10px}
-    header{gap:10px}
-    #controls{justify-content:space-between}
-    .stat .val{font-size:15px}
-  }
-
-  /* Phones */
-  @media (max-width: 600px){
+  /* Phone stacking */
+  @media (max-width: 640px){
     header{flex-direction:column; align-items:stretch}
-    header h1{flex:none}
-    #controls{
-      width:100%;
-      gap:8px;
-    }
-    /* Make controls a tidy 2-row stack on narrow screens */
-    #controls > label{order:0}
-    #controls > input[type=range]{order:1; width:100%}
-    #controls > .btn{order:2; flex:1 1 48%}
-    .statbar{grid-template-columns: repeat(2, minmax(0,1fr));}
+    #controls{justify-content:space-between}
+    .statbar{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
-
-  /* Very small phones */
   @media (max-width: 400px){
-    .btn{padding:12px 14px; font-size:15px}
-    label{font-size:13px}
-    .statbar{grid-template-columns: 1fr}
-    .stat .val{font-size:15px}
+    .statbar{grid-template-columns:1fr}
   }
 </style>
 </head>
 <body>
-  <div class="app card">
+  <div class="app">
     <header>
       <h1>Venturi Tube — Bernoulli’s Principle (Particles speed up in the throat)</h1>
       <div id="controls">
@@ -158,25 +89,15 @@
       </div>
     </header>
 
-    <canvas id="sim" width="1100" height="380" aria-label="Venturi tube simulation with flowing particles"></canvas>
+    <div class="canvas-wrap">
+      <canvas id="sim" width="1100" height="380" aria-label="Venturi tube simulation with flowing particles"></canvas>
+    </div>
 
     <div class="statbar">
-      <div class="stat">
-        <div class="hd">ρ (air density)</div>
-        <div class="val"><span id="rho">1.20</span> kg/m³</div>
-      </div>
-      <div class="stat">
-        <div class="hd">Wide-section velocity</div>
-        <div class="val"><span id="vWide">—</span> m/s</div>
-      </div>
-      <div class="stat warn">
-        <div class="hd">Throat (narrow) velocity</div>
-        <div class="val"><span id="vNarrow">—</span> m/s</div>
-      </div>
-      <div class="stat good">
-        <div class="hd">Static pressure drop (wide → throat)</div>
-        <div class="val"><span id="dP">—</span> kPa</div>
-      </div>
+      <div class="stat"><div class="hd">ρ (air density)</div><div class="val"><span id="rho">1.20</span> kg/m³</div></div>
+      <div class="stat"><div class="hd">Wide-section velocity</div><div class="val"><span id="vWide">—</span> m/s</div></div>
+      <div class="stat warn"><div class="hd">Throat (narrow) velocity</div><div class="val"><span id="vNarrow">—</span> m/s</div></div>
+      <div class="stat good"><div class="hd">Static pressure drop (wide → throat)</div><div class="val"><span id="dP">—</span> kPa</div></div>
     </div>
 
     <footer>
@@ -189,7 +110,7 @@
   const canvas = document.getElementById('sim');
   const ctx = canvas.getContext('2d');
 
-  // UI elements
+  // UI
   const speedSlider = document.getElementById('speed');
   const speedLabel  = document.getElementById('speedLabel');
   const btnToggle   = document.getElementById('toggle');
@@ -199,220 +120,128 @@
   const dPEl        = document.getElementById('dP');
   const rhoEl       = document.getElementById('rho');
 
-  // Physical assumptions (demonstration scale)
-  const rho = 1.20;                 // kg/m^3 (air)
-  rhoEl.textContent = rho.toFixed(2);
-  const P_ambient = 101.3e3;        // Pa, used for wide static pressure
-  const tubeLen = canvas.width;     // horizontal model length (px)
-  const tubeMid = Math.floor(canvas.height/2);
+  // Physics (demo scale)
+  const rho = 1.20; rhoEl.textContent = rho.toFixed(2);
+  const P_ambient = 101.3e3;
+  const tubeLogicalW = 1100, tubeLogicalH = 380; // our logical drawing space
+  let tubeLen = tubeLogicalW, tubeMid = tubeLogicalH/2;
 
-  // Tube shape
-  const H_wide   = 120;  // half-height in wide sections
-  const H_throat = 45;   // half-height at the narrowest point
-  const throatX  = tubeLen * 0.50;
-  const throatWidthFrac = 0.20;
-  const sigma = tubeLen * throatWidthFrac * 0.35;
+  const H_wide=120, H_throat=45, throatX=tubeLogicalW*0.50, throatWidthFrac=0.20, sigma=tubeLogicalW*throatWidthFrac*0.35;
+  function halfHeight(x){ const dx=x-throatX; const dip=(H_wide-H_throat)*Math.exp(-(dx*dx)/(2*sigma*sigma)); return H_wide - dip; }
 
-  function halfHeight(x){
-    const dx = x - throatX;
-    const dip = (H_wide - H_throat) * Math.exp(-(dx*dx)/(2*sigma*sigma));
-    return H_wide - dip;
-  }
+  const vWideTarget=1.2, xWideRef=tubeLogicalW*0.05, A_wide=halfHeight(xWideRef), Q=vWideTarget*A_wide;
+  function velocityAtX(x){ return Q / Math.max(halfHeight(x),1); }
 
-  // Flow continuity
-  const vWideTarget = 1.2; // m/s (demo baseline)
-  const xWideRef = tubeLen * 0.05;
-  const A_wide = halfHeight(xWideRef);
-  const Q = vWideTarget * A_wide;
-
-  function velocityAtX(x){
-    const A = Math.max(halfHeight(x), 1);
-    return Q / A;
-  }
-
-  // Bernoulli
-  const v_wide_ref = velocityAtX(xWideRef);
-  const P_total = P_ambient + 0.5 * rho * v_wide_ref * v_wide_ref;
-
-  function pressureAtV(v){
-    return P_total - 0.5 * rho * v * v; // Pa
-  }
+  const v_wide_ref=velocityAtX(xWideRef), P_total=P_ambient+0.5*rho*v_wide_ref*v_wide_ref;
+  const pressureAtV = v => P_total - 0.5*rho*v*v;
 
   // Particles
-  const particles = [];
-  const particleColor = getComputedStyle(document.documentElement)
-    .getPropertyValue('--particle').trim() || '#ffff00';
-
+  const particles=[]; const particleColor=getComputedStyle(document.documentElement).getPropertyValue('--particle').trim()||'#ffff00';
   function spawnParticle(){
     const x = -Math.random()*40 - 10;
-    const H0 = halfHeight(0);
-    const y = tubeMid + (Math.random()*2 - 1) * (H0 - 6);
-    particles.push({ x, y, age: 0 });
+    const y = tubeMid + (Math.random()*2-1)*(halfHeight(0)-6);
+    particles.push({x,y,age:0});
   }
-
-  let spawnAccumulator = 0;
+  let spawnAccumulator=0;
 
   function drawTube(){
     ctx.save();
-    ctx.lineWidth = 2;
+    ctx.lineWidth=2;
     ctx.beginPath();
     ctx.moveTo(0, tubeMid - halfHeight(0));
-    for(let x=0; x<=tubeLen; x+=4){
-      ctx.lineTo(x, tubeMid - halfHeight(x));
-    }
-    for(let x=tubeLen; x>=0; x-=4){
-      ctx.lineTo(x, tubeMid + halfHeight(x));
-    }
+    for(let x=0; x<=tubeLen; x+=4) ctx.lineTo(x, tubeMid - halfHeight(x));
+    for(let x=tubeLen; x>=0; x-=4) ctx.lineTo(x, tubeMid + halfHeight(x));
     ctx.closePath();
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tube');
-    ctx.fill();
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--tubeEdge');
-    ctx.stroke();
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--tube'); ctx.fill();
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--tubeEdge'); ctx.stroke();
 
-    ctx.setLineDash([6,6]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath();
-    ctx.moveTo(0, tubeMid);
-    ctx.lineTo(tubeLen, tubeMid);
-    ctx.stroke();
+    ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.moveTo(0, tubeMid); ctx.lineTo(tubeLen, tubeMid); ctx.stroke();
     ctx.restore();
   }
-
-  function inTube(x,y){
-    const h = halfHeight(x);
-    return (y > tubeMid - h + 2) && (y < tubeMid + h - 2);
-  }
-
-  function verticalDrift(x, y){
-    const h = halfHeight(x);
-    const center = tubeMid;
-    const dist = y - center;
-    const k = 0.8 / h;
-    return -k * dist;
-  }
+  const inTube=(x,y)=>{const h=halfHeight(x); return y>tubeMid-h+2 && y<tubeMid+h-2;}
+  function verticalDrift(x,y){ const h=halfHeight(x); const dist=y-tubeMid; return -(0.8/h)*dist; }
 
   // UI state
-  let timeScale = 1;  // 1–100×
-  let running = true;
-
-  speedSlider.addEventListener('input', () => {
-    timeScale = Number(speedSlider.value);
-    speedLabel.textContent = `${timeScale}×`;
+  let timeScale=1, running=true;
+  speedSlider.addEventListener('input', ()=>{timeScale=+speedSlider.value; speedLabel.textContent=`${timeScale}×`});
+  btnToggle.addEventListener('click', ()=>{
+    running=!running; btnToggle.textContent=running?'Pause':'Play'; btnToggle.setAttribute('aria-pressed', String(!running));
+    if(running) lastT=performance.now(); requestAnimationFrame(loop);
   });
-
-  btnToggle.addEventListener('click', () => {
-    running = !running;
-    btnToggle.textContent = running ? 'Pause' : 'Play';
-    btnToggle.setAttribute('aria-pressed', String(!running));
-    if(running) lastT = performance.now();
-    requestAnimationFrame(loop);
-  });
-
-  btnReset.addEventListener('click', () => {
-    particles.length = 0;
-  });
+  btnReset.addEventListener('click', ()=>{particles.length=0});
 
   function updateStats(){
-    const vWide = velocityAtX(xWideRef);
-    const xThroat = throatX;
-    const vThroat = velocityAtX(xThroat);
-    const Pwide = pressureAtV(vWide);
-    const Pthroat = pressureAtV(vThroat);
-    const dP = (Pwide - Pthroat)/1000; // kPa drop
-    vWideEl.textContent = vWide.toFixed(2);
-    vNarEl.textContent  = vThroat.toFixed(2);
-    dPEl.textContent    = dP.toFixed(2);
+    const vWide=velocityAtX(xWideRef), vThroat=velocityAtX(throatX);
+    const dP=(pressureAtV(vWide)-pressureAtV(vThroat))/1000;
+    vWideEl.textContent=vWide.toFixed(2); vNarEl.textContent=vThroat.toFixed(2); dPEl.textContent=dP.toFixed(2);
   }
 
-  // Animation loop
-  let lastT = performance.now();
+  let lastT=performance.now();
   function loop(now){
     if(!running) return;
-    const rawDt = Math.min((now - lastT)/1000, 0.05);
-    lastT = now;
-    const dt = rawDt * timeScale;
+    const dt = Math.min((now-lastT)/1000, .05) * timeScale; lastT=now;
 
     updateStats();
 
-    // Clear
-    ctx.setTransform(1,0,0,1,0,0);         // ensure clearRect works in device pixels
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // clear in logical units (we’re drawing with a transform)
+    ctx.setTransform(scaleX,0,0,scaleY,0,0);
+    ctx.clearRect(0,0,tubeLogicalW,tubeLogicalH);
 
-    // Draw tube background
     drawTube();
 
-    // Spawn new particles
-    const inletSpeed = velocityAtX(0);
-    const targetRate = 180 * Math.sqrt(inletSpeed);
-    spawnAccumulator += targetRate * dt;
-    while(spawnAccumulator >= 1){
-      spawnParticle();
-      spawnAccumulator -= 1;
-    }
+    const inletSpeed=velocityAtX(0);
+    spawnAccumulator += 180*Math.sqrt(inletSpeed)*dt;
+    while(spawnAccumulator>=1){ spawnParticle(); spawnAccumulator-=1; }
 
-    // Draw particles
-    ctx.fillStyle = particleColor;
-    const size = 4;
-    const metersToPixels = 100; // px per m
-    for(let i=particles.length-1; i>=0; i--){
-      const p = particles[i];
-      const vx = velocityAtX(p.x);
-      const vy = verticalDrift(p.x, p.y);
-
-      p.x += vx * metersToPixels * dt;
-      p.y += vy * metersToPixels * dt;
+    ctx.fillStyle=particleColor;
+    const metersToPixels=100, size=4;
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      p.x += velocityAtX(p.x)*metersToPixels*dt;
+      p.y += verticalDrift(p.x,p.y)*metersToPixels*dt;
       p.age += dt;
-
-      if(p.x > canvas.width + 10 || !inTube(p.x, p.y) || p.age > 20){
-        particles.splice(i,1);
-        continue;
-      }
+      if(p.x>tubeLogicalW+10 || !inTube(p.x,p.y) || p.age>20){ particles.splice(i,1); continue; }
       ctx.fillRect(p.x|0, p.y|0, size, size);
     }
 
-    // Throat marker
+    // throat marker
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.setLineDash([4,6]);
-    ctx.beginPath();
-    ctx.moveTo(throatX, tubeMid - halfHeight(throatX) - 16);
-    ctx.lineTo(throatX, tubeMid + halfHeight(throatX) + 16);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.font = '12px system-ui, sans-serif';
-    ctx.textAlign = 'center';
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.setLineDash([4,6]);
+    ctx.beginPath(); ctx.moveTo(throatX, tubeMid - halfHeight(throatX) - 16); ctx.lineTo(throatX, tubeMid + halfHeight(throatX) + 16); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='12px system-ui, sans-serif'; ctx.textAlign='center';
     ctx.fillText('Throat', throatX, tubeMid - halfHeight(throatX) - 20);
     ctx.restore();
 
     requestAnimationFrame(loop);
   }
 
-  // Kick off
+  // --- Responsive: lock to viewport width, keep aspect, stay crisp on high-DPR ---
+  let scaleX=1, scaleY=1;
+  function resize(){
+    // CSS size already handled by aspect-ratio; use clientWidth to derive backing store
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = Math.max(1, canvas.clientWidth);
+    const cssH = Math.max(1, canvas.clientHeight);
+
+    canvas.width  = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+
+    // scale drawing from logical 1100×380 to the backing store
+    scaleX = (canvas.width  / tubeLogicalW);
+    scaleY = (canvas.height / tubeLogicalH);
+    ctx.setTransform(scaleX,0,0,scaleY,0,0);
+
+    // keep helpers in logical space
+    tubeLen = tubeLogicalW;
+    tubeMid = tubeLogicalH/2;
+  }
+  // first paint + observe size changes
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+
   updateStats();
-  requestAnimationFrame((t)=>{ lastT = t; loop(t); });
-
-  // Responsive canvas: keep crisp on high-DPR devices while sizing via CSS only
-  const ro = new ResizeObserver(entries=>{
-    for(const entry of entries){
-      const dpr = window.devicePixelRatio || 1;
-      const displayW = Math.max(1, Math.floor(entry.contentRect.width));
-      const displayH = Math.max(1, Math.floor(displayW * (canvas.height / canvas.width)));
-
-      // Match the backing store to CSS size × DPR for sharpness
-      canvas.style.width  = displayW + 'px';
-      canvas.style.height = displayH + 'px';
-      canvas.width  = Math.floor(displayW * dpr);
-      canvas.height = Math.floor(displayH * dpr);
-
-      // Recreate drawing scale to map 1100×380 logical space to new backing pixels
-      const scaleX = canvas.width / 1100;
-      const scaleY = canvas.height / 380;
-      ctx.setTransform(scaleX,0,0,scaleY,0,0);
-    }
-  });
-  ro.observe(canvas);
-
+  requestAnimationFrame((t)=>{ lastT=t; loop(t); });
 })();
 </script>
 </body>
