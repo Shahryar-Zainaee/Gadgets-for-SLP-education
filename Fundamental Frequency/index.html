@@ -23,8 +23,8 @@
     color: var(--text) !important;
   }
   body {
-    min-height: 100vh;                       /* guarantees height */
-    display: flex;                            /* simple, robust layout */
+    min-height: 100vh;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -45,7 +45,7 @@
     box-shadow: 0 8px 25px rgba(0,0,0,.4);
     user-select: none;
     text-align: center;
-    visibility: visible;                      /* resist accidental hiding */
+    visibility: visible;
   }
   .f0 {
     font-size: clamp(48px, 10vmin, 120px);
@@ -71,7 +71,6 @@
     font-weight: 600;
   }
 
-  /* Controls: no rectangle box */
   .controls {
     display: flex;
     flex-wrap: wrap;
@@ -116,12 +115,11 @@
   button:disabled { opacity: .5; cursor: not-allowed; }
 
   .status {
-    font-size: 12px;          /* smaller than buttons */
+    font-size: 12px;
     color: var(--muted);
-    white-space: nowrap;      /* keep it compact */
+    white-space: nowrap;
   }
 
-  /* Ensure something is always visible even if JS fails */
   noscript { color: var(--text); font-size: 14px; }
 </style>
 </head>
@@ -129,7 +127,7 @@
   <div class="circle">
     <div class="f0" id="hz">—</div>
     <div class="units">Hz</div>
-    <div class="period" id="period">— s</div>
+    <div class="period" id="period">— ms</div>
   </div>
 
   <div class="controls">
@@ -140,6 +138,7 @@
 
     <div class="buttons">
       <button id="startBtn">Start</button>
+      <button id="pauseBtn" disabled>Pause</button>
       <button id="stopBtn" disabled>Stop</button>
     </div>
 
@@ -152,18 +151,20 @@
 const MIN_HZ = 50, MAX_HZ = 600;
 let audioCtx, analyser, mediaStream, source, workBuf, rafId = null;
 let lastHz = 0, emaAlpha = 0.15, sampleRate = 48000;
+let paused = false;
 
 // DOM refs
 const hzEl = document.getElementById('hz');
 const periodEl = document.getElementById('period');
 const deviceSelect = document.getElementById('deviceSelect');
 const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const statusEl = document.getElementById('status');
 
-// Make sure we render something immediately
+// Initial UI
 hzEl.textContent = '—';
-periodEl.textContent = '— s';
+periodEl.textContent = '— ms';
 statusEl.textContent = 'Idle';
 
 // Mic list
@@ -194,10 +195,11 @@ async function listMics() {
 
 // Events
 startBtn.addEventListener('click', start);
+pauseBtn.addEventListener('click', togglePause);
 stopBtn.addEventListener('click', stop);
 
 async function start() {
-  stop();
+  stop(); // clean old state if any
   try {
     const constraints = {
       audio: {
@@ -214,9 +216,14 @@ async function start() {
     source.connect(analyser);
     sampleRate = audioCtx.sampleRate;
     workBuf = new Float32Array(analyser.fftSize);
+
     statusEl.textContent = 'Listening…';
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = 'Pause';
+    paused = false;
+
     animate();
   } catch (e) {
     console.error(e);
@@ -230,13 +237,34 @@ function stop() {
   if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  pauseBtn.disabled = true;
+  pauseBtn.textContent = 'Pause';
   statusEl.textContent = 'Idle';
   hzEl.textContent = '—';
-  periodEl.textContent = '— s';
+  periodEl.textContent = '— ms';
   lastHz = 0;
+  paused = false;
+}
+
+function togglePause() {
+  if (!audioCtx) return;
+  if (!paused) {
+    // Pause: freeze the UI, keep the mic running
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    paused = true;
+    pauseBtn.textContent = 'Resume';
+    statusEl.textContent = 'Paused';
+  } else {
+    // Resume: continue updating
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    statusEl.textContent = 'Listening…';
+    animate();
+  }
 }
 
 function animate() {
+  if (!analyser) return;
   analyser.getFloatTimeDomainData(workBuf);
   const hz = detectPitchACF(workBuf, sampleRate);
   const inRange = hz && hz >= MIN_HZ && hz <= MAX_HZ ? hz : NaN;
@@ -254,10 +282,12 @@ function animate() {
     periodEl.textContent = ((1 / lastHz) * 1000).toFixed(1) + ' ms';
   } else {
     hzEl.textContent = '—';
-    periodEl.textContent = '— s';
+    periodEl.textContent = '— ms';
   }
 
-  rafId = requestAnimationFrame(animate);
+  if (!paused) {
+    rafId = requestAnimationFrame(animate);
+  }
 }
 
 function detectPitchACF(buf, sr) {
