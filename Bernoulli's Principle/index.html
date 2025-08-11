@@ -15,7 +15,7 @@
     --accent:#5ab0ff;
     --good:#4ade80;
     --warn:#f59e0b;
-    --particle:#700000; /* requested particle color */
+    --particle:#ffff00; /* requested particle color */
   }
   /* Reset */
   *,*::before,*::after{box-sizing:border-box}
@@ -297,7 +297,7 @@
 
     // Update and draw particles
     ctx.fillStyle = particleColor;
-    const size = 2; // tiny particles
+    const size = 4; // tiny particles
     for(let i=particles.length-1; i>=0; i--){
       const p = particles[i];
       // Velocity field (x-direction from continuity)
