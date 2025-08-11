@@ -251,7 +251,7 @@ function animate() {
 
   if (lastHz > 0) {
     hzEl.textContent = lastHz.toFixed(0);
-    periodEl.textContent = (1 / lastHz).toFixed(3) + ' s';
+    periodEl.textContent = ((1 / lastHz) * 1000).toFixed(1) + ' ms';
   } else {
     hzEl.textContent = '—';
     periodEl.textContent = '— s';
