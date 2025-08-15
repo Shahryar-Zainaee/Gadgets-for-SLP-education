@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Clinical Practice Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 1rem;
+      background-color: #4a90e2;
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+    }
+
+    .viewer {
+      display: none;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .viewer.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .viewer img {
+      max-width: 300px;
+      margin: 1rem auto;
+    }
+
+    .back-btn {
+      margin-top: 1rem;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Explore Clinical Practice Topics</h1>
+
+  <!-- Main Grid of Topics -->
+  <div class="grid" id="topicGrid">
+    <div class="card" onclick="showTopic('prevention')">🛡️ Prevention</div>
+    <div class="card" onclick="showTopic('assessment')">🧪 Assessment / Evaluation</div>
+    <div class="card" onclick="showTopic('diagnosis')">🩺 Diagnosis</div>
+    <div class="card" onclick="showTopic('treatment')">💡 Treatment / Intervention</div>
+    <div class="card" onclick="showTopic('audiologists')">👂 Audiologists</div>
+    <div class="card" onclick="showTopic('asha')">📘 ASHA</div>
+  </div>
+
+  <!-- Details Viewer -->
+  <div class="viewer" id="viewer">
+    <h2 id="viewerTitle"></h2>
+    <p id="viewerText"></p>
+    <img id="viewerImage" src="" alt="Concept animation">
+    <br>
+    <button class="back-btn" onclick="goBack()">⬅️ Back to Topics</button>
+  </div>
+
+  <script>
+    const topics = {
+      prevention: {
+        title: "Prevention",
+        text: "To prevent a disease or disorder from ever occurring, or to detect it early before it progresses.",
+        image: "https://media.giphy.com/media/kHWdCE7pXbtLO/giphy.gif"
+      },
+      assessment: {
+        title: "Assessment / Evaluation",
+        text: "The process or activity that leads to a clinical decision — the diagnosis.",
+        image: "https://media.giphy.com/media/l4FGAxO31XNoG8Ayk/giphy.gif"
+      },
+      diagnosis: {
+        title: "Diagnosis",
+        text: "The determination that there is or is not a disorder, and assigning the professional term for the disorder.",
+        image: "https://media.giphy.com/media/Rkis28kMJd1aE/giphy.gif"
+      },
+      treatment: {
+        title: "Treatment / Intervention",
+        text: "Developing creative and evidence-based strategies to help clients and patients.",
+        image: "https://media.giphy.com/media/xT8qBepJQzUjQ58ZcA/giphy.gif"
+      },
+      audiologists: {
+        title: "Audiologists",
+        text: "Experts in hearing and balance. They prevent, assess, diagnose, and treat hearing loss and related disorders.",
+        image: "https://media.giphy.com/media/3o7aTskHEUdgCQAXde/giphy.gif"
+      },
+      asha: {
+        title: "ASHA",
+        text: "The primary U.S. organization for communication sciences and disorders. ASHA ensures effective care, promotes awareness, and supports professionals.",
+        image: "https://media.giphy.com/media/jpVnC65DmYeyRL4LHS/giphy.gif"
+      }
+    };
+
+    function showTopic(key) {
+      const data = topics[key];
+      document.getElementById('topicGrid').style.display = 'none';
+      document.getElementById('viewer').classList.add('active');
+      document.getElementById('viewerTitle').textContent = data.title;
+      document.getElementById('viewerText').textContent = data.text;
+      document.getElementById('viewerImage').src = data.image;
+    }
+
+    function goBack() {
+      document.getElementById('viewer').classList.remove('active');
+      document.getElementById('topicGrid').style.display = 'grid';
+    }
+  </script>
+
+</body>
+</html>
