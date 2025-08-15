@@ -2,106 +2,146 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ASHA Scope of Practice: Accessible View</title>
+  <title>Scope of Practice – ASHA Interactive</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #222;
+      --accent: #0077cc;
+      --highlight: #fff4c2;
+    }
     body {
-      font-family: Arial, sans-serif;
-      background-color: white;
-      color: #222;
-      padding: 20px;
-      transition: all 0.3s ease;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-
-    .high-contrast {
-      background-color: #000;
-      color: #FFD700;
+    h1, h2 {
+      color: var(--accent);
     }
-
-    .large-text {
-      font-size: 1.4em;
-    }
-
-    .toolbar {
-      margin-bottom: 20px;
-    }
-
-    button {
-      margin-right: 10px;
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    #searchBox {
+    .slide {
       display: none;
-      margin-top: 10px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      min-height: 100vh;
+      animation: fadeIn 0.8s ease forwards;
     }
-
-    mark {
-      background-color: yellow;
+    .slide.active {
+      display: flex;
+    }
+    p {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 1rem auto;
+    }
+    .nav {
+      margin-top: 2rem;
+    }
+    button {
+      margin: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <button onclick="toggleContrast()">🌓 Visual Accessibility</button>
-    <button onclick="toggleTextSize()">🔠 Text Size</button>
-    <button onclick="toggleSearch()">🔍 Search</button>
-    <button onclick="resetAll()">↩️ Reset</button>
-    <div id="searchBox">
-      <input type="text" id="searchInput" placeholder="Search text...">
-      <button onclick="highlightSearch()">Find</button>
+  <div class="slide active" id="slide1">
+    <h1>Welcome to the Scope of Practice in SLP and Audiology</h1>
+    <p>This interactive experience introduces you to the core roles and responsibilities of speech-language pathologists and audiologists, based on the ASHA Scope of Practice (2016).</p>
+    <div class="nav">
+      <button onclick="nextSlide(1)">Begin</button>
+    </div>
+  </div>
+  <div class="slide" id="slide2">
+    <h2>Prevention</h2>
+    <p>Speech-language pathologists engage in prevention and wellness activities aimed at reducing the incidence of communication disorders. They promote public awareness, educate families, and implement strategies that reduce risks across the lifespan.</p>
+    <div class="nav">
+      <button onclick="prevSlide(0)">Back</button>
+      <button onclick="nextSlide(2)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide3">
+    <h2>Assessment</h2>
+    <p>Assessment is a comprehensive, collaborative process that identifies the nature and extent of communication and swallowing disorders. SLPs use observation, tools, and cultural sensitivity to create accurate, individualized profiles.</p>
+    <div class="nav">
+      <button onclick="prevSlide(1)">Back</button>
+      <button onclick="nextSlide(3)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide4">
+    <h2>Diagnosis</h2>
+    <p>Diagnosis is the outcome of assessment. It involves identifying disorders, determining severity, and making recommendations. SLPs use this step to justify interventions, collaborate with stakeholders, and ensure evidence-based decisions.</p>
+    <div class="nav">
+      <button onclick="prevSlide(2)">Back</button>
+      <button onclick="nextSlide(4)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide5">
+    <h2>Treatment</h2>
+    <p>Treatment is individualized, goal-driven, and dynamic. SLPs develop plans that improve function, participation, and quality of life. Services may include counseling, technology use, AAC, therapy, or education, always grounded in evidence.</p>
+    <div class="nav">
+      <button onclick="prevSlide(3)">Back</button>
+      <button onclick="nextSlide(5)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide6">
+    <h2>Speech-Language Pathologists</h2>
+    <p>SLPs work across ages and settings, serving individuals with speech, language, literacy, voice, fluency, and swallowing disorders. Their scope is defined by ethics, continuing education, and collaboration with families and teams.</p>
+    <div class="nav">
+      <button onclick="prevSlide(4)">Back</button>
+      <button onclick="nextSlide(6)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide7">
+    <h2>Audiologists</h2>
+    <p>Audiologists assess and manage hearing and balance. Their services include diagnosis, hearing aid fitting, counseling, prevention of noise-induced hearing loss, and working with SLPs on shared outcomes.</p>
+    <div class="nav">
+      <button onclick="prevSlide(5)">Back</button>
+      <button onclick="nextSlide(7)">Next</button>
+    </div>
+  </div>
+  <div class="slide" id="slide8">
+    <h2>ASHA</h2>
+    <p>The American Speech-Language-Hearing Association (ASHA) guides the professions of SLP and audiology. It sets certification standards, promotes research, provides ethical codes, and advocates for high-quality care nationwide.</p>
+    <div class="nav">
+      <button onclick="prevSlide(6)">Back</button>
+      <button onclick="nextSlide(0)">Restart</button>
     </div>
   </div>
 
-  <h1>Scope of Practice in Speech-Language Pathology and Audiology</h1>
-
-  <p><strong>Prevention:</strong> Speech-language pathologists (SLPs) engage in prevention and wellness activities aimed at reducing the incidence of disorders in speech, language, swallowing, and communication. They educate families and communities, raise awareness of early signs of disorders, and promote practices that reduce risk factors—especially in schools, prenatal settings, and among vulnerable populations.</p>
-
-  <p><strong>Assessment:</strong> Assessment is a comprehensive process conducted by SLPs to identify communication, cognitive, or swallowing disorders. It includes case history, standardized tools, observational data, and collaboration with families and professionals. Culturally and linguistically appropriate practices are integral to ethical and accurate diagnosis.</p>
-
-  <p><strong>Diagnosis:</strong> Based on assessment data, diagnosis involves identifying the presence and nature of a disorder. SLPs determine whether a client meets diagnostic criteria, document findings, and use instruments like videofluoroscopy, endoscopy, and AAC trials to guide treatment recommendations.</p>
-
-  <p><strong>Treatment:</strong> Treatment includes restoring or compensating for impaired functions in speech, language, or swallowing. SLPs use evidence-based practices, including technology (e.g., AAC devices, telepractice), and work toward meaningful outcomes like school readiness, community participation, or health recovery. They adjust goals based on performance data and client values.</p>
-
-  <p><strong>Speech-Language Pathologists:</strong> SLPs are autonomous providers with expertise in a broad range of conditions. They work in schools, clinics, hospitals, and homes to provide intervention across the lifespan. Their scope includes fluency, articulation, literacy, feeding, AAC, and counseling, grounded in professional competence and ethics.</p>
-
-  <p><strong>Audiologists:</strong> Audiologists diagnose and treat hearing and balance disorders. They fit hearing aids, assess auditory processing, and counsel clients on communication strategies. Their services often overlap with SLPs, especially in pediatric and rehabilitative contexts, and they contribute to prevention of noise-induced hearing loss.</p>
-
-  <p><strong>ASHA:</strong> The American Speech-Language-Hearing Association (ASHA) provides the ethical, educational, and credentialing framework for SLPs and audiologists. ASHA promotes access to high-quality services, supports research and education, and ensures accountability through the CCC-SLP/A credentials.</p>
-
-  <footer style="margin-top:2rem; font-size: 0.9rem; color: gray;">
-    Content adapted from: ASHA (2016). <em>Scope of Practice in Speech-Language Pathology</em>, and related policy documents. https://www.asha.org/policy/
-  </footer>
-
   <script>
-    function toggleContrast() {
-      document.body.classList.toggle('high-contrast');
+    function nextSlide(index) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      document.getElementById('slide' + (index + 1)).classList.add('active');
     }
-    function toggleTextSize() {
-      document.body.classList.toggle('large-text');
-    }
-    function toggleSearch() {
-      const box = document.getElementById('searchBox');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-    function highlightSearch() {
-      const query = document.getElementById('searchInput').value.toLowerCase();
-      const paras = document.querySelectorAll('p');
-      paras.forEach(p => {
-        const text = p.textContent;
-        const regex = new RegExp(`(${query})`, 'gi');
-        const newHTML = text.replace(regex, '<mark>$1</mark>');
-        p.innerHTML = newHTML;
-      });
-    }
-    function resetAll() {
-      document.body.classList.remove('high-contrast', 'large-text');
-      document.getElementById('searchBox').style.display = 'none';
-      document.querySelectorAll('mark').forEach(mark => {
-        mark.outerHTML = mark.innerText;
-      });
+    function prevSlide(index) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      document.getElementById('slide' + (index + 1)).classList.add('active');
     }
   </script>
 </body>
