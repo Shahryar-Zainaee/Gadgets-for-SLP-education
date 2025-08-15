@@ -2,34 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Welcome to Clinical Practice Topics</title>
+  <title>Clinical Practice Topics</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
+    /* ---------- COLOR ACCESSIBILITY (color-blind-friendly) ---------- */
     :root {
-      --led-red: #ff3c3c;
-      --bg-black: #0a0a0a;
-      --card-bg: #111;
-      --border-color: #222;
+      --led-cyan: #00f7ff;     /* high-contrast cyan for LED-style text */
+      --bg-black: #121212;     /* deep blackboard background */
+      --card-bg: #1e1e1e;      /* slightly lighter for cards */
+      --border-color: #333;    /* subtle border for structure */
     }
 
+    /* ---------- BASIC PAGE LAYOUT ---------- */
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
       background-color: var(--bg-black);
-      color: var(--led-red);
+      color: var(--led-cyan);
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding-bottom: 2rem;
     }
 
+    /* ---------- HEADER ---------- */
     h1 {
       text-align: center;
       margin: 1rem;
-      font-size: 1.5rem;
-      color: var(--led-red);
-      text-shadow: 0 0 6px var(--led-red);
+      font-size: 1.8rem;
+      color: var(--led-cyan);
+      text-shadow: 0 0 8px var(--led-cyan);
     }
 
+    /* ---------- CONTAINER BOARD ---------- */
     .board {
       width: 95%;
       max-width: 1000px;
@@ -37,10 +43,10 @@
       background-color: var(--card-bg);
       border: 3px solid var(--border-color);
       border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 60, 60, 0.4);
-      margin-bottom: 2rem;
+      box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
     }
 
+    /* ---------- GRID OF TOPICS ---------- */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -49,26 +55,27 @@
     }
 
     .card {
-      background-color: #1a1a1a;
-      border: 1px solid #333;
+      background-color: #292929;
+      border: 1px solid #444;
       border-radius: 8px;
-      padding: 1rem;
+      padding: 1.2rem;
       text-align: center;
       cursor: pointer;
-      font-size: 1rem;
-      color: var(--led-red);
-      box-shadow: 0 0 10px rgba(255, 60, 60, 0.3);
-      transition: transform 0.2s;
+      font-size: 1.1rem;
+      color: var(--led-cyan);
+      box-shadow: 0 0 12px rgba(0, 247, 255, 0.3);
+      transition: transform 0.2s ease;
     }
 
     .card:hover {
       transform: scale(1.05);
     }
 
+    /* ---------- CONTENT VIEWER ---------- */
     .viewer {
       display: none;
       padding: 1rem;
-      animation: fadeIn 0.5s ease-in-out;
+      animation: fadeIn 0.4s ease-in-out;
       text-align: center;
     }
 
@@ -76,6 +83,7 @@
       display: block;
     }
 
+    /* ---------- SCROLLING MARQUEE TEXT ---------- */
     .marquee {
       width: 100%;
       overflow: hidden;
@@ -89,22 +97,24 @@
       padding-left: 100%;
       animation: scroll 18s linear infinite;
       font-size: 1.2rem;
-      color: var(--led-red);
-      text-shadow: 0 0 8px var(--led-red);
+      color: var(--led-cyan);
+      text-shadow: 0 0 10px var(--led-cyan);
     }
 
+    /* ---------- BUTTON TO GO BACK ---------- */
     .back-btn {
-      margin-top: 1rem;
-      background-color: var(--led-red);
-      color: #fff;
+      margin-top: 1.5rem;
+      background-color: var(--led-cyan);
+      color: #000;
       border: none;
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1.2rem;
       font-size: 1rem;
       border-radius: 5px;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(255, 60, 60, 0.5);
+      box-shadow: 0 0 10px rgba(0, 247, 255, 0.5);
     }
 
+    /* ---------- ANIMATIONS ---------- */
     @keyframes scroll {
       from { transform: translateX(0%); }
       to { transform: translateX(-100%); }
@@ -115,19 +125,24 @@
       to { opacity: 1; transform: scale(1); }
     }
 
+    /* ---------- RESPONSIVE FOR SMALL SCREENS ---------- */
     @media (max-width: 600px) {
-      h1 { font-size: 1.2rem; }
-      .card { font-size: 0.9rem; padding: 0.8rem; }
+      h1 { font-size: 1.4rem; }
+      .card { font-size: 1rem; padding: 1rem; }
       .marquee-text { font-size: 1rem; }
     }
   </style>
 </head>
+
 <body>
 
+  <!-- HEADER -->
   <h1>📘 Welcome! Click a topic to explore Clinical Practice</h1>
 
+  <!-- MAIN TOPIC SELECTION BOARD -->
   <div class="board" id="topicGrid">
     <div class="grid">
+      <!-- Each topic card opens a content view -->
       <div class="card" onclick="showTopic('prevention')">🛡️ Prevention</div>
       <div class="card" onclick="showTopic('assessment')">🧪 Assessment</div>
       <div class="card" onclick="showTopic('diagnosis')">🩺 Diagnosis</div>
@@ -137,13 +152,18 @@
     </div>
   </div>
 
+  <!-- EXPANDED TOPIC CONTENT VIEW -->
   <div class="board viewer" id="viewer">
     <h2 id="viewerTitle"></h2>
-    <div class="marquee"><div id="viewerText" class="marquee-text"></div></div>
+    <div class="marquee">
+      <div id="viewerText" class="marquee-text"></div>
+    </div>
     <button class="back-btn" onclick="goBack()">⬅️ Back to Topics</button>
   </div>
 
+  <!-- JAVASCRIPT FUNCTIONALITY -->
   <script>
+    // Step 1: Define topic content
     const topics = {
       prevention: {
         title: "Prevention",
@@ -171,6 +191,7 @@
       }
     };
 
+    // Step 2: Show content when a card is clicked
     function showTopic(key) {
       const data = topics[key];
       document.getElementById('topicGrid').style.display = 'none';
@@ -179,6 +200,7 @@
       document.getElementById('viewerText').textContent = data.text;
     }
 
+    // Step 3: Go back to main selection
     function goBack() {
       document.getElementById('viewer').classList.remove('active');
       document.getElementById('topicGrid').style.display = 'block';
