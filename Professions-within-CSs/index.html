@@ -2,93 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Speech-Language Concepts</title>
+  <title>Clinical Practice Concepts</title>
   <style>
+    /* Accessible, blackboard-style layout */
     body {
       margin: 0;
-      background-color: #1a1a1a; /* Dark background for contrast */
-      color: #f2f2f2; /* Light text for accessibility */
-      font-size: 22px; /* Larger font size for readability */
-      font-family: Arial, sans-serif;
+      padding: 0;
+      background-color: #0a0a0a;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f1f1f1;
+      font-size: 22px;
       line-height: 1.6;
+      overflow-x: hidden;
     }
 
+    /* Scrollable container for tall text */
     .scroll-container {
-      height: 100vh;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .scroll-text {
-      position: absolute;
-      width: 100%;
-      animation: scrollUp 90s linear infinite; /* Slower animation for comfort */
+      max-width: 800px;
+      margin: auto;
       padding: 2rem;
     }
 
-    @keyframes scrollUp {
-      from { top: 100%; }
-      to { top: -100%; }
+    h2 {
+      color: #00ffff; /* Cyan - color-blind friendly */
+      text-shadow: 0 0 6px #00ffff;
     }
 
-    h1, h2 {
-      color: #ffcc00; /* Yellow — color-blind friendly highlight */
+    p {
+      color: #e0e0e0;
     }
 
     strong {
-      color: #00bfff; /* Cyan — readable for most colorblind conditions */
-    }
-
-    em {
-      color: #90ee90; /* Light green — another color-blind safe option */
+      color: #7fffd4;
     }
 
     .icon {
-      font-size: 1.4em;
+      font-size: 1.3em;
     }
 
     .credit {
-      margin-top: 2rem;
-      font-size: 0.9em;
-      color: #aaa;
+      margin-top: 4rem;
+      font-size: 0.9rem;
+      color: #999;
+      border-top: 1px solid #444;
+      padding-top: 1rem;
+    }
+
+    /* Optional: make body scroll slowly automatically */
+    html {
+      scroll-behavior: smooth;
     }
   </style>
 </head>
 <body>
 
 <div class="scroll-container">
-  <div class="scroll-text">
+  <h1 style="text-align:center; color:#00ffff;">📘 Clinical Practice Topics</h1>
 
-    <!-- 🛡️ Prevention -->
-    <h2 class="icon">🛡️ Prevention</h2>
-    <p><strong>Prevention</strong> aims to reduce the risk of communication and swallowing disorders by strengthening underlying functions, limiting exposure to harmful environments, and educating communities.</p>
+  <!-- 🛡️ Prevention -->
+  <h2 class="icon">🛡️ Prevention</h2>
+  <p><strong>Prevention</strong> involves proactive strategies to stop communication and swallowing disorders from developing. This includes early screenings, health education, and reducing exposure to risk factors.</p>
 
-    <!-- 🧪 Assessment -->
-    <h2 class="icon">🧪 Assessment</h2>
-    <p><strong>Assessment</strong> involves identifying strengths, limitations, and contextual barriers to communication. This includes reviewing cognitive, auditory, and behavioral functions to guide further steps.</p>
+  <!-- 🧪 Assessment -->
+  <h2 class="icon">🧪 Assessment</h2>
+  <p><strong>Assessment</strong> is the process of gathering information about an individual’s communication abilities through tests, observations, and interviews. It helps determine the presence and severity of a disorder.</p>
 
-    <!-- 🩺 Diagnosis -->
-    <h2 class="icon">🩺 Diagnosis</h2>
-    <p><strong>Diagnosis</strong> integrates assessment results to classify a disorder, define severity, guide intervention planning, and refer to appropriate services as needed.</p>
+  <!-- 🩺 Diagnosis -->
+  <h2 class="icon">🩺 Diagnosis</h2>
+  <p><strong>Diagnosis</strong> is a professional judgment based on assessment data. It determines whether a communication disorder exists, names the condition, and guides next steps for treatment or referral.</p>
 
-    <!-- 💡 Treatment -->
-    <h2 class="icon">💡 Treatment</h2>
-    <p><strong>Treatment</strong> focuses on building communication abilities, minimizing deficits, and promoting participation using direct intervention, strategy training, and environmental supports.</p>
+  <!-- 💡 Treatment -->
+  <h2 class="icon">💡 Treatment / Intervention</h2>
+  <p><strong>Treatment</strong> refers to evidence-based interventions that aim to improve or restore communication abilities. It may include therapy sessions, family education, and environmental modifications.</p>
 
-    <!-- 👂 Audiologists -->
-    <h2 class="icon">👂 Audiologists</h2>
-    <p><strong>Audiologists</strong> specialize in preventing, diagnosing, and treating hearing and balance disorders. They are integral to team-based care for those with communication challenges.</p>
+  <!-- 👂 Audiologists -->
+  <h2 class="icon">👂 Audiologists</h2>
+  <p><strong>Audiologists</strong> are professionals who specialize in hearing and balance disorders. They conduct hearing tests, diagnose hearing loss, and provide hearing aids and other interventions.</p>
 
-    <!-- 📘 ASHA -->
-    <h2 class="icon">📘 ASHA</h2>
-    <p><strong>The American Speech-Language-Hearing Association (ASHA)</strong> sets standards for education, ethics, and clinical practice in communication sciences and disorders.</p>
+  <!-- 📘 ASHA -->
+  <h2 class="icon">📘 ASHA</h2>
+  <p><strong>ASHA (American Speech-Language-Hearing Association)</strong> sets national standards for certification and ethics. It provides resources for professionals and ensures quality care for clients.</p>
 
-    <div class="credit">
-      🛠️ Code adapted and modified by Shahryar Zainaee |  
-      💾 Content from: American Speech-Language-Hearing Association (2004). <a href="https://www.asha.org/policy" style="color: #7aa2ff;">asha.org/policy</a><br>
-      🧠 Code animation inspired by WebGazer & community scripts.
-    </div>
-
+  <!-- Credits -->
+  <div class="credit">
+    💬 Adapted from: <strong>ASHA Preferred Practice Patterns (2004)</strong><br>
+    🔗 Source: <a href="https://www.asha.org/policy" style="color:#7aa2ff;">asha.org/policy</a><br>
+    🧠 Code customized by Shahryar Zainaee<br>
+    ✨ Interface inspired by open-source education UIs
   </div>
 </div>
 
