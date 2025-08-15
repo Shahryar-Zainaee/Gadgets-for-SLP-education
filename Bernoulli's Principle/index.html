@@ -103,7 +103,7 @@
   const tubeLogicalW = 1100, tubeLogicalH = 380;
   let tubeLen = tubeLogicalW, tubeMid = tubeLogicalH/2;
 
-  const H_wide=120, H_throat=45, throatX=tubeLogicalW*0.50, throatWidthFrac=0.20, sigma=tubeLogicalW*throatWidthFrac*0.35;
+  const H_wide=90, H_throat=20, throatX=tubeLogicalW*0.50, throatWidthFrac=0.04, sigma=tubeLogicalW*throatWidthFrac*0.35;
   function halfHeight(x) {
   const dx = x - throatX;
   const dip = (H_wide - H_throat) * Math.exp(-(dx * dx) / (2 * sigma * sigma));
@@ -145,12 +145,13 @@
   function verticalDrift(x, y) {
   const h = halfHeight(x);
   const dist = y - tubeMid;
-  const pull = (x < throatX) ? -1 : 1;
+  const pull = (x < throatX - 30) ? -1.1 : (x > throatX + 30) ? 1.05 : 0;
+
 
   // Add vibration after the throat
   const vibration = (x > throatX + 50) ? Math.sin(x * 0.15 + performance.now() * 0.045) * 0.6 : 0;
 
-  return pull * (0.8 / h) * dist + vibration;
+  return pull * (0.5 / h) * dist + vibration;
 }
 
   let timeScale=1, running=true;
