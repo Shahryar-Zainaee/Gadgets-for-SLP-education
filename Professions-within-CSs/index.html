@@ -2,95 +2,172 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clinical Practice Concepts</title>
+  <title>Clinical Practice Topics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
-    /* Accessible, blackboard-style layout */
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0a0a0a;
-      font-family: 'Segoe UI', sans-serif;
-      color: #f1f1f1;
-      font-size: 22px;
-      line-height: 1.6;
-      overflow-x: hidden;
+    :root {
+      --bg: #1c1c1c;
+      --card-bg: #2a2a2a;
+      --text: #ffffff;
+      --accent: #00b7ff; /* cyan/blue, accessible */
+      --highlight: #e0e0e0;
     }
 
-    /* Scrollable container for tall text */
-    .scroll-container {
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 1rem 0;
+      font-size: 1.6rem;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+      width: 95%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      padding: 1.2rem;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border: 1px solid var(--accent);
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+      background-color: #333;
+    }
+
+    .viewer {
+      display: none;
       max-width: 800px;
-      margin: auto;
       padding: 2rem;
     }
 
-    h2 {
-      color: #00ffff; /* Cyan - color-blind friendly */
-      text-shadow: 0 0 6px #00ffff;
+    .viewer.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
     }
 
-    p {
-      color: #e0e0e0;
+    .viewer h2 {
+      color: var(--accent);
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
     }
 
-    strong {
-      color: #7fffd4;
+    .viewer p {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--highlight);
     }
 
-    .icon {
-      font-size: 1.3em;
+    .back-btn {
+      margin-top: 2rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background-color: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
-    .credit {
-      margin-top: 4rem;
-      font-size: 0.9rem;
-      color: #999;
-      border-top: 1px solid #444;
-      padding-top: 1rem;
-    }
-
-    /* Optional: make body scroll slowly automatically */
-    html {
-      scroll-behavior: smooth;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
 
-<div class="scroll-container">
-  <h1 style="text-align:center; color:#00ffff;">📘 Clinical Practice Topics</h1>
+  <h1>Explore Clinical Practice Topics</h1>
 
-  <!-- 🛡️ Prevention -->
-  <h2 class="icon">🛡️ Prevention</h2>
-  <p><strong>Prevention</strong> involves proactive strategies to stop communication and swallowing disorders from developing. This includes early screenings, health education, and reducing exposure to risk factors.</p>
+  <!-- Topic Grid -->
+  <div class="grid" id="topicGrid">
+    <div class="card" onclick="showTopic('prevention')">Prevention</div>
+    <div class="card" onclick="showTopic('assessment')">Assessment</div>
+    <div class="card" onclick="showTopic('diagnosis')">Diagnosis</div>
+    <div class="card" onclick="showTopic('treatment')">Treatment</div>
+    <div class="card" onclick="showTopic('slp')">Speech-Language Pathologists</div>
+    <div class="card" onclick="showTopic('audiologists')">Audiologists</div>
+    <div class="card" onclick="showTopic('asha')">ASHA</div>
+  </div>
 
-  <!-- 🧪 Assessment -->
-  <h2 class="icon">🧪 Assessment</h2>
-  <p><strong>Assessment</strong> is the process of gathering information about an individual’s communication abilities through tests, observations, and interviews. It helps determine the presence and severity of a disorder.</p>
+  <!-- Viewer Section -->
+  <div class="viewer" id="viewer">
+    <h2 id="viewerTitle"></h2>
+    <p id="viewerText"></p>
+    <button class="back-btn" onclick="goBack()">← Return to Topics</button>
+  </div>
 
-  <!-- 🩺 Diagnosis -->
-  <h2 class="icon">🩺 Diagnosis</h2>
-  <p><strong>Diagnosis</strong> is a professional judgment based on assessment data. It determines whether a communication disorder exists, names the condition, and guides next steps for treatment or referral.</p>
+  <!-- JavaScript Logic -->
+  <script>
+    const topics = {
+      prevention: {
+        title: "Prevention",
+        text: "Prevention services aim to stop communication or swallowing disorders before they occur. According to ASHA, prevention focuses on minimizing risk factors, supporting normal development, and raising awareness about the consequences of these disorders. It includes sharing educational strategies, consulting families and professionals, and addressing cultural and linguistic diversity."
+      },
+      assessment: {
+        title: "Assessment",
+        text: "Assessment involves identifying and describing the strengths and challenges in communication, cognitive, or swallowing functions. ASHA states that assessments are guided by the World Health Organization framework and should consider the impact of disorders on daily participation, activities, and quality of life. Evaluations may be static or dynamic and are adapted to the client’s cultural and linguistic background."
+      },
+      diagnosis: {
+        title: "Diagnosis",
+        text: "Diagnosis is the process that follows a comprehensive assessment. It identifies specific communication or swallowing disorders and helps clinicians understand their nature and impact. ASHA indicates that diagnosis can include determining co-occurring conditions, predicting changes over time, and recommending follow-up support."
+      },
+      treatment: {
+        title: "Treatment",
+        text: "Treatment, also called intervention, focuses on improving communication or swallowing abilities. It helps reduce deficits, increase participation, and support long-term development. ASHA emphasizes that treatment should be person-centered, goal-oriented, and tailored to cultural and contextual needs. Treatment may include direct therapy, education, compensation strategies, or assistive technologies."
+      },
+      slp: {
+        title: "Speech-Language Pathologists",
+        text: "Speech-language pathologists (SLPs) are trained professionals who evaluate and treat speech, language, communication, and swallowing disorders. ASHA defines their roles broadly—from prevention and diagnosis to direct intervention and advocacy. SLPs often work in teams with families, educators, and medical providers and serve people across the lifespan."
+      },
+      audiologists: {
+        title: "Audiologists",
+        text: "Audiologists focus on hearing and balance. They assess hearing loss, fit hearing aids, provide aural rehabilitation, and educate clients on strategies to improve communication. ASHA highlights the audiologist’s role in both clinical care and prevention, often working alongside SLPs in collaborative teams to support individuals with hearing-related challenges."
+      },
+      asha: {
+        title: "ASHA",
+        text: "ASHA, the American Speech-Language-Hearing Association, is the national professional, scientific, and credentialing body for SLPs and audiologists in the United States. It provides practice guidelines, ethical standards, certification, continuing education, and advocacy to support professionals and protect public welfare."
+      }
+    };
 
-  <!-- 💡 Treatment -->
-  <h2 class="icon">💡 Treatment / Intervention</h2>
-  <p><strong>Treatment</strong> refers to evidence-based interventions that aim to improve or restore communication abilities. It may include therapy sessions, family education, and environmental modifications.</p>
+    function showTopic(key) {
+      const data = topics[key];
+      document.getElementById('topicGrid').style.display = 'none';
+      document.getElementById('viewerTitle').textContent = data.title;
+      document.getElementById('viewerText').textContent = data.text;
+      document.getElementById('viewer').classList.add('active');
+    }
 
-  <!-- 👂 Audiologists -->
-  <h2 class="icon">👂 Audiologists</h2>
-  <p><strong>Audiologists</strong> are professionals who specialize in hearing and balance disorders. They conduct hearing tests, diagnose hearing loss, and provide hearing aids and other interventions.</p>
-
-  <!-- 📘 ASHA -->
-  <h2 class="icon">📘 ASHA</h2>
-  <p><strong>ASHA (American Speech-Language-Hearing Association)</strong> sets national standards for certification and ethics. It provides resources for professionals and ensures quality care for clients.</p>
+    function goBack() {
+      document.getElementById('viewer').classList.remove('active');
+      document.getElementById('topicGrid').style.display = 'grid';
+    }
+  </script>
 
   <!-- Credits -->
-  <div class="credit">
-    💬 Adapted from: <strong>ASHA Preferred Practice Patterns (2004)</strong><br>
-    🔗 Source: <a href="https://www.asha.org/policy" style="color:#7aa2ff;">asha.org/policy</a><br>
-    🧠 Code customized by Shahryar Zainaee<br>
-    ✨ Interface inspired by open-source education UIs
-  </div>
-</div>
+  <footer style="margin-top:2rem; font-size: 0.9rem; color: #aaa; text-align: center;">
+    Text content adapted from ASHA (2004) Preferred Practice Patterns • Interface inspired by WebGazer & OpenAI ChatGPT
+  </footer>
 
 </body>
 </html>
