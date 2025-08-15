@@ -2,210 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clinical Practice Topics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <title>Speech-Language Concepts</title>
   <style>
-    /* ---------- COLOR ACCESSIBILITY (color-blind-friendly) ---------- */
-    :root {
-      --led-cyan: #00f7ff;     /* high-contrast cyan for LED-style text */
-      --bg-black: #121212;     /* deep blackboard background */
-      --card-bg: #1e1e1e;      /* slightly lighter for cards */
-      --border-color: #333;    /* subtle border for structure */
-    }
-
-    /* ---------- BASIC PAGE LAYOUT ---------- */
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: var(--bg-black);
-      color: var(--led-cyan);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-bottom: 2rem;
+      background-color: #1a1a1a; /* Dark background for contrast */
+      color: #f2f2f2; /* Light text for accessibility */
+      font-size: 22px; /* Larger font size for readability */
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
     }
 
-    /* ---------- HEADER ---------- */
-    h1 {
-      text-align: center;
-      margin: 1rem;
-      font-size: 1.8rem;
-      color: var(--led-cyan);
-      text-shadow: 0 0 8px var(--led-cyan);
-    }
-
-    /* ---------- CONTAINER BOARD ---------- */
-    .board {
-      width: 95%;
-      max-width: 1000px;
-      padding: 1rem;
-      background-color: var(--card-bg);
-      border: 3px solid var(--border-color);
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0, 247, 255, 0.3);
-    }
-
-    /* ---------- GRID OF TOPICS ---------- */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      padding: 1rem;
-    }
-
-    .card {
-      background-color: #292929;
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 1.2rem;
-      text-align: center;
-      cursor: pointer;
-      font-size: 1.1rem;
-      color: var(--led-cyan);
-      box-shadow: 0 0 12px rgba(0, 247, 255, 0.3);
-      transition: transform 0.2s ease;
-    }
-
-    .card:hover {
-      transform: scale(1.05);
-    }
-
-    /* ---------- CONTENT VIEWER ---------- */
-    .viewer {
-      display: none;
-      padding: 1rem;
-      animation: fadeIn 0.4s ease-in-out;
-      text-align: center;
-    }
-
-    .viewer.active {
-      display: block;
-    }
-
-    /* ---------- SCROLLING MARQUEE TEXT ---------- */
-    .marquee {
-      width: 100%;
+    .scroll-container {
+      height: 100vh;
       overflow: hidden;
-      white-space: nowrap;
-      box-sizing: border-box;
-      padding: 1rem 0;
+      position: relative;
     }
 
-    .marquee-text {
-      display: inline-block;
-      padding-left: 100%;
-      animation: scroll 18s linear infinite;
-      font-size: 1.2rem;
-      color: var(--led-cyan);
-      text-shadow: 0 0 10px var(--led-cyan);
+    .scroll-text {
+      position: absolute;
+      width: 100%;
+      animation: scrollUp 90s linear infinite; /* Slower animation for comfort */
+      padding: 2rem;
     }
 
-    /* ---------- BUTTON TO GO BACK ---------- */
-    .back-btn {
-      margin-top: 1.5rem;
-      background-color: var(--led-cyan);
-      color: #000;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      font-size: 1rem;
-      border-radius: 5px;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 247, 255, 0.5);
+    @keyframes scrollUp {
+      from { top: 100%; }
+      to { top: -100%; }
     }
 
-    /* ---------- ANIMATIONS ---------- */
-    @keyframes scroll {
-      from { transform: translateX(0%); }
-      to { transform: translateX(-100%); }
+    h1, h2 {
+      color: #ffcc00; /* Yellow — color-blind friendly highlight */
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+    strong {
+      color: #00bfff; /* Cyan — readable for most colorblind conditions */
     }
 
-    /* ---------- RESPONSIVE FOR SMALL SCREENS ---------- */
-    @media (max-width: 600px) {
-      h1 { font-size: 1.4rem; }
-      .card { font-size: 1rem; padding: 1rem; }
-      .marquee-text { font-size: 1rem; }
+    em {
+      color: #90ee90; /* Light green — another color-blind safe option */
+    }
+
+    .icon {
+      font-size: 1.4em;
+    }
+
+    .credit {
+      margin-top: 2rem;
+      font-size: 0.9em;
+      color: #aaa;
     }
   </style>
 </head>
-
 <body>
 
-  <!-- HEADER -->
-  <h1>📘 Welcome! Click a topic to explore Clinical Practice</h1>
+<div class="scroll-container">
+  <div class="scroll-text">
 
-  <!-- MAIN TOPIC SELECTION BOARD -->
-  <div class="board" id="topicGrid">
-    <div class="grid">
-      <!-- Each topic card opens a content view -->
-      <div class="card" onclick="showTopic('prevention')">🛡️ Prevention</div>
-      <div class="card" onclick="showTopic('assessment')">🧪 Assessment</div>
-      <div class="card" onclick="showTopic('diagnosis')">🩺 Diagnosis</div>
-      <div class="card" onclick="showTopic('treatment')">💡 Treatment</div>
-      <div class="card" onclick="showTopic('audiologists')">👂 Audiologists</div>
-      <div class="card" onclick="showTopic('asha')">📘 ASHA</div>
+    <!-- 🛡️ Prevention -->
+    <h2 class="icon">🛡️ Prevention</h2>
+    <p><strong>Prevention</strong> aims to reduce the risk of communication and swallowing disorders by strengthening underlying functions, limiting exposure to harmful environments, and educating communities.</p>
+
+    <!-- 🧪 Assessment -->
+    <h2 class="icon">🧪 Assessment</h2>
+    <p><strong>Assessment</strong> involves identifying strengths, limitations, and contextual barriers to communication. This includes reviewing cognitive, auditory, and behavioral functions to guide further steps.</p>
+
+    <!-- 🩺 Diagnosis -->
+    <h2 class="icon">🩺 Diagnosis</h2>
+    <p><strong>Diagnosis</strong> integrates assessment results to classify a disorder, define severity, guide intervention planning, and refer to appropriate services as needed.</p>
+
+    <!-- 💡 Treatment -->
+    <h2 class="icon">💡 Treatment</h2>
+    <p><strong>Treatment</strong> focuses on building communication abilities, minimizing deficits, and promoting participation using direct intervention, strategy training, and environmental supports.</p>
+
+    <!-- 👂 Audiologists -->
+    <h2 class="icon">👂 Audiologists</h2>
+    <p><strong>Audiologists</strong> specialize in preventing, diagnosing, and treating hearing and balance disorders. They are integral to team-based care for those with communication challenges.</p>
+
+    <!-- 📘 ASHA -->
+    <h2 class="icon">📘 ASHA</h2>
+    <p><strong>The American Speech-Language-Hearing Association (ASHA)</strong> sets standards for education, ethics, and clinical practice in communication sciences and disorders.</p>
+
+    <div class="credit">
+      🛠️ Code adapted and modified by Shahryar Zainaee |  
+      💾 Content from: American Speech-Language-Hearing Association (2004). <a href="https://www.asha.org/policy" style="color: #7aa2ff;">asha.org/policy</a><br>
+      🧠 Code animation inspired by WebGazer & community scripts.
     </div>
+
   </div>
-
-  <!-- EXPANDED TOPIC CONTENT VIEW -->
-  <div class="board viewer" id="viewer">
-    <h2 id="viewerTitle"></h2>
-    <div class="marquee">
-      <div id="viewerText" class="marquee-text"></div>
-    </div>
-    <button class="back-btn" onclick="goBack()">⬅️ Back to Topics</button>
-  </div>
-
-  <!-- JAVASCRIPT FUNCTIONALITY -->
-  <script>
-    // Step 1: Define topic content
-    const topics = {
-      prevention: {
-        title: "Prevention",
-        text: "To prevent a disease or disorder from ever occurring, or detect it early before it progresses."
-      },
-      assessment: {
-        title: "Assessment / Evaluation",
-        text: "The process or activity that leads to a clinical decision — the diagnosis."
-      },
-      diagnosis: {
-        title: "Diagnosis",
-        text: "The determination that there is or is not a disorder, and assigning the professional term for the disorder."
-      },
-      treatment: {
-        title: "Treatment / Therapy / Intervention",
-        text: "Developing creative and evidence-based strategies to help clients and patients."
-      },
-      audiologists: {
-        title: "Audiologists",
-        text: "Experts in hearing and balance. They prevent, assess, diagnose, and treat hearing loss and related disorders."
-      },
-      asha: {
-        title: "ASHA",
-        text: "The American Speech-Language-Hearing Association supports professionals, advocates for services, and promotes awareness."
-      }
-    };
-
-    // Step 2: Show content when a card is clicked
-    function showTopic(key) {
-      const data = topics[key];
-      document.getElementById('topicGrid').style.display = 'none';
-      document.getElementById('viewer').classList.add('active');
-      document.getElementById('viewerTitle').textContent = data.title;
-      document.getElementById('viewerText').textContent = data.text;
-    }
-
-    // Step 3: Go back to main selection
-    function goBack() {
-      document.getElementById('viewer').classList.remove('active');
-      document.getElementById('topicGrid').style.display = 'block';
-    }
-  </script>
+</div>
 
 </body>
 </html>
