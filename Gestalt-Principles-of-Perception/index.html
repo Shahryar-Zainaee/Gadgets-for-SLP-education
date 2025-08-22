@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gestalt Principles of Perception</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0A0A0A; --line:#1f1f1f; --fg:#fff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  h1{margin:0;font-size:1.2rem;color:#eaeaea}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  button{
+    border:1px solid var(--line); background:#151515; color:#fff;
+    border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer;
+  }
+  button.primary{background:#1f9d5b;border-color:#1f9d5b}
+  details.settings{margin:8px 0 12px 0}
+  details.settings summary{
+    cursor:pointer; padding:8px 12px; background:#121212; border:1px solid #1b1b1b;
+    border-radius:10px; font-weight:800; width:max-content
+  }
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px}
+  .card{background:#0f0f0f;border:1px solid #1c1c1c;border-radius:10px;padding:10px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+  .row label{font-size:.95rem;color:#d0d0d0}
+  input[type=range]{width:60%}
+  .panel{background:#0A0A0A; border:1px solid var(--line); border-radius:14px; padding:10px}
+  .arena{
+    position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden;
+    background: radial-gradient(900px 360px at 10% 10%, #111 0%, transparent 60%),
+                radial-gradient(700px 280px at 90% 90%, #0f0f0f 0%, transparent 60%),
+                #000;
+    border:1px solid #151515;
+  }
+  .status{margin-top:8px;font-size:.95rem;color:#bdbdbd}
+  .bar{rx:3; ry:3; fill:#ffe600;}
+  .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gestalt Principles of Perception</h1>
+    <div class="controls">
+      <button id="btnNext" class="primary">Next Pattern</button>
+      <button id="btnRandom">Randomize</button>
+    </div>
+  </header>
+
+  <details class="settings" open>
+    <summary>Settings</summary>
+    <div class="grid">
+      <div class="card">
+        <h3>Bars</h3>
+        <div class="row"><label for="dens">Grid density</label><input id="dens" type="range" min="12" max="58" step="1" value="34"></div>
+      </div>
+      <div class="card">
+        <h3>Bar style</h3>
+        <div class="row"><label for="len">Length</label><input id="len" type="range" min="8" max="40" step="1" value="20"></div>
+        <div class="row"><label for="thick">Thickness</label><input id="thick" type="range" min="2" max="10" step="1" value="4"></div>
+      </div>
+      <div class="card">
+        <h3>Motion</h3>
+        <div class="row"><label for="speed">Rotation speed</label><input id="speed" type="range" min="0" max="8" step="0.1" value="3.0"></div>
+        <div class="row"><label for="strength">Reveal fraction</label><input id="strength" type="range" min="0.35" max="1" step="0.05" value="0.8"></div>
+      </div>
+    </div>
+  </details>
+
+  <div class="panel">
+    <div class="arena" id="arena" tabindex="0" aria-label="visual area">
+      <svg id="svg" viewBox="0 0 1600 900" width="100%" height="100%" aria-hidden="true"></svg>
+      <span id="ariaMsg" class="sr-only" aria-live="polite"></span>
+    </div>
+    <div class="status" id="status">Bars: 34×19 • Speed: 3.0 • Reveal: 5s • Always rotating</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- DOM ----------
+  const svg = document.getElementById('svg');
+  const statusEl = document.getElementById('status');
+  const ariaMsg = document.getElementById('ariaMsg');
+
+  const btnNext = document.getElementById('btnNext');
+  const btnRandom = document.getElementById('btnRandom');
+
+  const dens = document.getElementById('dens');
+  const len = document.getElementById('len');
+  const thick = document.getElementById('thick');
+  const speed = document.getElementById('speed');
+  const strength = document.getElementById('strength');
+
+  // ---------- State ----------
+  const VIEW_W=1600, VIEW_H=900;
+  let raf=null, tPrev=null;
+
+  let bars=[];              // {x,y,angle,omega,targetAngle,lockedUntil,el}
+  let cols=34, rows=19;
+  let barLen=20, barThick=4;
+  let baseSpeed=3.0;
+
+  const REVEAL_MS = 10000;   // 10 seconds hold time
+
+  // ---------- Utils ----------
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function announce(msg){ ariaMsg.textContent=''; setTimeout(()=>ariaMsg.textContent=msg,25); }
+  function svgEl(tag,attrs={}){ const n=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) n.setAttribute(k,attrs[k]); return n; }
+  function clearSvg(){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+  function angleDiff(a,b){ let d=(b-a+Math.PI)%(2*Math.PI)-Math.PI; if(d<-Math.PI) d+=2*Math.PI; return d; }
+  function rand(a,b){ return Math.random()*(b-a)+a; }
+
+  // Distance helpers (project bar position to nearest edge of geometry)
+  function distToSeg(px,py,x1,y1,x2,y2){
+    const vx=x2-x1, vy=y2-y1, wx=px-x1, wy=py-y1;
+    const c1=wx*vx+wy*vy, c2=vx*vx+vy*vy, t=c2===0?0:clamp(c1/c2,0,1);
+    const qx=x1+t*vx, qy=y1+t*vy; return {d:Math.hypot(px-qx,py-qy), ang:Math.atan2(vy,vx)};
+  }
+  function distToPoly(px,py,verts){ let best={d:Infinity, ang:0}; for(let i=0;i<verts.length-1;i++){ const a=verts[i], b=verts[i+1]; const r=distToSeg(px,py,a[0],a[1],b[0],b[1]); if(r.d<best.d) best=r; } return best; }
+  function distToPolys(px,py,polys){ let best={d:Infinity, ang:0}; for(const V of polys){ const r=distToPoly(px,py,V); if(r.d<best.d) best=r; } return best; }
+  function distToCircle(px,py,cx,cy,r){ const dx=px-cx, dy=py-cy, dc=Math.hypot(dx,dy); return {d:Math.abs(dc-r), ang:Math.atan2(dy,dx)+Math.PI/2}; }
+  function distToCircles(px,py,circles){ let best={d:Infinity, ang:0}; for(const c of circles){ const r=distToCircle(px,py,c.cx,c.cy,c.r); if(r.d<best.d) best=r; } return best; }
+  function distToLine(px,py,line){ const nx=Math.cos(line.angle), ny=Math.sin(line.angle); const signed = (nx*px + ny*py) - line.offset; return {d:Math.abs(signed), ang:line.angle+Math.PI/2}; }
+  function distToLines(px,py,lines){ let best={d:Infinity, ang:0}; for(const L of lines){ const r=distToLine(px,py,L); if(r.d<best.d) best=r; } return best; }
+
+  // ---------- Small geometry utilities ----------
+  function regularPolygon(cx,cy,R,n){
+    const V=[], steps=n;
+    for(let i=0;i<=steps;i++){
+      const th=(i%steps)*(2*Math.PI/steps) - Math.PI/2;
+      V.push([cx+R*Math.cos(th), cy+R*Math.sin(th)]);
+    }
+    return V;
+  }
+  function starPolygon(cx,cy,Rin,Rout,pts){
+    const V=[], steps=pts*2;
+    for(let i=0;i<=steps;i++){
+      const th=(i%steps)*(Math.PI/pts) - Math.PI/2;
+      const r=(i%2===0)?Rout:Rin;
+      V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]);
+    }
+    return V;
+  }
+  function roundedRect(cx,cy,w,h,r,steps=80){
+    // approximate by poly (just a rectangle loop)
+    const x0=cx-w/2, y0=cy-h/2, x1=cx+w/2, y1=cy+h/2;
+    return [[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]];
+  }
+
+  // ---------- Base patterns from your version (10) ----------
+  function makeZigzag(){ const cx=VIEW_W/2, cy=VIEW_H/2, amp=180, steps=18, left=80, right=VIEW_W-80, V=[]; for(let i=0;i<=steps;i++){ const x=left+(right-left)*i/steps; const y=cy+(i%2===0?-amp:amp); V.push([x,y]); } return {type:'polys', polys:[V]}; }
+  function makeRings(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'circles', circles:[160,260,360].map(r=>({cx,cy,r}))}; }
+  function makeDiagStripes(){ const angle=-Math.PI/4, spacing=90, lines=[]; const centerOffset = Math.cos(angle)*(VIEW_W/2) + Math.sin(angle)*(VIEW_H/2); for(let k=-12;k<=12;k++) lines.push({angle, offset:centerOffset + k*spacing}); return {type:'lines', lines}; }
+  function makeSine(){ const left=60,right=VIEW_W-60, cy=VIEW_H/2, amp=160,freq=2,steps=260, V=[]; for(let i=0;i<=steps;i++){ const t=i/steps, x=left+(right-left)*t, y=cy+amp*Math.sin(2*Math.PI*freq*t); V.push([x,y]); } return {type:'polys', polys:[V]}; }
+  function makeSpiral(){ const cx=VIEW_W/2, cy=VIEW_H/2, turns=3.2,a=12,b=18,steps=800, V=[]; for(let i=0;i<=steps;i++){ const th=i*(turns*2*Math.PI/steps); const r=a+b*th; V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); } return {type:'polys', polys:[V]}; }
+  function makeGrid(){ const spacing=120, lines=[]; const aV=0, offV = Math.cos(aV)*(VIEW_W/2) + Math.sin(aV)*(VIEW_H/2); for(let k=-8;k<=8;k++) lines.push({angle:aV, offset:offV + k*spacing}); const aH=Math.PI/2, offH = Math.cos(aH)*(VIEW_W/2) + Math.sin(aH)*(VIEW_H/2); for(let k=-5;k<=5;k++) lines.push({angle:aH, offset:offH + k*spacing}); return {type:'lines', lines}; }
+  function makeRadialSpokes(){ const cx=VIEW_W/2, cy=VIEW_H/2, count=18, lines=[]; for(let i=0;i<count;i++){ const theta=i*2*Math.PI/count; const angle = theta + Math.PI/2; const offset = Math.cos(angle)*cx + Math.sin(angle)*cy; lines.push({angle, offset}); } return {type:'lines', lines}; }
+  function makeChevrons(){ const cy=VIEW_H/2, amp=140, period=160, left=60, right=VIEW_W-60, V=[]; const steps=Math.ceil((right-left)/8); for(let i=0;i<=steps;i++){ const x=left+i*8; const t=((x-left)/period)%1; const y=cy + (t<0.5 ? -amp + 2*amp*(t/0.5) : amp - 2*amp*((t-0.5)/0.5)); V.push([x,y]); } return {type:'polys', polys:[V]}; }
+  function makeSquares(){ const cx=VIEW_W/2, cy=VIEW_H/2, sizes=[220,340,460], polys=[]; for(const s of sizes){ polys.push([[cx-s/2,cy-s/2],[cx+s/2,cy-s/2],[cx+s/2,cy+s/2],[cx-s/2,cy+s/2],[cx-s/2,cy-s/2]]); } return {type:'polys', polys}; }
+  function makeEllipses(){ const cx=VIEW_W/2, cy=VIEW_H/2, pairs=[[220,140],[320,200],[420,260]], polys=[]; for(const [rx,ry] of pairs){ const steps=240, V=[]; for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; V.push([cx+rx*Math.cos(th), cy+ry*Math.sin(th)]); } polys.push(V); } return {type:'polys', polys}; }
+
+  // ---------- NEW patterns (18 more = total 28) ----------
+  function makeTriangle(){ const cx=VIEW_W/2, cy=VIEW_H/2, s=420; const V=[[cx,cy-s/2],[cx+s*Math.cos(Math.PI/6), cy+s/2],[cx-s*Math.cos(Math.PI/6), cy+s/2],[cx,cy-s/2]]; return {type:'polys', polys:[V]}; }
+
+  function makePentagons(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[regularPolygon(cx,cy,240,5), regularPolygon(cx,cy,350,5)]}; }
+  function makeHexagons(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[regularPolygon(cx,cy,220,6), regularPolygon(cx,cy,320,6), regularPolygon(cx,cy,420,6)]}; }
+
+  function makeStar5(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[starPolygon(cx,cy,150,320,5)]}; }
+  function makeStar8(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[starPolygon(cx,cy,180,340,8)]}; }
+
+  function makeRose4(){ // 4-petal rose: r = a cos(4θ)
+    const cx=VIEW_W/2, cy=VIEW_H/2, a=260, steps=720, V=[];
+    for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(4*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); }
+    V.push(V[0]); return {type:'polys', polys:[V]};
+  }
+  function makeClover3(){ // 3-petal: r = a cos(3θ)
+    const cx=VIEW_W/2, cy=VIEW_H/2, a=280, steps=720, V=[];
+    for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(3*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); }
+    V.push(V[0]); return {type:'polys', polys:[V]};
+  }
+
+  function makeLemniscate(){ // Bernoulli lemniscate approx
+    const cx=VIEW_W/2, cy=VIEW_H/2, a=300, steps=1000, V=[];
+    for(let i=0;i<=steps;i++){
+      const th=i*2*Math.PI/steps - Math.PI;
+      const c=Math.cos(2*th);
+      if(c<=0) continue;
+      const r=a/Math.sqrt(2) * Math.sqrt(c);
+      V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]);
+    }
+    // close loop by mirroring
+    const W=[...V, ...V.slice().reverse()];
+    return {type:'polys', polys:[W]};
+  }
+
+  function makeLissajous(){ // a=3, b=2
+    const cx=VIEW_W/2, cy=VIEW_H/2, Ax=500, Ay=260, a=3, b=2, steps=800, V=[];
+    for(let i=0;i<=steps;i++){ const t=i*2*Math.PI/steps; V.push([cx+Ax*Math.sin(a*t), cy+Ay*Math.sin(b*t)]); }
+    V.push(V[0]); return {type:'polys', polys:[V]};
+  }
+
+  function makeConcentricCircles(){ const cx=VIEW_W/2, cy=VIEW_H/2; const radii=[120,180,240,300,360,420].map(r=>({cx,cy,r})); return {type:'circles', circles:radii}; }
+
+  function makeCrosshair(){ // + lines
+    const cx=VIEW_W/2, cy=VIEW_H/2, lines=[];
+    // vertical & horizontal families for thickness illusion
+    const spacing=24, count=4;
+    for(let k=-count;k<=count;k++) lines.push({angle:0, offset:Math.cos(0)*cx + Math.sin(0)*cy + k*spacing}); // vertical family
+    for(let k=-count;k<=count;k++){ const a=Math.PI/2; lines.push({angle:a, offset:Math.cos(a)*cx + Math.sin(a)*cy + k*spacing}); } // horizontal family
+    return {type:'lines', lines};
+  }
+
+  function makeDiagonalCross(){ // X lines
+    const cx=VIEW_W/2, cy=VIEW_H/2, lines=[];
+    const angles=[Math.PI/4, -Math.PI/4];
+    const spacing=26, count=5;
+    for(const a of angles){
+      const off = Math.cos(a)*cx + Math.sin(a)*cy;
+      for(let k=-count;k<=count;k++) lines.push({angle:a+Math.PI/2, offset:off + k*spacing});
+    }
+    return {type:'lines', lines};
+  }
+
+  function makeRectFrames(){ const cx=VIEW_W/2, cy=VIEW_H/2; const polys=[
+    roundedRect(cx,cy,900,540,0), roundedRect(cx,cy,720,420,0), roundedRect(cx,cy,540,300,0)
+  ]; return {type:'polys', polys}; }
+
+  function makeDiamond(){ const cx=VIEW_W/2, cy=VIEW_H/2, s=380; const V=[[cx,cy-s],[cx+s,cy],[cx,cy+s],[cx-s,cy],[cx,cy-s]]; return {type:'polys', polys:[V]}; }
+
+  function makeBullseyeOffCenter(){ const cx=VIEW_W/2+180, cy=VIEW_H/2-60; return {type:'circles', circles:[140,220,300,380].map(r=>({cx,cy,r}))}; }
+
+  function makeWaveSquare(){ // square wave across screen
+    const left=60, right=VIEW_W-60, cy=VIEW_H/2, amp=160, period=180, V=[];
+    const steps=Math.ceil((right-left)/10);
+    for(let i=0;i<=steps;i++){
+      const x=left+i*10;
+      const t=((x-left)/period)%1;
+      const y=cy + (t<0.5? -amp : amp);
+      V.push([x,y]);
+    }
+    return {type:'polys', polys:[V]};
+  }
+
+  function makeSawtooth(){ // sawtooth wave
+    const left=60, right=VIEW_W-60, cy=VIEW_H/2, amp=170, period=160, V=[];
+    const steps=Math.ceil((right-left)/8);
+    for(let i=0;i<=steps;i++){
+      const x=left+i*8;
+      const t=((x-left)/period)%1;
+      const y=cy + (-amp + 2*amp*t);
+      V.push([x,y]);
+    }
+    return {type:'polys', polys:[V]};
+  }
+
+  function makeCheckerLines(){ // dense grid illusion
+    const spacing=70, lines=[];
+    const aV=0, offV = Math.cos(aV)*(VIEW_W/2) + Math.sin(aV)*(VIEW_H/2);
+    const aH=Math.PI/2, offH = Math.cos(aH)*(VIEW_W/2) + Math.sin(aH)*(VIEW_H/2);
+    for(let k=-10;k<=10;k++) lines.push({angle:aV, offset:offV + k*spacing});
+    for(let k=-6;k<=6;k++) lines.push({angle:aH, offset:offH + k*spacing});
+    return {type:'lines', lines};
+  }
+
+  function makeFan(){ // fan of lines from left edge
+    const cy=VIEW_H/2, cx=200, count=24, lines=[];
+    for(let i=0;i<count;i++){
+      const th = (-0.6 + i*(1.2/(count-1))) * Math.PI; // sweep
+      const angle = th + Math.PI/2;
+      const offset = Math.cos(angle)*cx + Math.sin(angle)*cy;
+      lines.push({angle, offset});
+    }
+    return {type:'lines', lines};
+  }
+
+  function makeConcentricTriangles(){ const cx=VIEW_W/2, cy=VIEW_H/2; const polys=[
+    regularPolygon(cx,cy,180,3), regularPolygon(cx,cy,280,3), regularPolygon(cx,cy,380,3)
+  ]; return {type:'polys', polys}; }
+
+  function makeOctagons(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[regularPolygon(cx,cy,200,8), regularPolygon(cx,cy,320,8)]}; }
+
+  function makeStarburstFine(){ const cx=VIEW_W/2, cy=VIEW_H/2, count=36, lines=[]; for(let i=0;i<count;i++){ const th=i*2*Math.PI/count; const angle=th+Math.PI/2; const offset=Math.cos(angle)*cx + Math.sin(angle)*cy; lines.push({angle, offset}); } return {type:'lines', lines}; }
+
+  // Collect them all (28 total)
+  const patternMakers=[
+    // original 10
+    makeZigzag,makeRings,makeDiagStripes,makeSine,makeSpiral,
+    makeGrid,makeRadialSpokes,makeChevrons,makeSquares,makeEllipses,
+    // +18 new
+    makeTriangle,makePentagons,makeHexagons,makeStar5,makeStar8,
+    makeRose4,makeClover3,makeLemniscate,makeLissajous,makeConcentricCircles,
+    makeCrosshair,makeDiagonalCross,makeRectFrames,makeDiamond,makeBullseyeOffCenter,
+    makeWaveSquare,makeSawtooth,makeCheckerLines,makeFan,makeConcentricTriangles,
+    makeOctagons,makeStarburstFine
+  ];
+
+  // ---------- Grid ----------
+  function buildGrid(){
+    clearSvg(); bars=[];
+    const padding=36, W=VIEW_W-padding*2, H=VIEW_H-padding*2;
+    cols=parseInt(dens.value,10); rows=Math.round(cols*(H/W));
+    const dx=W/(cols-1), dy=H/(rows-1);
+    const g = svgEl('g'); svg.appendChild(g);
+
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = padding + c*dx, y = padding + r*dy;
+        const angle = rand(0, Math.PI);
+        const omega = (Math.random()<0.5?-1:1) * (0.6+Math.random()) * baseSpeed; // continuous spin
+        const rect = svgEl('rect',{
+          x:-barThick/2, y:-barLen/2, width:barThick, height:barLen,
+          class:'bar',
+          transform:`translate(${x} ${y}) rotate(${angle*180/Math.PI})`
+        });
+        g.appendChild(rect);
+        bars.push({x,y,angle,omega,targetAngle:angle,lockedUntil:0,el:rect});
+      }
+    }
+    updateAppearance();
+    updateStatus();
+  }
+
+  function updateAppearance(){
+    barLen=parseInt(len.value,10);
+    barThick=parseInt(thick.value,10);
+    bars.forEach(b=>{
+      b.el.setAttribute('x', -barThick/2);
+      b.el.setAttribute('y', -barLen/2);
+      b.el.setAttribute('width', barThick);
+      b.el.setAttribute('height', barLen);
+    });
+  }
+
+  function updateStatus(){
+    statusEl.textContent = `Bars: ${cols}×${rows} • Speed: ${baseSpeed.toFixed(1)} • Reveal: ${REVEAL_MS/1000}s • Always rotating`;
+  }
+
+  // ---------- Animation ----------
+  function tick(ts){
+    if(!tPrev) tPrev=ts;
+    const dt=(ts-tPrev)/1000; tPrev=ts;
+
+    const now = performance.now();
+    for(const b of bars){
+      const locked = now < b.lockedUntil;
+
+      if(locked){
+        const diff = angleDiff(b.angle, b.targetAngle);
+        b.angle += diff * 12 * dt; // snap quickly to target and stay put
+      }else{
+        b.angle += b.omega * dt;   // continuous rotation
+        const diff = angleDiff(b.angle, b.targetAngle);
+        b.angle += diff * 3 * dt;  // soft drift
+      }
+
+      if(b.angle>Math.PI) b.angle-=2*Math.PI; else if(b.angle<-Math.PI) b.angle+=2*Math.PI;
+      b.el.setAttribute('transform',`translate(${b.x} ${b.y}) rotate(${b.angle*180/Math.PI})`);
+    }
+    raf=requestAnimationFrame(tick);
+  }
+
+  // ---------- Pattern reveal ----------
+  function choosePattern(){ return patternMakers[Math.floor(Math.random()*patternMakers.length)](); }
+
+  function applyPattern(){
+    const geom = choosePattern();
+    const spacing = Math.min((VIEW_W-72)/(cols-1),(VIEW_H-72)/(rows-1));
+    const baseThresh = spacing*0.62;
+    const frac = parseFloat(strength.value);
+
+    const scored = bars.map((b)=>{
+      let r={d:Infinity, ang:0};
+      if(geom.type==='polys') r = distToPolys(b.x,b.y, geom.polys);
+      else if(geom.type==='circles') r = distToCircles(b.x,b.y, geom.circles);
+      else if(geom.type==='lines') r = distToLines(b.x,b.y, geom.lines);
+      return {b, d:r.d, ang:r.ang};
+    }).sort((a,b)=>a.d-b.d);
+
+    const cutoffIndex = Math.floor(scored.length*frac);
+    const cutoffDist = Math.max(baseThresh, scored[cutoffIndex]?.d ?? baseThresh);
+
+    const lockUntil = performance.now() + REVEAL_MS;
+
+    for(const s of scored){
+      const b=s.b;
+      if(s.d<=cutoffDist){
+        b.targetAngle = s.ang;
+        b.lockedUntil = lockUntil;
+      }else{
+        b.lockedUntil = 0;
+        b.targetAngle = rand(0, Math.PI);
+      }
+    }
+
+    setTimeout(()=>{
+      for(const b of bars){
+        b.lockedUntil = 0;
+        b.targetAngle = rand(0, Math.PI);
+      }
+    }, REVEAL_MS);
+
+    announce('Pattern revealed');
+  }
+
+  function randomizeAll(){
+    for(const b of bars){
+      b.lockedUntil = 0;
+      b.targetAngle = rand(0, Math.PI);
+    }
+    announce('Randomized');
+  }
+
+  // ---------- UI ----------
+  btnNext.addEventListener('click', applyPattern);
+  btnRandom.addEventListener('click', randomizeAll);
+
+  dens.addEventListener('input', ()=>{ buildGrid(); });
+  len.addEventListener('input', ()=>{ updateAppearance(); });
+  thick.addEventListener('input', ()=>{ updateAppearance(); });
+  speed.addEventListener('input', ()=>{ baseSpeed=parseFloat(speed.value); updateStatus(); });
+  strength.addEventListener('input', ()=>{ /* applied on next reveal */ });
+
+  // ---------- Init ----------
+  function init(){
+    baseSpeed=parseFloat(speed.value);
+    buildGrid();
+    raf=requestAnimationFrame(tick); // always rotating
+  }
+  init();
+})();
+</script>
+</body>
+</html>
