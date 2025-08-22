@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visual Attention — VSAT & CVAT</title>
+  <style>
+    :root {
+      --bg: #0A0E14;
+      --panel: #0F1625;
+      --panel2: #0B1220;
+      --line: #263149;
+      --fg: #F2F7FF;
+      --muted: #BFD3FF;
+      --accent: #7AA2FF;
+      --accent2: #6CFF9A;
+      --warn: #FFB454;
+      --bad: #FF6B6B;
+      --good: #4ADE80;
+      --halo: #ffffffcc;
+      --colorA: #FF4A4A;
+      --colorB: #46D16A;
+    }
+
+    /* Accessibility mode: high-contrast, color-blind–safe palette (Okabe–Ito) */
+    [data-accessible="true"] {
+      --bg: #000000;
+      --panel: #0B0B0B;
+      --panel2: #090909;
+      --line: #4B5B7A;
+
+      --fg: #FFFFFF;
+      --muted: #DDE7FF;
+      --halo: #FFFFFF;
+
+      /* CB-safe accents */
+      --accent: #0072B2;
+      /* blue */
+      --accent2: #009E73;
+      /* bluish green */
+      --warn: #F0E442;
+      /* yellow */
+      --bad: #D55E00;
+      /* vermillion (for errors/hearts) */
+      --good: #009E73;
+      /* bluish green */
+
+      /* Target/distractor colors chosen for maximum CB separability */
+      --colorA: #0072B2;
+      /* blue */
+      --colorB: #E69F00;
+      /* orange */
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(2000px 900px at 80% -10%, #1a2140 0%, transparent 60%), var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      font-size: clamp(17px, 1.6vw + 0.5vh, 20px);
+    }
+
+    .wrap {
+      max-width: min(1400px, 96vw);
+      margin: 0 auto;
+      padding: 18px
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #4c78ff);
+      box-shadow: 0 8px 24px #0008
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.6rem;
+      letter-spacing: .5px
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--line);
+      padding: 14px;
+      border-radius: 16px;
+      box-shadow: 0 14px 40px #0008
+    }
+
+    .seg {
+      display: flex;
+      background: #091022;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden
+    }
+
+    .seg button {
+      border: none;
+      padding: 14px 18px;
+      font-weight: 800;
+      letter-spacing: .3px;
+      color: #cfe0ff;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1.1rem
+    }
+
+    .seg button.active {
+      background: linear-gradient(180deg, var(--accent), #4f7eff);
+      color: #fff
+    }
+
+    .seg.small button {
+      padding: 12px 16px;
+      font-size: 1.05rem
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #0b1222
+    }
+
+    .pill input {
+      transform: scale(1.2);
+      accent-color: var(--accent)
+    }
+
+    .play {
+      background: linear-gradient(180deg, var(--accent2), #39e27f);
+      color: #082a16;
+      border: none;
+      padding: 16px 20px;
+      border-radius: 14px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 10px 30px #000a
+    }
+
+    .stop {
+      background: #172232;
+      color: #fff;
+      border: 1px solid var(--line);
+      padding: 16px 20px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .info {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0b1426;
+      color: #e8f0ff;
+      border: 1px solid var(--line);
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .info .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, var(--accent), #4f7eff);
+      display: inline-block
+    }
+
+    .zoomWrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      background: #0b1222;
+      border-radius: 12px;
+      padding: 6px 8px
+    }
+
+    .zoomBtn {
+      background: #101a31;
+      color: #e8f0ff;
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .zoomVal {
+      min-width: 3.5ch;
+      text-align: center;
+      font-weight: 800
+    }
+
+    .full {
+      background: #101a31;
+      color: #e8f0ff;
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 12px;
+      margin-top: 12px
+    }
+
+    @media (max-width: 900px) {
+      .hud {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 12px 36px #0009
+    }
+
+    .arena {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background:
+        radial-gradient(700px 300px at 10% 10%, #ffffff10, transparent 60%),
+        radial-gradient(500px 200px at 85% 90%, #ffffff08, transparent 60%),
+        linear-gradient(180deg, #0b1120, #0e1526);
+    }
+
+    @media (min-height: 900px) {
+      .arena {
+        min-height: 70vh
+      }
+    }
+
+    .big {
+      font-size: 1.15rem
+    }
+
+    .statgrid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px
+    }
+
+    @media (max-width:600px) {
+      .statgrid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    .card {
+      background: #0a1222;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center
+    }
+
+    .card h3 {
+      margin: 0 0 6px 0;
+      font-size: 1rem;
+      color: #cfe0ff
+    }
+
+    .card .val {
+      font-size: 1.8rem;
+      font-weight: 900
+    }
+
+    .hearts {
+      display: flex;
+      justify-content: center;
+      gap: 8px
+    }
+
+    .heart {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--bad);
+      box-shadow: 0 0 10px #000a
+    }
+
+    .heart.off {
+      filter: grayscale(1);
+      opacity: .35
+    }
+
+    .stars {
+      display: flex;
+      gap: 8px;
+      justify-content: center
+    }
+
+    .star {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--accent);
+      box-shadow: 0 0 10px #000a
+    }
+
+    .star.off {
+      filter: grayscale(1);
+      opacity: .35
+    }
+
+    /* SVG */
+    .tile {
+      fill: #ffffff0e;
+      stroke: #ffffff10
+    }
+
+    .halo {
+      fill: var(--halo);
+      opacity: .25
+    }
+
+    .fix {
+      stroke: #7aa2ffcc;
+      stroke-width: 5
+    }
+
+    .shapeFill {
+      opacity: .98
+    }
+
+    [data-accessible="true"] .shapeFill {
+      fill: none;
+      stroke-width: 3
+    }
+
+    /* overlay text */
+    .centerNote {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: #ffffffdd;
+      text-shadow: 0 6px 24px #000
+    }
+
+    /* confetti canvas */
+    canvas#fx {
+      position: absolute;
+      inset: 0;
+      pointer-events: none
+    }
+
+    .sr-only {
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden
+    }
+
+    /* Modal */
+    .modalOverlay {
+      position: fixed;
+      inset: 0;
+      background: #000a;
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000
+    }
+
+    .modal {
+      width: min(920px, 92vw);
+      max-height: 85vh;
+      overflow: auto;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px #000c
+    }
+
+    .modal header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-size: 1.5rem
+    }
+
+    .modal .body {
+      padding: 16px 18px
+    }
+
+    .modal .body h3 {
+      margin: 14px 0 6px 0;
+      font-size: 1.15rem;
+      color: var(--muted)
+    }
+
+    .modal .body p {
+      margin: 6px 0 10px 0;
+      line-height: 1.6
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #0b1222;
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+      margin-right: 6px
+    }
+
+    .tag.current {
+      background: linear-gradient(180deg, var(--accent), #4f7eff);
+      color: #fff;
+      border-color: #4f7eff
+    }
+
+    .closeBtn {
+      background: #172232;
+      color: #fff;
+      border: 1px solid var(--line);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .kbd {
+      display: inline-block;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 1rem;
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #0b1222
+    }
+
+    ul.compact {
+      margin: 8px 0 12px 20px
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root" data-accessible="false">
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <div class="logo"></div>
+          <h1>Visual <span style="color:var(--accent2)">Attention</span></h1>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="zoomWrap" aria-label="Zoom controls">
+            <button class="zoomBtn" id="zoomOut" aria-label="Zoom out">A−</button>
+            <span class="zoomVal" id="zoomVal">125%</span>
+            <button class="zoomBtn" id="zoomIn" aria-label="Zoom in">A+</button>
+          </div>
+          <button class="full" id="fullBtn" aria-pressed="false" title="Toggle Fullscreen">Fullscreen</button>
+          <button class="info" id="infoBtn" aria-haspopup="dialog" aria-controls="infoOverlay"
+            title="Read about VSAT, CVAT, and options"><span class="dot" aria-hidden="true"></span> Info</button>
+          <button class="play" id="playBtn">PLAY</button>
+        </div>
+      </header>
+
+      <div class="controls">
+        <div class="seg" id="modeSeg" role="tablist" aria-label="Mode">
+          <button class="active" data-mode="vsat" role="tab" aria-selected="true">VSAT</button>
+          <button data-mode="cvat" role="tab" aria-selected="false">CVAT</button>
+        </div>
+
+        <div class="seg small" id="condSeg" role="tablist" aria-label="Search">
+          <button class="active" data-search="feature" role="tab" aria-selected="true">Feature</button>
+          <button data-search="shape" role="tab" aria-selected="false">Shape</button>
+          <button data-search="conjunction" role="tab" aria-selected="false">Conjunction</button>
+        </div>
+
+        <div class="pill big"><input id="access" type="checkbox" /><label for="access"><b>Accessible Mode</b></label>
+        </div>
+        <button class="stop" id="stopBtn" disabled>STOP</button>
+      </div>
+
+      <div class="hud">
+        <div class="panel">
+          <div class="arena" id="arena" tabindex="0" aria-label="game area">
+            <svg id="svg" viewBox="0 0 1600 900" width="100%" height="100%" aria-hidden="true"></svg>
+            <canvas id="fx"></canvas>
+            <div id="centerNote" class="centerNote" style="display:none"></div>
+            <span id="ariaMsg" class="sr-only" aria-live="assertive"></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="statgrid">
+            <div class="card">
+              <h3>Level</h3>
+              <div class="val" id="level">1</div>
+            </div>
+            <div class="card">
+              <h3>Score</h3>
+              <div class="val" id="score">0</div>
+            </div>
+            <div class="card">
+              <h3>Streak</h3>
+              <div class="val" id="streak">0</div>
+            </div>
+            <div class="card">
+              <h3>Best RT</h3>
+              <div class="val" id="best">—</div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:10px">
+            <h3>Stars</h3>
+            <div class="stars">
+              <div class="star" id="s1"></div>
+              <div class="star" id="s2"></div>
+              <div class="star off" id="s3"></div>
+            </div>
+          </div>
+          <div class="card" id="lifeCard" style="margin-top:10px;display:none">
+            <h3>Hearts</h3>
+            <div class="hearts">
+              <div class="heart" id="h1"></div>
+              <div class="heart" id="h2"></div>
+              <div class="heart" id="h3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div id="infoOverlay" class="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="infoTitle"
+    aria-describedby="infoDesc">
+    <div class="modal">
+      <header>
+        <h2 id="infoTitle">About the Tests and Options</h2>
+        <button class="closeBtn" id="closeInfo" aria-label="Close">Close</button>
+      </header>
+      <div class="body" id="infoBody">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ---------- DOM ----------
+      const root = document.getElementById('root');
+      const modeSeg = document.getElementById('modeSeg');
+      const condSeg = document.getElementById('condSeg');
+      const playBtn = document.getElementById('playBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const infoBtn = document.getElementById('infoBtn');
+      const infoOverlay = document.getElementById('infoOverlay');
+      const infoBody = document.getElementById('infoBody');
+      const closeInfo = document.getElementById('closeInfo');
+      const access = document.getElementById('access');
+      const accessLabel = document.querySelector('label[for="access"]');
+
+      const svg = document.getElementById('svg');
+      const arena = document.getElementById('arena');
+      const fx = document.getElementById('fx');
+      const note = document.getElementById('centerNote');
+      const ariaMsg = document.getElementById('ariaMsg');
+
+      const levelEl = document.getElementById('level');
+      const scoreEl = document.getElementById('score');
+      const streakEl = document.getElementById('streak');
+      const bestEl = document.getElementById('best');
+      const starEls = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+      const lifeCard = document.getElementById('lifeCard');
+      const hearts = [document.getElementById('h1'), document.getElementById('h2'), document.getElementById('h3')];
+
+      // New: Zoom + Fullscreen controls
+      const zoomIn = document.getElementById('zoomIn');
+      const zoomOut = document.getElementById('zoomOut');
+      const zoomVal = document.getElementById('zoomVal');
+      const fullBtn = document.getElementById('fullBtn');
+
+      // ---------- Visual scale state ----------
+      const SCALE_MIN = 1.0, SCALE_MAX = 1.8, SCALE_STEP = 0.1;
+      let uiScale = 1.25;
+
+      function updateZoomLabel() {
+        zoomVal.textContent = Math.round(uiScale * 100) + '%';
+      }
+      function setScale(s) {
+        uiScale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, s));
+        updateZoomLabel();
+        if (state.running) {
+          if (state.mode === 'vsat') drawVSAT(true);
+          else { clearSvg(); drawFix(); }
+        } else {
+          clearSvg(); drawFix();
+        }
+      }
+      zoomIn.addEventListener('click', () => setScale(uiScale + SCALE_STEP));
+      zoomOut.addEventListener('click', () => setScale(uiScale - SCALE_STEP));
+      updateZoomLabel();
+
+      // ---------- Fullscreen ----------
+      async function toggleFull() {
+        try {
+          if (!document.fullscreenElement) {
+            await (root.requestFullscreen ? root.requestFullscreen() : document.documentElement.requestFullscreen());
+            fullBtn.setAttribute('aria-pressed', 'true');
+            fullBtn.textContent = 'Exit Fullscreen';
+          } else {
+            await document.exitFullscreen();
+            fullBtn.setAttribute('aria-pressed', 'false');
+            fullBtn.textContent = 'Fullscreen';
+          }
+        } catch (e) { }
+      }
+      fullBtn.addEventListener('click', toggleFull);
+      window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'f') toggleFull(); });
+
+      // ---------- Canvas FX (confetti) ----------
+      const ctx = fx.getContext('2d');
+      function resizeFX() { fx.width = arena.clientWidth; fx.height = arena.clientHeight; }
+      new ResizeObserver(resizeFX).observe(arena);
+      const confetti = [];
+      function burst(n = 60) {
+        for (let i = 0; i < n; i++) {
+          confetti.push({ x: fx.width / 2, y: fx.height / 2, vx: (Math.random() - 0.5) * 8, vy: (Math.random() * -6) - 3, g: 0.18, s: 2 + Math.random() * 3, a: 1, hue: Math.random() * 360 });
+        }
+      }
+      function tickFX() {
+        ctx.clearRect(0, 0, fx.width, fx.height);
+        confetti.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += p.g; p.a *= 0.985;
+          ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.a})`;
+          ctx.fillRect(p.x, p.y, p.s, p.s * 1.8);
+        });
+        for (let i = confetti.length - 1; i >= 0; i--) if (confetti[i].a < 0.05 || confetti[i].y > fx.height + 20) confetti.splice(i, 1);
+        requestAnimationFrame(tickFX);
+      }
+      tickFX();
+
+      // ---------- Audio (tiny sfx) ----------
+      let audioCtx = null;
+      function beep(freq = 700, dur = 120, type = 'sine', vol = 0.2) {
+        try {
+          const ctx = audioCtx || (audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = type; o.frequency.value = freq; o.connect(g); g.connect(ctx.destination);
+          g.gain.value = vol; o.start(); o.stop(ctx.currentTime + dur / 1000);
+        } catch (e) { }
+      }
+      const sfx = { hit: () => beep(900, 90, 'triangle', 0.25), miss: () => beep(220, 180, 'sawtooth', 0.2), level: () => { beep(660, 100, 'sine', 0.25); setTimeout(() => beep(990, 120, 'sine', 0.25), 90); } };
+
+      // ---------- State ----------
+      const VIEW_W = 1600, VIEW_H = 900;
+      let timer = null, raf = null, lastFocused = null;
+      const state = {
+        mode: 'vsat', search: 'feature',
+        running: false, level: 1, score: 0, streak: 0, bestRT: null,
+        // VSAT
+        gridSteps: [[8, 5], [12, 8], [16, 9]], trialsPerLevel: 6, trial: 0, vsatStart: 0,
+        stickyRegion: null, biasProb: 0.7, targetCell: null,
+        // CVAT
+        hearts: 3, isi: 900, streamIndex: 0, isTarget: false, stimOn: 0, awaitResp: false, streamEndTime: 0
+      };
+
+      // ---------- UI bind ----------
+      modeSeg.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modeSeg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.mode = btn.dataset.mode;
+          lifeCard.style.display = state.mode === 'cvat' ? '' : 'none';
+          announce(`${state.mode.toUpperCase()} selected`);
+          resetGame(false);
+        });
+      });
+      condSeg.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          condSeg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active'); state.search = btn.dataset.search;
+          announce(`${state.search} search`);
+          resetGame(false);
+        });
+      });
+
+      access.addEventListener('change', () => {
+        const on = access.checked;
+        root.setAttribute('data-accessible', on ? 'true' : 'false');
+
+        /* Label text requirement:
+           When accessibility mode is ON, label must only read:
+           "visual accessibility ..." */
+        if (on) {
+          accessLabel.innerHTML = '<b>visual accessibility ...</b>';
+        } else {
+          accessLabel.innerHTML = '<b>Accessible Mode</b>';
+        }
+
+        // If the info modal is open, rebuild its body to reflect the short text requirement
+        if (infoOverlay.style.display === 'flex') {
+          infoBody.innerHTML = buildInfoHTML();
+        }
+
+        if (state.running && state.mode === 'vsat') drawVSAT(true);
+        else { clearSvg(); drawFix(); }
+      });
+
+      playBtn.addEventListener('click', startGame);
+      stopBtn.addEventListener('click', stopGame);
+      window.addEventListener('keydown', (e) => {
+        if (state.mode === 'cvat' && e.code === 'Space') {
+          e.preventDefault(); onCVATSpace();
+        }
+        if (e.key === 'r' || e.key === 'R') { resetGame(false); }
+        if (e.key === 'Escape' && infoOverlay.style.display === 'flex') { hideInfo(); }
+      });
+
+      // ---------- Info Modal ----------
+      function buildInfoHTML() {
+        const curMode = state.mode.toUpperCase();
+        const curSearch = state.search.charAt(0).toUpperCase() + state.search.slice(1);
+        const isAccessible = root.getAttribute('data-accessible') === 'true';
+
+        return `
+      <p id="infoDesc">
+        Current selection:
+        <span class="tag current">${curMode}</span>
+        <span class="tag current">${curSearch}</span>
+      </p>
+
+      <h3>VSAT — Visual Search</h3>
+      <p>Find and click the target among distractors. Reaction time is measured. Levels increase the grid size. Targets sometimes appear in a consistent region to encourage efficient search strategies.</p>
+      <ul class="compact">
+        <li><b>Action:</b> Click the target shape.</li>
+        <li><b>Measures:</b> Reaction time, streaks, stars, score.</li>
+        <li><b>Progression:</b> After several trials, the grid expands to a denser display.</li>
+      </ul>
+
+      <h3>CVAT — Continuous Visual Attention</h3>
+      <p>Items appear near the center. Press <span class="kbd">Space</span> when a target appears. Misses and false alarms cost a heart. Correct rejections give small points.</p>
+      <ul class="compact">
+        <li><b>Action:</b> Press <span class="kbd">Space</span> for targets; do not press for non-targets.</li>
+        <li><b>Timing:</b> Each item is on screen briefly; respond within that window.</li>
+        <li><b>Lives:</b> Three hearts. Lose one on a miss or a false alarm.</li>
+      </ul>
+
+      <h3>Search Options</h3>
+      <p><span class="tag ${state.search === 'feature' ? 'current' : ''}">Feature</span> Target differs by a single feature (fast, pop-out search).</p>
+      <p><span class="tag ${state.search === 'shape' ? 'current' : ''}">Shape</span> Target differs by shape while color is held constant.</p>
+      <p><span class="tag ${state.search === 'conjunction' ? 'current' : ''}">Conjunction</span> Target is defined by a combination of features (usually harder).</p>
+
+      <h3>Controls</h3>
+      <ul class="compact">
+        <li><b>Play:</b> Start the selected test.</li>
+        <li><b>Stop:</b> Pause the session.</li>
+        <li><b>Reset:</b> Press <span class="kbd">R</span> to reset the current test.</li>
+        <li><b>Response:</b> VSAT: mouse click. CVAT: <span class="kbd">Space</span>.</li>
+        <li><b>Fullscreen:</b> Click <b>Fullscreen</b> or press <span class="kbd">F</span>.</li>
+        <li><b>Zoom:</b> Use A− / A+ to make visuals smaller/bigger.</li>
+      </ul>
+
+      <h3>Accessible Mode</h3>
+      <p>${isAccessible ? 'visual accessibility ...' : 'Outlines and higher contrast visuals with color-blind–safe palette. Turn it on with the checkbox.'}</p>
+    `;
+      }
+
+      function showInfo() {
+        lastFocused = document.activeElement;
+        infoBody.innerHTML = buildInfoHTML();
+        infoOverlay.style.display = 'flex';
+        closeInfo.focus();
+      }
+      function hideInfo() {
+        infoOverlay.style.display = 'none';
+        if (lastFocused && lastFocused.focus) lastFocused.focus();
+      }
+      infoBtn.addEventListener('click', showInfo);
+      closeInfo.addEventListener('click', hideInfo);
+      infoOverlay.addEventListener('click', (e) => { if (e.target === infoOverlay) hideInfo(); });
+
+      // ---------- Helpers ----------
+      const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const randFloat = (a, b) => Math.random() * (b - a) + a;
+      const now = () => performance.now();
+      function clearSvg() { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+      function announce(msg) { ariaMsg.textContent = ''; setTimeout(() => ariaMsg.textContent = msg, 20); }
+      function showNote(text, ms = 900) {
+        note.textContent = text; note.style.display = 'flex';
+        setTimeout(() => { note.style.display = 'none'; }, ms);
+      }
+      function addScore(pts) {
+        state.score += pts; state.streak += 1;
+        scoreEl.textContent = state.score;
+        streakEl.textContent = state.streak;
+        if (state.streak >= 3) starEls[2].classList.remove('off');
+        else if (state.streak >= 2) starEls[1].classList.remove('off');
+        else starEls[1].classList.add('off');
+      }
+      function resetStreak() {
+        state.streak = 0; streakEl.textContent = '0';
+        starEls[2].classList.add('off'); starEls[1].classList.add('off');
+      }
+
+      // ---------- Search set maker ----------
+      function makeSet() {
+        const cs = getComputedStyle(document.documentElement);
+        const colorA = cs.getPropertyValue('--colorA').trim() || '#ff4a4a';
+        const colorB = cs.getPropertyValue('--colorB').trim() || '#46d16a';
+
+        if (state.search === 'feature') {
+          return { target: { shape: 'circle', color: colorA }, distractors: [{ shape: 'circle', color: colorB }] };
+        } else if (state.search === 'shape') {
+          return { target: { shape: 'triangle', color: colorB }, distractors: [{ shape: 'square', color: colorB }] };
+        } else {
+          return { target: { shape: 'square', color: colorA }, distractors: [{ shape: 'square', color: colorB }, { shape: 'circle', color: colorA }] };
+        }
+      }
+
+      // ---------- Shape drawers ----------
+      function drawCircle(cx, cy, r, fill, click) {
+        const g = svgEl('g');
+        const halo = svgEl('circle', { class: 'halo', cx, cy, r: r * 1.3 }); halo.style.opacity = .18; g.appendChild(halo);
+        const c = svgEl('circle', { cx, cy, r, class: 'shapeFill' });
+        if (root.getAttribute('data-accessible') === 'true') { c.setAttribute('stroke', fill); c.setAttribute('fill', 'none'); }
+        else c.setAttribute('fill', fill);
+        g.appendChild(c);
+        if (click) { g.style.cursor = 'pointer'; g.addEventListener('click', click); }
+        svg.appendChild(g); return g;
+      }
+      function drawSquare(cx, cy, size, fill, click) {
+        const g = svgEl('g');
+        const halo = svgEl('circle', { class: 'halo', cx, cy, r: size * 0.9 }); halo.style.opacity = .18; g.appendChild(halo);
+        const s = svgEl('rect', { x: cx - size / 2, y: cy - size / 2, width: size, height: size, class: 'shapeFill' });
+        if (root.getAttribute('data-accessible') === 'true') { s.setAttribute('stroke', fill); s.setAttribute('fill', 'none'); }
+        else s.setAttribute('fill', fill);
+        g.appendChild(s);
+        if (click) { g.style.cursor = 'pointer'; g.addEventListener('click', click); }
+        svg.appendChild(g); return g;
+      }
+      function drawTriangle(cx, cy, size, fill, click) {
+        const g = svgEl('g');
+        const halo = svgEl('circle', { class: 'halo', cx, cy, r: size * 0.9 }); halo.style.opacity = .18; g.appendChild(halo);
+        const h = size * Math.sqrt(3) / 2;
+        const t = svgEl('path', { d: `M ${cx} ${cy - 2 * h / 3} L ${cx - size / 2} ${cy + h / 3} L ${cx + size / 2} ${cy + h / 3} Z`, class: 'shapeFill' });
+        if (root.getAttribute('data-accessible') === 'true') { t.setAttribute('stroke', fill); t.setAttribute('fill', 'none'); }
+        else t.setAttribute('fill', fill);
+        g.appendChild(t);
+        if (click) { g.style.cursor = 'pointer'; g.addEventListener('click', click); }
+        svg.appendChild(g); return g;
+      }
+      function drawDistr(shape, color, cx, cy, size) {
+        if (shape === 'circle') drawCircle(cx, cy, size * 0.6, color, null);
+        else if (shape === 'square') drawSquare(cx, cy, size * 1.05, color, null);
+        else drawTriangle(cx, cy, size * 1.0, color, null);
+      }
+      function drawTarget(shape, color, cx, cy, size, handler) {
+        let node;
+        if (shape === 'circle') node = drawCircle(cx, cy, size * 0.65, color, handler);
+        else if (shape === 'square') node = drawSquare(cx, cy, size * 1.1, color, handler);
+        else node = drawTriangle(cx, cy, size * 1.05, color, handler);
+        // subtle pulse
+        let t0 = null; function pulse(ts) { if (!t0) t0 = ts; const t = (ts - t0) / 1000; const s = 1 + 0.06 * Math.sin(t * 2 * Math.PI * 0.9); node.setAttribute('transform', `translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})`); raf = requestAnimationFrame(pulse); }
+        raf = requestAnimationFrame(pulse);
+        return node;
+      }
+      function svgEl(tag, attrs = {}) {
+        const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        return n;
+      }
+
+      // ---------- VSAT ----------
+      function cellRect(c, r, cols, rows) {
+        const W = VIEW_W / cols, H = VIEW_H / rows; return { x: c * W, y: r * H, w: W, h: H };
+      }
+      function chooseSticky(cols, rows) {
+        const c = randInt(0, cols - 1), r = randInt(0, rows - 1); return { c, r };
+      }
+      function drawVSAT(keep = false) {
+        clearSvg();
+        const set = makeSet();
+        const steps = state.gridSteps || [[8, 5], [12, 8], [16, 9]];
+        const [cols, rows] = steps[Math.min(state.level - 1, steps.length - 1)];
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const rect = cellRect(c, r, cols, rows);
+            const tile = svgEl('rect', { x: rect.x, y: rect.y, width: rect.w, height: rect.h, class: 'tile' }); svg.appendChild(tile);
+          }
+        }
+        if (!state.stickyRegion) state.stickyRegion = chooseSticky(cols, rows);
+        let tc, tr;
+        if (keep && state.targetCell) { tc = state.targetCell.c; tr = state.targetCell.r; }
+        else {
+          if (Math.random() < state.biasProb) { tc = state.stickyRegion.c; tr = state.stickyRegion.r; }
+          else { tc = randInt(0, cols - 1); tr = randInt(0, rows - 1); }
+        }
+        state.targetCell = { c: tc, r: tr };
+
+        const ds = set.distractors || [];
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const { x, y, w, h } = cellRect(c, r, cols, rows);
+            const cx = x + w / 2, cy = y + h / 2, size = Math.min(w, h) * 0.36 * uiScale;
+            if (c === tc && r === tr) continue;
+            const spec = ds.length === 1 ? ds[0] : ds[randInt(0, ds.length - 1)];
+            drawDistr(spec.shape, spec.color, cx, cy, size);
+          }
+        }
+        const tRect = cellRect(tc, tr, cols, rows);
+        const cx = tRect.x + tRect.w / 2, cy = tRect.y + tRect.h / 2, size = Math.min(tRect.w, tRect.h) * 0.36 * uiScale;
+        drawTarget(set.target.shape, set.target.color, cx, cy, size, onVSATHit);
+
+        state.vsatStart = now();
+        aria(`VSAT Level ${state.level}. Click the target.`);
+      }
+      function onVSATHit() {
+        if (!state.running || state.mode !== 'vsat') return;
+        const rt = now() - state.vsatStart;
+        if (state.bestRT === null || rt < state.bestRT) { state.bestRT = rt; bestEl.textContent = Math.round(rt) + 'ms'; }
+        const bonus = Math.max(10, 300 - Math.min(300, rt / 2));
+        addScore(Math.round(bonus));
+        sfx.hit();
+        state.trial++;
+        if (state.trial >= state.trialsPerLevel) {
+          state.level++; levelEl.textContent = state.level;
+          state.trial = 0; state.stickyRegion = null;
+          showNote('LEVEL UP!', 900); sfx.level(); burst(90);
+        }
+        drawVSAT(false);
+      }
+
+      // ---------- CVAT ----------
+      function drawFix() {
+        const cx = VIEW_W / 2, cy = VIEW_H / 2;
+        svg.appendChild(svgEl('circle', { cx, cy, r: 26 * uiScale, fill: 'none', class: 'fix' }));
+      }
+      function tickCVAT() {
+        if (!state.running || state.mode !== 'cvat') return;
+        clearSvg(); drawFix();
+        const set = makeSet();
+        state.isTarget = Math.random() < 0.4;
+        const cx = VIEW_W / 2 + randFloat(-160, 160);
+        const cy = VIEW_H / 2 + randFloat(-140, 140);
+        const base = 40 * uiScale;
+        if (state.isTarget) {
+          drawTarget(set.target.shape, set.target.color, cx, cy, base, null);
+        } else {
+          const ds = set.distractors || [];
+          const n = randInt(1, 3);
+          for (let i = 0; i < n; i++) {
+            const spec = ds.length === 1 ? ds[0] : ds[randInt(0, ds.length - 1)];
+            drawDistr(spec.shape, spec.color, cx + randFloat(-180, 180), cy + randFloat(-180, 180), base * 0.95);
+          }
+        }
+        state.stimOn = now(); state.awaitResp = true; state.streamIndex++;
+        aria(state.isTarget ? 'Target' : 'Non-target');
+        timer = setTimeout(() => {
+          if (state.awaitResp) {
+            if (state.isTarget) {
+              loseHeart();
+              resetStreak();
+              sfx.miss();
+            } else {
+              addScore(5);
+            }
+          }
+          if (state.hearts > 0) tickCVAT();
+        }, state.isi);
+      }
+      function onCVATSpace() {
+        if (!state.running || state.mode !== 'cvat' || !state.awaitResp) return;
+        const rt = now() - state.stimOn;
+        state.awaitResp = false;
+        if (state.isTarget) {
+          const pts = Math.max(5, 250 - Math.min(250, rt / 2));
+          addScore(Math.round(pts));
+          if (state.bestRT === null || rt < state.bestRT) { state.bestRT = rt; bestEl.textContent = Math.round(rt) + 'ms'; }
+          sfx.hit();
+        } else {
+          resetStreak();
+          sfx.miss();
+          loseHeart();
+        }
+      }
+      function loseHeart() {
+        state.hearts = Math.max(0, state.hearts - 1);
+        for (let i = 0; i < 3; i++) { hearts[i].classList.toggle('off', i > state.hearts - 1); }
+        if (state.hearts === 0) {
+          gameOver();
+        }
+      }
+      function gameOver() {
+        stopGame();
+        showNote('GAME OVER', 1200);
+      }
+
+      // ---------- Game flow ----------
+      function startGame() {
+        if (state.running) return;
+        arena.focus();
+        playBtn.disabled = true; stopBtn.disabled = false;
+        state.running = true; scoreEl.textContent = state.score; levelEl.textContent = state.level;
+        state.mode === 'vsat' ? startVSAT() : startCVAT();
+      }
+      function startVSAT() {
+        state.trial = 0; drawVSAT(false);
+      }
+      function startCVAT() {
+        state.hearts = 3; for (let i = 0; i < 3; i++) hearts[i].classList.remove('off');
+        state.streamIndex = 0; drawFix(); tickCVAT();
+      }
+      function stopGame() {
+        if (!state.running) return;
+        state.running = false;
+        clearTimeout(timer); timer = null; if (raf) cancelAnimationFrame(raf);
+        playBtn.disabled = false; stopBtn.disabled = true;
+        announce('Stopped.');
+      }
+      function resetGame(resetScore = true) {
+        stopGame();
+        clearSvg(); drawFix();
+        state.level = 1; state.trial = 0; state.stickyRegion = null; state.targetCell = null;
+        state.hearts = 3; for (let i = 0; i < 3; i++) hearts[i].classList.remove('off');
+        if (resetScore) { state.score = 0; state.streak = 0; state.bestRT = null; }
+        scoreEl.textContent = state.score; streakEl.textContent = state.streak; bestEl.textContent = '—'; levelEl.textContent = state.level;
+        starEls[1].classList.add('off'); starEls[2].classList.add('off');
+      }
+
+      // ---------- Init ----------
+      function aria(msg) { announce(msg); }
+      drawFix();
+      setScale(uiScale);
+    })();
+  </script>
+</body>
+
+</html>
