@@ -41,6 +41,11 @@
   .status{margin-top:8px;font-size:.95rem;color:#bdbdbd}
   .bar{rx:3; ry:3; fill:#ffe600;}
   .sr-only{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  /* small input style match */
+  input[type=text]{
+    background:#121212;border:1px solid #1b1b1b;border-radius:10px;
+    color:#fff;padding:8px 10px; width:80px; font-weight:700; text-align:center;
+  }
 </style>
 </head>
 <body>
@@ -70,6 +75,19 @@
         <div class="row"><label for="speed">Rotation speed</label><input id="speed" type="range" min="0" max="8" step="0.1" value="3.0"></div>
         <div class="row"><label for="strength">Reveal fraction</label><input id="strength" type="range" min="0.35" max="1" step="0.05" value="0.8"></div>
       </div>
+
+      <!-- NEW: Letter card (added capability) -->
+      <div class="card">
+        <h3>Letter</h3>
+        <div class="row">
+          <label for="letterInput">Character</label>
+          <input id="letterInput" type="text" maxlength="2" value="A" aria-label="Letter to reveal">
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button id="btnLetter">Reveal Letter</button>
+        </div>
+      </div>
+      <!-- /NEW -->
     </div>
   </details>
 
@@ -91,6 +109,8 @@
 
   const btnNext = document.getElementById('btnNext');
   const btnRandom = document.getElementById('btnRandom');
+  const btnLetter = document.getElementById('btnLetter');         // NEW
+  const letterInput = document.getElementById('letterInput');     // NEW
 
   const dens = document.getElementById('dens');
   const len = document.getElementById('len');
@@ -108,6 +128,9 @@
   let baseSpeed=3.0;
 
   const REVEAL_MS = 10000;   // 10 seconds hold time
+
+  // Letter mask cache (NEW)
+  let letterMask = null;     // {canvas, ctx, data, w, h}
 
   // ---------- Utils ----------
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -149,7 +172,6 @@
     return V;
   }
   function roundedRect(cx,cy,w,h,r,steps=80){
-    // approximate by poly (just a rectangle loop)
     const x0=cx-w/2, y0=cy-h/2, x1=cx+w/2, y1=cy+h/2;
     return [[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]];
   }
@@ -175,18 +197,10 @@
   function makeStar5(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[starPolygon(cx,cy,150,320,5)]}; }
   function makeStar8(){ const cx=VIEW_W/2, cy=VIEW_H/2; return {type:'polys', polys:[starPolygon(cx,cy,180,340,8)]}; }
 
-  function makeRose4(){ // 4-petal rose: r = a cos(4θ)
-    const cx=VIEW_W/2, cy=VIEW_H/2, a=260, steps=720, V=[];
-    for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(4*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); }
-    V.push(V[0]); return {type:'polys', polys:[V]};
-  }
-  function makeClover3(){ // 3-petal: r = a cos(3θ)
-    const cx=VIEW_W/2, cy=VIEW_H/2, a=280, steps=720, V=[];
-    for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(3*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); }
-    V.push(V[0]); return {type:'polys', polys:[V]};
-  }
+  function makeRose4(){ const cx=VIEW_W/2, cy=VIEW_H/2, a=260, steps=720, V=[]; for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(4*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); } V.push(V[0]); return {type:'polys', polys:[V]}; }
+  function makeClover3(){ const cx=VIEW_W/2, cy=VIEW_H/2, a=280, steps=720, V=[]; for(let i=0;i<=steps;i++){ const th=i*2*Math.PI/steps; const r=a*Math.cos(3*th); V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]); } V.push(V[0]); return {type:'polys', polys:[V]}; }
 
-  function makeLemniscate(){ // Bernoulli lemniscate approx
+  function makeLemniscate(){
     const cx=VIEW_W/2, cy=VIEW_H/2, a=300, steps=1000, V=[];
     for(let i=0;i<=steps;i++){
       const th=i*2*Math.PI/steps - Math.PI;
@@ -195,29 +209,23 @@
       const r=a/Math.sqrt(2) * Math.sqrt(c);
       V.push([cx+r*Math.cos(th), cy+r*Math.sin(th)]);
     }
-    // close loop by mirroring
     const W=[...V, ...V.slice().reverse()];
     return {type:'polys', polys:[W]};
   }
 
-  function makeLissajous(){ // a=3, b=2
-    const cx=VIEW_W/2, cy=VIEW_H/2, Ax=500, Ay=260, a=3, b=2, steps=800, V=[];
-    for(let i=0;i<=steps;i++){ const t=i*2*Math.PI/steps; V.push([cx+Ax*Math.sin(a*t), cy+Ay*Math.sin(b*t)]); }
-    V.push(V[0]); return {type:'polys', polys:[V]};
-  }
+  function makeLissajous(){ const cx=VIEW_W/2, cy=VIEW_H/2, Ax=500, Ay=260, a=3, b=2, steps=800, V=[]; for(let i=0;i<=steps;i++){ const t=i*2*Math.PI/steps; V.push([cx+Ax*Math.sin(a*t), cy+Ay*Math.sin(b*t)]); } V.push(V[0]); return {type:'polys', polys:[V]}; }
 
   function makeConcentricCircles(){ const cx=VIEW_W/2, cy=VIEW_H/2; const radii=[120,180,240,300,360,420].map(r=>({cx,cy,r})); return {type:'circles', circles:radii}; }
 
-  function makeCrosshair(){ // + lines
+  function makeCrosshair(){
     const cx=VIEW_W/2, cy=VIEW_H/2, lines=[];
-    // vertical & horizontal families for thickness illusion
     const spacing=24, count=4;
-    for(let k=-count;k<=count;k++) lines.push({angle:0, offset:Math.cos(0)*cx + Math.sin(0)*cy + k*spacing}); // vertical family
-    for(let k=-count;k<=count;k++){ const a=Math.PI/2; lines.push({angle:a, offset:Math.cos(a)*cx + Math.sin(a)*cy + k*spacing}); } // horizontal family
+    for(let k=-count;k<=count;k++) lines.push({angle:0, offset:Math.cos(0)*cx + Math.sin(0)*cy + k*spacing});
+    for(let k=-count;k<=count;k++){ const a=Math.PI/2; lines.push({angle:a, offset:Math.cos(a)*cx + Math.sin(a)*cy + k*spacing}); }
     return {type:'lines', lines};
   }
 
-  function makeDiagonalCross(){ // X lines
+  function makeDiagonalCross(){
     const cx=VIEW_W/2, cy=VIEW_H/2, lines=[];
     const angles=[Math.PI/4, -Math.PI/4];
     const spacing=26, count=5;
@@ -236,7 +244,7 @@
 
   function makeBullseyeOffCenter(){ const cx=VIEW_W/2+180, cy=VIEW_H/2-60; return {type:'circles', circles:[140,220,300,380].map(r=>({cx,cy,r}))}; }
 
-  function makeWaveSquare(){ // square wave across screen
+  function makeWaveSquare(){
     const left=60, right=VIEW_W-60, cy=VIEW_H/2, amp=160, period=180, V=[];
     const steps=Math.ceil((right-left)/10);
     for(let i=0;i<=steps;i++){
@@ -248,7 +256,7 @@
     return {type:'polys', polys:[V]};
   }
 
-  function makeSawtooth(){ // sawtooth wave
+  function makeSawtooth(){
     const left=60, right=VIEW_W-60, cy=VIEW_H/2, amp=170, period=160, V=[];
     const steps=Math.ceil((right-left)/8);
     for(let i=0;i<=steps;i++){
@@ -260,7 +268,7 @@
     return {type:'polys', polys:[V]};
   }
 
-  function makeCheckerLines(){ // dense grid illusion
+  function makeCheckerLines(){
     const spacing=70, lines=[];
     const aV=0, offV = Math.cos(aV)*(VIEW_W/2) + Math.sin(aV)*(VIEW_H/2);
     const aH=Math.PI/2, offH = Math.cos(aH)*(VIEW_W/2) + Math.sin(aH)*(VIEW_H/2);
@@ -269,10 +277,10 @@
     return {type:'lines', lines};
   }
 
-  function makeFan(){ // fan of lines from left edge
+  function makeFan(){
     const cy=VIEW_H/2, cx=200, count=24, lines=[];
     for(let i=0;i<count;i++){
-      const th = (-0.6 + i*(1.2/(count-1))) * Math.PI; // sweep
+      const th = (-0.6 + i*(1.2/(count-1))) * Math.PI;
       const angle = th + Math.PI/2;
       const offset = Math.cos(angle)*cx + Math.sin(angle)*cy;
       lines.push({angle, offset});
@@ -369,6 +377,86 @@
   // ---------- Pattern reveal ----------
   function choosePattern(){ return patternMakers[Math.floor(Math.random()*patternMakers.length)](); }
 
+  // NEW: Build letter mask on an offscreen canvas
+  function buildLetterMask(ch){
+    const canvas = document.createElement('canvas');
+    canvas.width = VIEW_W; canvas.height = VIEW_H;
+    const ctx = canvas.getContext('2d');
+
+    // background transparent
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Fit letter to viewport with margins
+    const marginX = 180, marginY = 140;
+    // dynamic font size based on height
+    let fontSize = VIEW_H - 2*marginY;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.font = `700 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif`;
+
+    // Adjust font size if too wide
+    let metrics = ctx.measureText(ch);
+    const maxW = VIEW_W - 2*marginX;
+    if (metrics.width > maxW){
+      const scale = maxW / metrics.width;
+      fontSize = Math.max(40, Math.floor(fontSize * scale));
+      ctx.font = `700 ${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif`;
+      metrics = ctx.measureText(ch);
+    }
+
+    // Draw filled letter centered
+    ctx.fillText(ch, VIEW_W/2, VIEW_H/2);
+
+    // Get pixel data
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    letterMask = {canvas, ctx, data:img.data, w:canvas.width, h:canvas.height};
+  }
+
+  // Helper: read alpha at integer pixel (clamped)
+  function alphaAt(mask, x, y){
+    const xi = clamp(Math.floor(x),0,mask.w-1);
+    const yi = clamp(Math.floor(y),0,mask.h-1);
+    const idx = (yi*mask.w + xi)*4 + 3;
+    return mask.data[idx]; // 0..255
+  }
+
+  // Approx distance to letter edge via directional sampling
+  function distToLetter(px,py,mask){
+    if(!mask) return {d:Infinity, ang:0};
+    const inside = alphaAt(mask, px, py) > 8;
+    const maxR = 28;              // search radius in px
+    const step = 1.5;             // step along ray
+    const dirs = 16;              // sample directions
+    let bestD = Infinity, bestAng = 0;
+
+    for(let k=0;k<dirs;k++){
+      const th = (k/dirs)*2*Math.PI;
+      const dx = Math.cos(th), dy = Math.sin(th);
+      let lastAlpha = alphaAt(mask, px, py);
+      for(let r=step; r<=maxR; r+=step){
+        const a = alphaAt(mask, px + dx*r, py + dy*r);
+        // detect boundary when alpha crosses between inside/outside
+        const crossed = inside ? (a<=8) : (a>8);
+        if(crossed){
+          if(r < bestD){
+            bestD = r;
+            // tangent angle is perpendicular to gradient (ray direction approximates gradient)
+            bestAng = th + Math.PI/2;
+          }
+          break;
+        }
+        lastAlpha = a;
+      }
+    }
+
+    // If nothing found, return far distance to avoid locking
+    if(bestD===Infinity) return {d:Infinity, ang:0};
+    return {d:bestD, ang:bestAng};
+  }
+
   function applyPattern(){
     const geom = choosePattern();
     const spacing = Math.min((VIEW_W-72)/(cols-1),(VIEW_H-72)/(rows-1));
@@ -409,6 +497,46 @@
     announce('Pattern revealed');
   }
 
+  // NEW: Apply Letter pattern
+  function applyLetterPattern(ch){
+    if(!ch || !ch.trim()){ announce('Enter a letter first'); return; }
+    const letter = ch.trim().slice(0,1);
+    buildLetterMask(letter);
+
+    const spacing = Math.min((VIEW_W-72)/(cols-1),(VIEW_H-72)/(rows-1));
+    const baseThresh = spacing*0.70; // a bit more generous for letters
+    const frac = parseFloat(strength.value);
+
+    const scored = bars.map((b)=>{
+      const r = distToLetter(b.x,b.y, letterMask);
+      return {b, d:r.d, ang:r.ang};
+    }).sort((a,b)=>a.d-b.d);
+
+    const cutoffIndex = Math.floor(scored.length*frac);
+    const cutoffDist = Math.max(baseThresh, scored[cutoffIndex]?.d ?? baseThresh);
+    const lockUntil = performance.now() + REVEAL_MS;
+
+    for(const s of scored){
+      const b=s.b;
+      if(s.d<=cutoffDist){
+        b.targetAngle = s.ang;
+        b.lockedUntil = lockUntil;
+      }else{
+        b.lockedUntil = 0;
+        b.targetAngle = rand(0, Math.PI);
+      }
+    }
+
+    setTimeout(()=>{
+      for(const b of bars){
+        b.lockedUntil = 0;
+        b.targetAngle = rand(0, Math.PI);
+      }
+    }, REVEAL_MS);
+
+    announce(`Letter "${letter}" revealed`);
+  }
+
   function randomizeAll(){
     for(const b of bars){
       b.lockedUntil = 0;
@@ -420,6 +548,11 @@
   // ---------- UI ----------
   btnNext.addEventListener('click', applyPattern);
   btnRandom.addEventListener('click', randomizeAll);
+  // NEW: Letter trigger
+  btnLetter.addEventListener('click', ()=> applyLetterPattern(letterInput.value));
+  letterInput.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ applyLetterPattern(letterInput.value); }
+  });
 
   dens.addEventListener('input', ()=>{ buildGrid(); });
   len.addEventListener('input', ()=>{ updateAppearance(); });
