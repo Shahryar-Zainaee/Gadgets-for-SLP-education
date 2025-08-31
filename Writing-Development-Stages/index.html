@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Writing Development Stages — Sequential Pen Animation</title>
+<style>
+  :root{
+    --board:#0f2f1f; --frame:#333; --chalk:#fff; --bg:#1a1a1a;
+  }
+  body{
+    margin:0; background:var(--bg); color:#fff; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  h1{font-size:1.2rem; font-weight:600; margin:16px 12px 6px}
+  .wrap{width:min(980px,94vw); margin:0 auto 24px}
+  .board{
+    background: radial-gradient(800px 300px at 10% 10%, rgba(255,255,255,.05), transparent 60%),
+                radial-gradient(700px 260px at 90% 90%, rgba(255,255,255,.04), transparent 60%),
+                var(--board);
+    width:100%; aspect-ratio:16/9; border:8px solid var(--frame); border-radius:14px; box-shadow:inset 0 0 35px #000;
+    position:relative; overflow:hidden;
+  }
+  svg{width:100%; height:100%}
+  .chalk{
+    fill:none; stroke:var(--chalk); stroke-width:6; stroke-linecap:round; stroke-linejoin:round;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,.25));
+    stroke-dasharray:2000; stroke-dashoffset:2000;
+  }
+  .ui{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; justify-content:center}
+  button{
+    background:#2f2f2f; color:#fff; border:2px solid #555; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:700;
+  }
+  button:hover{background:#414141}
+  .status{margin-top:8px; font-size:.95rem; color:#d7d7d7; text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Writing Development Stages (sequential pen-drawn strokes)</h1>
+    <div class="board">
+      <svg id="sv" viewBox="0 0 1200 675" aria-label="blackboard drawing area"></svg>
+    </div>
+    <div class="ui">
+      <button onclick="void stageRandomScribbling()">Random Scribbling</button>
+      <button onclick="void stageControlledScribbling()">Controlled Scribbling</button>
+      <button onclick="void stageLetterLike()">Letter-like Forms</button>
+      <button onclick="void stageLetterSymbol()">Letter / Symbol Relationship</button>
+      <button onclick="void stageInvented()">Invented Spelling</button>
+      <button onclick="void stageStandard()">Standard Spelling</button>
+    </div>
+    <div class="status" id="status">Click a stage to generate a fresh sequential sample.</div>
+  </div>
+
+<script>
+/* ===== SVG helpers ===== */
+const sv = document.getElementById('sv');
+function clearBoard(){ sv.innerHTML=''; }
+function P(tag, attrs={}){ const el=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) el.setAttribute(k, attrs[k]); return el; }
+function L(x1,y1,x2,y2){ return P('line',{x1,y1,x2,y2}); }
+function path(d){ return P('path',{d}); }
+function circ(cx,cy,r){ return P('circle',{cx,cy,r}); }
+function setStatus(msg){ document.getElementById('status').textContent = msg; }
+
+/* ===== Animation: strictly one-by-one (sequential) ===== */
+function prepStroke(el){
+  const L = el.getTotalLength?.() ?? 1000;
+  el.classList.add('chalk');
+  el.style.strokeDasharray = L;
+  el.style.strokeDashoffset = L;
+}
+function playStroke(el, duration=700){
+  return el.animate([{strokeDashoffset:el.style.strokeDasharray},{strokeDashoffset:'0'}],
+                    {duration, easing:'linear', fill:'forwards'}).finished;
+}
+async function drawSequential(strokes, dur=700){
+  for(const s of strokes){ prepStroke(s); sv.appendChild(s); await playStroke(s, dur); }
+}
+
+/* ===== Random utils ===== */
+const rand = (a,b)=>Math.random()*(b-a)+a;
+const randint = (a,b)=>Math.floor(rand(a,b+1));
+function J(j){ return (Math.random()*2-1)*j; } // jitter
+
+/* ===== Stroke “font” (subset, uppercase) ===== */
+const glyphs = {
+  'A': (x,y,s,j=0)=>[ L(x, y, x+25*s+J(j), y-100*s+J(j)), L(x+50*s, y, x+25*s+J(j), y-100*s+J(j)), L(x+12*s, y-55*s, x+38*s, y-55*s) ],
+  'C': (x,y,s,j=0)=>[ path(`M ${x+50*s} ${y-10*s} Q ${x+5*s+J(j)} ${y-10*s+J(j)} ${x+5*s} ${y-55*s} Q ${x+5*s+J(j)} ${y-100*s+J(j)} ${x+50*s} ${y-100*s}`) ],
+  'D': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), path(`M ${x} ${y-100*s} Q ${x+55*s+J(j)} ${y-80*s+J(j)} ${x+55*s} ${y-50*s} Q ${x+55*s+J(j)} ${y-20*s+J(j)} ${x} ${y}`) ],
+  'E': (x,y,s,j=0)=>[ L(x, y-100*s, x, y), L(x, y-100*s, x+48*s, y-100*s), L(x, y-52*s, x+38*s, y-52*s), L(x, y, x+48*s, y) ],
+  'H': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), L(x+50*s, y, x+50*s, y-100*s), L(x, y-55*s, x+50*s, y-55*s) ],
+  'I': (x,y,s,j=0)=>[ L(x+25*s, y, x+25*s, y-100*s) ],
+  'J': (x,y,s,j=0)=>[ L(x+35*s, y-100*s, x+35*s, y-20*s), path(`M ${x+35*s} ${y-20*s} Q ${x+35*s} ${y} ${x+10*s} ${y}`) ],
+  'K': (x,y,s,j=0)=>[ L(x, y-100*s, x, y), L(x, y-55*s, x+50*s, y-100*s), L(x, y-55*s, x+50*s, y) ],
+  'L': (x,y,s,j=0)=>[ L(x, y-100*s, x, y), L(x, y, x+48*s, y) ],
+  'M': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), L(x, y-100*s, x+25*s, y-60*s), L(x+25*s, y-60*s, x+50*s, y-100*s), L(x+50*s, y-100*s, x+50*s, y) ],
+  'N': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), L(x, y-100*s, x+50*s, y), L(x+50*s, y, x+50*s, y-100*s) ],
+  'O': (x,y,s,j=0)=>[ circ(x+28*s+J(j), y-50*s+J(j), 28*s) ],
+  'P': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), path(`M ${x} ${y-100*s} Q ${x+48*s+J(j)} ${y-95*s+J(j)} ${x+48*s} ${y-75*s} Q ${x+48*s+J(j)} ${y-55*s+J(j)} ${x} ${y-55*s}`) ],
+  'R': (x,y,s,j=0)=>[ L(x, y, x, y-100*s), path(`M ${x} ${y-100*s} Q ${x+48*s+J(j)} ${y-95*s+J(j)} ${x+48*s} ${y-75*s} Q ${x+48*s+J(j)} ${y-55*s+J(j)} ${x} ${y-55*s}`), L(x, y-55*s, x+50*s, y) ],
+  'S': (x,y,s,j=0)=>[ path(`M ${x+48*s} ${y-92*s} Q ${x+5*s+J(j)} ${y-92*s+J(j)} ${x+5*s} ${y-72*s} Q ${x+5*s+J(j)} ${y-55*s+J(j)} ${x+48*s} ${y-55*s} Q ${x+48*s+J(j)} ${y-20*s+J(j)} ${x+5*s} ${y-20*s}`) ],
+  'T': (x,y,s,j=0)=>[ L(x, y-100*s, x+50*s, y-100*s), L(x+25*s, y-100*s, x+25*s, y) ],
+  'U': (x,y,s,j=0)=>[ L(x, y-100*s, x, y-20*s), path(`M ${x} ${y-20*s} Q ${x+25*s} ${y+10*s} ${x+50*s} ${y-20*s}`), L(x+50*s, y-20*s, x+50*s, y-100*s) ],
+  'V': (x,y,s,j=0)=>[ L(x, y-100*s, x+25*s, y), L(x+25*s, y, x+50*s, y-100*s) ],
+  'W': (x,y,s,j=0)=>[ L(x, y-100*s, x+12*s, y), L(x+12*s, y, x+25*s, y-60*s), L(x+25*s, y-60*s, x+38*s, y), L(x+38*s, y, x+50*s, y-100*s) ],
+  'Y': (x,y,s,j=0)=>[ L(x, y-100*s, x+25*s, y-55*s), L(x+50*s, y-100*s, x+25*s, y-55*s), L(x+25*s, y-55*s, x+25*s, y) ],
+  ' ': (x,y,s)=>[],
+  '.': (x,y,s)=>[ circ(x+10*s, y-5*s, 3.5*s) ]
+};
+const ALLOWED = "AEHIKLMNORSTUWY";
+
+/* Render a word strictly sequentially (stroke-by-stroke) */
+async function drawWord(str, x, y, size=1, jitter=0, letterGap=22*size, durPer=600){
+  let cursor = x;
+  for(const ch of str){
+    const up = ch.toUpperCase();
+    const g = glyphs[up];
+    if(!g){ cursor += 40*size; continue; }
+    const strokes = g(cursor, y, size, jitter);
+    // sequential strokes per letter
+    await drawSequential(strokes, durPer);
+    cursor += 60*size + letterGap;
+  }
+}
+
+/* ===== Stage 1: Random Scribbling — non-parallel curvy scribbles, sequential ===== */
+async function stageRandomScribbling(){
+  clearBoard();
+  setStatus("Random Scribbling — drawing chaotic non-parallel strokes one by one…");
+  const count = randint(8,14);
+  for(let i=0;i<count;i++){
+    const startX = rand(60, 1140), startY = rand(60, 615);
+    let d = `M ${startX} ${startY}`;
+    const segments = randint(3,6);
+    let prevAngle = null;
+    for(let s=0; s<segments; s++){
+      let ang, tries=0;
+      do{
+        ang = rand(0, Math.PI*2);
+        tries++;
+      }while(prevAngle !== null &&
+             Math.abs(Math.atan2(Math.sin(ang-prevAngle), Math.cos(ang-prevAngle))) < (Math.PI/7) &&
+             tries < 10);
+      prevAngle = ang;
+      const len = rand(60, 180);
+      const cx = startX + Math.cos(ang)*len*rand(0.4,0.7);
+      const cy = startY + Math.sin(ang)*len*rand(0.4,0.7);
+      const ex = startX + Math.cos(ang)*len;
+      const ey = startY + Math.sin(ang)*len;
+      d += ` Q ${cx} ${cy} ${ex} ${ey}`;
+    }
+    const p = path(d);
+    await drawSequential([p], randint(550,950)); // strictly one stroke at a time
+  }
+  setStatus("Random Scribbling — fresh set complete.");
+}
+
+/* ===== Stage 2: Controlled Scribbling — straight, repeated patterns, sequential ===== */
+async function stageControlledScribbling(){
+  clearBoard();
+  setStatus("Controlled Scribbling — straight repeated patterns, one segment at a time…");
+  const mode = ['hLines','vLadders','boxes'][randint(0,2)];
+  if(mode==='hLines'){
+    const rows = randint(4,7);
+    const top = rand(120, 500), gap = rand(25, 55);
+    for(let r=0;r<rows;r++){
+      const y = top + r*gap;
+      const p = L(80, y, 1120, y);
+      await drawSequential([p], 650);
+    }
+  } else if(mode==='vLadders'){
+    const cols = randint(4,7);
+    const left = rand(150, 950), gap = rand(45, 80);
+    // uprights
+    for(let c=0;c<cols;c++){
+      const x = left + c*gap;
+      const p = L(x, 120, x, 560);
+      await drawSequential([p], 700);
+    }
+    // rungs
+    for(let y=150;y<=540;y+=randint(55,85)){
+      const rung = L(left-20, y, left+gap*(cols-1)+20, y);
+      await drawSequential([rung], 550);
+    }
+  } else { // boxes grid
+    const rows = randint(2,3), cols = randint(4,6), w=70, h=50;
+    const startX = rand(120, 1200 - (cols*(w+30))), startY = rand(140, 560 - (rows*(h+30)));
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = startX + c*(w+30), y = startY + r*(h+30);
+        // four sides sequentially
+        await drawSequential([ L(x,y, x+w,y) ], 420);
+        await drawSequential([ L(x+w,y, x+w,y+h) ], 420);
+        await drawSequential([ L(x+w,y+h, x,y+h) ], 420);
+        await drawSequential([ L(x,y+h, x,y) ], 420);
+      }
+    }
+  }
+  setStatus("Controlled Scribbling — pattern complete.");
+}
+
+/* ===== Stage 3: Letter-like Forms — VERY similar to real letters, but not real =====
+   We generate pseudo-glyphs that resemble A/H/N/O but break a defining feature:
+   - Alike: skewed legs + crossbar offset or broken
+   - Hlike: misaligned crossbar or diagonal bar
+   - Nlike: diagonal misses the corner / is curved
+   - Olike: open loop / not fully closed
+*/
+function pseudoAlike(x,y,s){
+  // two slanted legs, crossbar offset and broken
+  return [
+    L(x, y, x+24*s+J(3), y-100*s+J(3)),
+    L(x+52*s, y, x+26*s+J(3), y-100*s+J(3)),
+    // broken crossbar (gap)
+    L(x+10*s, y-55*s, x+22*s, y-55*s),
+    L(x+34*s, y-55*s, x+46*s, y-55*s)
+  ];
+}
+function pseudoHlike(x,y,s){
+  // uprights, but crossbar is slanted and off-center
+  return [
+    L(x, y, x, y-100*s),
+    L(x+50*s, y, x+50*s, y-100*s),
+    L(x+2*s, y-48*s, x+46*s, y-58*s) // slanted bar
+  ];
+}
+function pseudoNlike(x,y,s){
+  // near-N with a slightly curved diagonal not meeting exact corners
+  return [
+    L(x, y, x, y-100*s),
+    path(`M ${x} ${y-100*s} Q ${x+26*s+J(4)} ${y-40*s+J(4)} ${x+50*s} ${y+J(3)}`),
+    L(x+50*s, y, x+50*s, y-100*s)
+  ];
+}
+function pseudoOlike(x,y,s){
+  // open loop (gap on side) — looks like O but not closed
+  const d = `M ${x+28*s} ${y-100*s} 
+             Q ${x-5*s+J(3)} ${y-80*s+J(3)} ${x-2*s} ${y-50*s}
+             Q ${x-5*s+J(3)} ${y-20*s+J(3)} ${x+28*s} ${y-2*s}
+             M ${x+28*s} ${y-2*s} 
+             Q ${x+58*s+J(3)} ${y-22*s+J(3)} ${x+58*s} ${y-50*s}`; // small gap remains
+  return [path(d)];
+}
+const PSEUDO_FACTORIES = [pseudoAlike, pseudoHlike, pseudoNlike, pseudoOlike];
+
+async function stageLetterLike(){
+  clearBoard();
+  setStatus("Letter-like Forms — almost-letters, drawn one stroke at a time…");
+  const count = randint(3,6);
+  let x = rand(120, 220), y = rand(300, 520), size = rand(1.0, 1.3);
+  for(let i=0;i<count;i++){
+    const f = PSEUDO_FACTORIES[randint(0, PSEUDO_FACTORIES.length-1)];
+    const strokes = f(x, y, size);
+    await drawSequential(strokes, 520);
+    x += rand(90, 140);
+    if(x > 1000){ x = rand(120, 220); y += rand(-40, 40); }
+  }
+  setStatus("Letter-like Forms — set complete (similar to letters, not actual letters).");
+}
+
+/* ===== Stage 4: Letter/Symbol Relationship — real names, awkward/wavy ===== */
+const NAMES = ["HENRY","JULIA","ANA","LIAM","MIA","LILY","NINA","IVY","HANA","TINA","RYAN","EMI","WILL"];
+async function stageLetterSymbol(){
+  clearBoard();
+  const name = NAMES[randint(0, NAMES.length-1)];
+  setStatus(`Letter/Symbol — writing a real name (“${name}”) one stroke at a time…`);
+  await drawWord(name, 90, 420, 1.35, 3.5, 14, 640);
+  setStatus(`Letter/Symbol — “${name}” complete.`);
+}
+
+/* ===== Stage 5: Invented Spelling — pretend words + optional punctuation, sequential ===== */
+function randWord(len){ let s=""; for(let i=0;i<len;i++){ s += ALLOWED[randint(0,ALLOWED.length-1)]; } return s; }
+function maybePunct(){ return Math.random()<0.4 ? ["!",".","?"][randint(0,2)] : ""; }
+function wrapIntoLines(text, maxChars){
+  const words = text.split(/\s+/); const lines=[]; let cur="";
+  for(const w of words){
+    const candidate = cur ? cur + " " + w : w;
+    if(candidate.length <= maxChars){ cur = candidate; } else { if(cur) lines.push(cur); cur = w; }
+  }
+  if(cur) lines.push(cur); return lines;
+}
+async function stageInvented(){
+  clearBoard();
+  setStatus("Invented Spelling — creating pretend words, drawing strictly in order…");
+  const words = Array.from({length: randint(3,5)}, _=>randWord(randint(2,6)));
+  if(Math.random()<0.5){ const i = randint(0, words.length-1); words[i] = NAMES[randint(0,NAMES.length-1)]; }
+  const text = words.join(" ") + maybePunct();
+  const lines = wrapIntoLines(text, 14);
+  const startX = 80, firstY = 260, lineGap = 120;
+  for(let i=0;i<lines.length;i++){
+    await drawWord(lines[i], startX, firstY + i*lineGap, 1.15, 2.5, 14, 520);
+  }
+  setStatus("Invented Spelling — sample complete.");
+}
+
+/* ===== Stage 6: Standard / Conventional Spelling — short correct sentences, sequential ===== */
+const SENTENCES = ["I CAN RUN.","I CAN PLAY.","WE CAN RUN.","WE PLAY.","I CAN WIN."];
+async function stageStandard(){
+  clearBoard();
+  const s = SENTENCES[randint(0,SENTENCES.length-1)];
+  setStatus(`Standard Spelling — writing “${s}” stroke by stroke…`);
+  await drawWord(s, 120, 360, 1.3, 1.2, 18, 600);
+  setStatus("Standard Spelling — sentence complete.");
+}
+
+/* On load */
+setStatus("Click any stage. Each stroke is drawn one-by-one like a pen.");
+</script>
+</body>
+</html>
