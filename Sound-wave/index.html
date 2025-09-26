@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<!--
+====================================================
+Visualization: Radial Sound Wave — Air Particles
+====================================================
+
+Concept
+-------
+This simulation visualizes how sound waves affect air particles.
+- Each yellow dot = an air particle in the medium (air).
+- Particles oscillate locally around their resting position.
+- A central "source" badge represents the sound source (i.e., the vocal folds).
+
+Physics of sound
+-------
+Sound waves in air are *longitudinal pressure waves*. Each particle 
+oscillates back and forth about its equilibrium position, while the 
+waveform propagates outward.
+
+Mathematical model used here:
+  displacement Δ = A · sin(k·d − ω·t)
+
+where:
+  A = amplitude (scaled by loudness or fixed)
+  d = radial distance from source center
+  k = wavenumber = 2π / λ
+  ω = angular frequency = 2π·f
+  t = time
+
+Relationships:
+  λ = c / f
+    λ = wavelength (meters)
+    c = speed of sound (~343 m/s in air at room temperature)
+    f = frequency (Hz, pitch of the voice)
+
+  k = 2π / λ
+  ω = 2π·f
+
+Interpretation
+--------------
+- Higher frequency (higher pitch): shorter wavelength λ, so particles 
+  display tighter oscillation rings.
+- Lower frequency (lower pitch): longer wavelength, wider ring spacing.
+- Amplitude A controls the strength of displacement (loudness).
+- The central badge pulses with vibration and changes color with pitch 
+  (cyan for low pitch, blue for high pitch).
+
+Pedagogical use
+---------------
+This makes clear the difference between:
+1. **Particle motion** (local oscillation) and 
+2. **Wave propagation** (pattern traveling through space).
+
+So students see that sound is transmitted as an organized oscillation 
+of particles, not as particles flying outward from the source.
+===================================================
+-->
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Radial Sound Wave — Air Particles</title>
+  <style>
+    :root {
+      --bg1: #0b1020;
+      --bg2: #121a35;
+      --accent: #ffd84d;
+      --ui: #1e274a;
+      --text: #eef3ff;
+    }
+    * { box-sizing: border-box }
+    html, body { height:100% }
+    body {
+      margin:0;
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% 10%, var(--bg2), var(--bg1));
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
+      overflow:hidden;
+    }
+    #stage {
+      position:fixed; inset:0; width:100vw; height:100vh; display:block;
+    }
+    .hud {
+      position:fixed; left:1rem; top:1rem; right:1rem;
+      display:flex; flex-wrap:wrap; gap:.75rem;
+      align-items:stretch; z-index:3; pointer-events:none;
+    }
+    .card {
+      background: rgba(30,39,74,0.88);
+      border:1px solid #2a3566;
+      border-radius:14px; padding:.8rem 1rem;
+      backdrop-filter: blur(6px);
+      box-shadow:0 10px 24px #00000044;
+      pointer-events:auto; min-width:260px;
+    }
+    .row {
+      display:grid; grid-template-columns:auto 1fr;
+      gap:.6rem .75rem; align-items:center
+    }
+    .row input[type="range"] { width:220px }
+    .btn {
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:.55rem .8rem; border-radius:10px;
+      border:1px solid #2a3566;
+      background:#24305f; color:var(--text);
+      cursor:pointer; user-select:none; font-weight:600;
+      transition:transform .05s ease, background .2s ease;
+    }
+    .btn:active { transform:translateY(1px) }
+    .btn.secondary { background:#1d2449 }
+    .readouts {
+      display:flex; gap:1rem;
+      font-variant-numeric: tabular-nums; font-size:.95rem
+    }
+    .dot {
+      width:.6rem; height:.6rem; background:var(--accent);
+      border-radius:999px; display:inline-block
+    }
+    .footer-hint {
+      position:fixed; right:1rem; bottom:1rem; z-index:3;
+      opacity:.75; font-size:.9rem;
+      background:#0f1735; border:1px solid #2a3566;
+      border-radius:12px; padding:.5rem .7rem;
+    }
+    @media (max-width:700px) {
+      .hud { flex-direction:column }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage" aria-label="Air particle field"></canvas>
+
+  <div class="hud">
+    <div class="card">
+      <div style="display:flex; gap:.5rem; flex-wrap:wrap">
+        <button id="startBtn" class="btn">▶ Start microphone</button>
+        <button id="stopBtn" class="btn secondary">■ Stop</button>
+        <button id="demoBtn" class="btn secondary">♪ Demo tone</button>
+      </div>
+      <div style="height:.5rem"></div>
+      <div class="readouts" aria-live="polite">
+        <div><span class="dot"></span> amp <span id="amp">0.00</span></div>
+        <div>pitch <span id="pitch">—</span> Hz</div>
+        <div>particles <span id="count">—</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <label for="particles">Particle count</label>
+        <input id="particles" type="range" min="500" max="7000" step="100" value="5000" />
+        <label for="size">Particle size</label>
+        <input id="size" type="range" min="1" max="3.5" step="0.1" value="2.45" />
+        <label for="trail">Glow (trail)</label>
+        <input id="trail" type="range" min="0" max="0.9" step="0.05" value="0.00" />
+        <label for="decay">Silence decay</label>
+        <input id="decay" type="range" min="0.85" max="0.999" step="0.001" value="0.970" />
+        <label for="useLoudness">Use loudness for amplitude</label>
+        <input id="useLoudness" type="checkbox" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <label>Demo range</label>
+        <div style="display:flex; gap:.5rem; align-items:center">
+          <label><input type="radio" name="sex" value="male" checked> Male</label>
+          <label><input type="radio" name="sex" value="female"> Female</label>
+          <label><input type="radio" name="sex" value="child"> Children</label>
+        </div>
+        <label for="demoPitch">Demo pitch (Hz)</label>
+        <input id="demoPitch" type="range" min="85" max="180" step="1" value="150" />
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-hint">
+    Tip: Toggle mic with M, demo tone with D, stop with S. Drag the Demo pitch slider if using the demo tone.
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      let W=0,H=0,DPR=Math.max(1,window.devicePixelRatio||1);
+      let CX=0,CY=0; const SPEED_OF_SOUND=343; let PPM=120;
+      function rescalePPM(){ PPM=Math.max(90,Math.min(170,(W+H)/18)); }
+      const canvas=document.getElementById('stage');
+      const ctx=canvas.getContext('2d',{alpha:true});
+      function resize(){
+        W=window.innerWidth; H=window.innerHeight;
+        canvas.width=W*DPR; canvas.height=H*DPR;
+        canvas.style.width=W+'px'; canvas.style.height=H+'px';
+        ctx.setTransform(DPR,0,0,DPR,0,0); CX=W/2; CY=H/2; rescalePPM();
+      }
+      window.addEventListener('resize',resize); resize();
+
+      const params={count:5000,size:2.45,trail:0,decay:0.97};
+      const particles=[];
+      function reseedParticles(n){particles.length=0;for(let i=0;i<n;i++){particles.push({u:Math.random(),v:Math.random()});}}
+      reseedParticles(params.count);
+
+      let audioCtx=null,analyser=null,micSrc=null;let demoOsc=null,demoGain=null;
+      const BUF_SIZE=2048;let timeBuffer=new Float32Array(BUF_SIZE);
+      async function startMic(){stopAudio();try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        audioCtx=new AudioContext(); micSrc=audioCtx.createMediaStreamSource(stream);
+        analyser=audioCtx.createAnalyser(); analyser.fftSize=BUF_SIZE*2; micSrc.connect(analyser);
+      }catch(e){alert("Mic unavailable. Use Demo tone.")}}
+      function startDemoTone(){
+        stopAudio(); audioCtx=new AudioContext();
+        demoOsc=audioCtx.createOscillator(); demoGain=audioCtx.createGain();
+        demoOsc.type='sine'; demoOsc.frequency.value=+demoPitchEl.value;
+        demoGain.gain.value=0.25; demoOsc.connect(demoGain).connect(audioCtx.destination);
+        analyser=audioCtx.createAnalyser(); analyser.fftSize=BUF_SIZE*2; demoGain.connect(analyser);
+        demoOsc.start();
+      }
+      function stopAudio(){
+        if(micSrc?.mediaStream) micSrc.mediaStream.getTracks().forEach(t=>t.stop());
+        if(demoOsc){try{demoOsc.stop()}catch{}} if(demoGain) demoGain.disconnect();
+        if(audioCtx){try{audioCtx.close()}catch{}} micSrc=null; demoOsc=null; demoGain=null; audioCtx=null; analyser=null;
+      }
+      function analyzeAudio(){
+        if(!analyser) return {rms:0,freq:null};
+        analyser.getFloatTimeDomainData(timeBuffer);
+        let sum=0;for(const v of timeBuffer) sum+=v*v;const rms=Math.sqrt(sum/timeBuffer.length);
+        const sr=audioCtx?audioCtx.sampleRate:44100,minF=80,maxF=800;
+        const minLag=Math.floor(sr/maxF),maxLag=Math.floor(sr/minF);
+        let bestLag=-1,bestCorr=0,mean=timeBuffer.reduce((a,b)=>a+b)/timeBuffer.length;
+        let norm=timeBuffer.reduce((a,b)=>a+(b-mean)*(b-mean),0);
+        for(let lag=minLag;lag<=maxLag;lag++){let c=0;for(let i=0;i<timeBuffer.length-lag;i++)c+=(timeBuffer[i]-mean)*(timeBuffer[i+lag]-mean);
+          c/=norm; if(c>bestCorr){bestCorr=c;bestLag=lag;}}
+        return {rms,freq:(bestLag>0&&bestCorr>0.3)?sr/bestLag:null};
+      }
+      function lerp(a,b,t){return a+(b-a)*t;} function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+      function mixColorBlueToCyan(freq){const low=80,high=400;const t=clamp((freq-low)/(high-low),0,1);return `rgb(0,${Math.round(255*t)},255)`;}
+      let ampSmoothed=10,freqSmoothed=120.45;
+      const ampOut=document.getElementById('amp'),pitchOut=document.getElementById('pitch'),countOut=document.getElementById('count');
+      const sizeEl=document.getElementById('size'),trailEl=document.getElementById('trail'),decayEl=document.getElementById('decay'),useLoudnessEl=document.getElementById('useLoudness'),particlesEl=document.getElementById('particles'),demoPitchEl=document.getElementById('demoPitch');
+      const sexRadios=[...document.querySelectorAll('input[name="sex"]')];
+      sexRadios.forEach(r=>r.addEventListener('change',()=>{
+        if(r.checked){
+          if(r.value==='male'){demoPitchEl.min=85;demoPitchEl.max=180;demoPitchEl.value=150;}
+          if(r.value==='female'){demoPitchEl.min=165;demoPitchEl.max=255;demoPitchEl.value=200;}
+          if(r.value==='child'){demoPitchEl.min=250;demoPitchEl.max=400;demoPitchEl.value=300;}
+          if(demoOsc) demoOsc.frequency.setTargetAtTime(+demoPitchEl.value,audioCtx.currentTime,0.01);
+        }
+      }));
+      demoPitchEl.oninput=()=>{if(demoOsc&&audioCtx) demoOsc.frequency.setTargetAtTime(+demoPitchEl.value,audioCtx.currentTime,0.01);}
+      document.getElementById('startBtn').onclick=startMic;document.getElementById('stopBtn').onclick=stopAudio;document.getElementById('demoBtn').onclick=startDemoTone;
+      particlesEl.oninput=e=>{params.count=+e.target.value;reseedParticles(params.count);countOut.textContent=params.count;};
+
+      function drawSourceBadge(now,amp,freq){
+        const minR=Math.min(W,H)*0.04,maxR=Math.min(W,H)*0.09;
+        const t=clamp((freq-80)/(700-80),0,1),baseR=minR+(maxR-minR)*t;
+        const omega=2*Math.PI*freq;const dynamic=amp*0.15*Math.sin(omega*now/1000);
+        const R=baseR+dynamic;
+        ctx.save();ctx.lineWidth=Math.max(2,baseR*0.08);
+        ctx.strokeStyle='rgba(10,17,42,0.9)';ctx.fillStyle=mixColorBlueToCyan(freq);
+        ctx.beginPath();ctx.arc(CX,CY,R,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.globalAlpha=0.35;ctx.beginPath();ctx.arc(CX,CY,R*0.6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.restore();
+      }
+
+      function drawFrame(now){
+        const res=analyzeAudio();const rms=res.rms,freq=res.freq;
+        const targetAmp=useLoudnessEl.checked?(rms*22):10;
+        const decay=+decayEl.value;
+        ampSmoothed=(targetAmp>ampSmoothed)?lerp(ampSmoothed,targetAmp,0.25):ampSmoothed*decay;
+        if(freq) freqSmoothed=freqSmoothed?lerp(freqSmoothed,freq,0.25):freq;
+        const trail=+trailEl.value;
+        if(trail<=0) ctx.clearRect(0,0,W,H); else {ctx.fillStyle=`rgba(10,16,40,${trail})`;ctx.fillRect(0,0,W,H);}
+        const A=clamp(ampSmoothed,0,28),f=clamp(freqSmoothed||200,60,1200);
+        const lambda_px=(SPEED_OF_SOUND/f)*PPM,k=(lambda_px>1)?2*Math.PI/lambda_px:0,w=2*Math.PI*f;
+        ctx.save();ctx.fillStyle='#ffd84d';ctx.shadowBlur=6;ctx.shadowColor='rgba(255,216,77,0.55)';
+        const r=+sizeEl.value;
+        for(const p of particles){
+          const x=p.u*W,y=p.v*H,dx=x-CX,dy=y-CY,dist=Math.hypot(dx,dy);
+          const phase=k*dist-(w*now/1000),ux=dx/(dist||1),uy=dy/(dist||1);
+          const disp=A*Math.sin(phase),px=x+ux*disp,py=y+uy*disp;
+          ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
+        }
+        ctx.restore();drawSourceBadge(now,A,f);
+        ampOut.textContent=A.toFixed(2);pitchOut.textContent=freqSmoothed?Math.round(freqSmoothed):'—';
+        requestAnimationFrame(drawFrame);
+      }
+      requestAnimationFrame(drawFrame);
+    });
+  </script>
+</body>
+</html>
