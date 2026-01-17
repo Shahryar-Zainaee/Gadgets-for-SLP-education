@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Respiration Sinusoid and Swallow Apnea (Random Phase)</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --axis: #ffffffb7;
+            --grid: rgba(58, 163, 255, 0.14);
+            --wave: #d02a6d;
+            --waveGlow: rgba(208, 42, 109, 0.35);
+            --dash: rgba(46, 227, 140, 0.95);
+            --text: #ffffff;
+            --muted: rgb(255, 255, 255);
+            --star: #ffe85b;
+            --starGlow: rgba(255, 232, 91, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: clamp(12px, 2vw, 22px);
+        }
+
+        .wrap {
+            width: min(1200px, 100%);
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: clamp(18px, 2.2vw, 22px);
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(16, 24, 38, 0.92), rgba(16, 24, 38, 0.74));
+            border: 1px solid rgba(219, 230, 255, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            padding: clamp(10px, 1.6vw, 14px);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px 14px;
+            width: 100%;
+            align-items: end;
+            margin-bottom: 10px;
+        }
+
+        .ctrl {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .labelRow {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            user-select: none;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        button {
+            background: rgba(219, 230, 255, 0.06);
+            color: var(--text);
+            border: 1px solid rgba(219, 230, 255, 0.16);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            width: fit-content;
+        }
+
+        button:hover {
+            border-color: rgba(219, 230, 255, 0.28);
+        }
+
+        .metaRow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .pill {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(219, 230, 255, 0.14);
+            color: var(--muted);
+            background: rgba(219, 230, 255, 0.04);
+            white-space: nowrap;
+        }
+
+        canvas {
+            width: 100%;
+            height: clamp(280px, 45vh, 520px);
+            display: block;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.14);
+            touch-action: manipulation;
+        }
+
+        .hint {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>Coordination of swallowing and respiration</h1>
+
+        <div class="card">
+            <div class="controls">
+                <div class="ctrl">
+                    <div class="labelRow">
+                        <span>Respiratory cycle rate</span>
+                    </div>
+                    <input id="freq" type="range" min="2.5" max="9.5" step="0.01" value="7.00" />
+                </div>
+
+                <div class="ctrl">
+                    <div class="labelRow">
+                        <span>Tidal volume</span>
+                    </div>
+                    <input id="amp" type="range" min="0.25" max="1.2" step="0.01" value="0.50" />
+                </div>
+
+                <div class="ctrl">
+                    <div class="labelRow">
+                        <span>Animation speed</span>
+                    </div>
+                    <input id="speed" type="range" min="0" max="1.2" step="0.01" value="0.05" />
+                </div>
+
+                <div class="ctrl" style="align-self:end;">
+                    <button id="reset">Reset</button>
+                </div>
+            </div>
+
+            <canvas id="c"></canvas>
+
+            <div class="metaRow">
+
+                <div class="hint">Tidal volume is the amount of air inhaled or exhaled during silent respiration.</div>
+            </div>
+            <div class="hint">Vertical dashed lines mark the transition from inspiration to expiration.</div>
+
+            <div class="hint">
+                Each apnea event is visually marked by a yellow star.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("c");
+        const ctx = canvas.getContext("2d");
+
+        const freqEl = document.getElementById("freq");
+        const ampEl = document.getElementById("amp");
+        const speedEl = document.getElementById("speed");
+        const resetEl = document.getElementById("reset");
+
+        const freqReadout = document.getElementById("freqReadout");
+        const ampReadout = document.getElementById("ampReadout");
+        const speedReadout = document.getElementById("speedReadout");
+
+        function cssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+        function clamp(x, a, b) { return Math.min(b, Math.max(a, x)); }
+        function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+        function randFloat(a, b) { return a + Math.random() * (b - a); }
+
+        // Crisp, responsive canvas
+        function resize() {
+            const dpr = Math.max(1, window.devicePixelRatio || 1);
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.floor(rect.width * dpr);
+            canvas.height = Math.floor(rect.height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener("resize", () => { resize(); draw(); });
+        if ("ResizeObserver" in window) {
+            const ro = new ResizeObserver(() => { resize(); draw(); });
+            ro.observe(canvas);
+        }
+        resize();
+
+        function layout() {
+            const w = canvas.getBoundingClientRect().width;
+            const h = canvas.getBoundingClientRect().height;
+
+            const left = clamp(Math.round(w * 0.085), 48, 86);
+            const right = clamp(Math.round(w * 0.03), 16, 30);
+            const top = clamp(Math.round(h * 0.06), 16, 28);
+            const bottom = clamp(Math.round(h * 0.13), 44, 66);
+
+            return { w, h, left, right, top, bottom, plotW: w - left - right, plotH: h - top - bottom };
+        }
+
+        function clear() {
+            const { w, h } = layout();
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            const g = ctx.createRadialGradient(w * 0.55, h * 0.35, 20, w * 0.55, h * 0.35, Math.max(w, h));
+            g.addColorStop(0, "rgba(255,255,255,0.03)");
+            g.addColorStop(1, "rgba(0,0,0,0.22)");
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+            ctx.restore();
+        }
+
+        function drawGridAndAxes() {
+            const { left, top, plotW, plotH } = layout();
+            const gx = clamp(Math.round(plotW / 120), 5, 10);
+            const gy = clamp(Math.round(plotH / 80), 4, 8);
+
+            ctx.save();
+            ctx.translate(0.5, 0.5);
+            ctx.strokeStyle = cssVar("--grid");
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i <= gx; i++) {
+                const x = left + plotW * (i / gx);
+                ctx.beginPath();
+                ctx.moveTo(x, top);
+                ctx.lineTo(x, top + plotH);
+                ctx.stroke();
+            }
+            for (let j = 0; j <= gy; j++) {
+                const y = top + plotH * (j / gy);
+                ctx.beginPath();
+                ctx.moveTo(left, y);
+                ctx.lineTo(left + plotW, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(0.5, 0.5);
+            ctx.strokeStyle = cssVar("--axis");
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(left, top);
+            ctx.lineTo(left, top + plotH);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(left, top + plotH);
+            ctx.lineTo(left + plotW, top + plotH);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.fillStyle = cssVar("--muted");
+            ctx.font = "13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            ctx.fillText("Time", left + plotW - 550, top + plotH + 28);
+            if (plotW > 420) {
+                ctx.save();
+                ctx.translate(22, top + 18);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText("Lung Volume", -150, 40);
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        // Wave definition
+        const phaseShift = -0.15 * 2 * Math.PI;
+
+        function yAt(u) {
+            const f = parseFloat(freqEl.value);
+            const A = parseFloat(ampEl.value);
+            return A * Math.sin(2 * Math.PI * f * u + phaseShift);
+        }
+
+        // Peak dividers at each positive peak: arg = π/2 + 2πk
+        function drawPeakDividers(u0, u1) {
+            const { left, top, plotW, plotH } = layout();
+            const f = parseFloat(freqEl.value);
+
+            const base = (Math.PI / 2 - phaseShift) / (2 * Math.PI * f);
+            const period = 1 / f;
+
+            let kStart = Math.floor((u0 - base) / period) - 2;
+            let kEnd = Math.ceil((u1 - base) / period) + 2;
+
+            ctx.save();
+            ctx.setLineDash([8, 8]);
+            ctx.strokeStyle = cssVar("--dash");
+            ctx.lineWidth = 2;
+
+            for (let k = kStart; k <= kEnd; k++) {
+                const uPeak = base + k * period;
+                if (uPeak < u0 || uPeak > u1) continue;
+                const t = (uPeak - u0) / (u1 - u0);
+                const x = left + t * plotW;
+
+                ctx.beginPath();
+                ctx.moveTo(x, top);
+                ctx.lineTo(x, top + plotH);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawWave(u0, u1) {
+            const { left, top, plotW, plotH } = layout();
+            const centerY = top + plotH / 2;
+            const yScale = plotH * 0.38;
+
+            const n = Math.max(700, Math.floor(plotW * 1.4));
+            const waveColor = cssVar("--wave");
+            const glowColor = cssVar("--waveGlow");
+
+            ctx.save();
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            for (let i = 0; i <= n; i++) {
+                const t = i / n;
+                const u = u0 + t * (u1 - u0);
+                const y = yAt(u);
+                const x = left + t * plotW;
+                const yy = centerY - y * yScale;
+                if (i === 0) ctx.moveTo(x, yy);
+                else ctx.lineTo(x, yy);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = waveColor;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            for (let i = 0; i <= n; i++) {
+                const t = i / n;
+                const u = u0 + t * (u1 - u0);
+                const y = yAt(u);
+                const x = left + t * plotW;
+                const yy = centerY - y * yScale;
+                if (i === 0) ctx.moveTo(x, yy);
+                else ctx.lineTo(x, yy);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            const rr = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + rr, y);
+            ctx.arcTo(x + w, y, x + w, y + h, rr);
+            ctx.arcTo(x + w, y + h, x, y + h, rr);
+            ctx.arcTo(x, y + h, x, y, rr);
+            ctx.arcTo(x, y, x + w, y, rr);
+            ctx.closePath();
+        }
+
+        function drawStar(cx, cy, outerR, points) {
+            const innerR = outerR * 0.45;
+            const rot = -Math.PI / 2;
+            const step = Math.PI / points;
+
+            ctx.save();
+            ctx.shadowColor = cssVar("--starGlow");
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = cssVar("--star");
+
+            ctx.beginPath();
+            for (let i = 0; i < points * 2; i++) {
+                const r = (i % 2 === 0) ? outerR : innerR;
+                const a = rot + i * step;
+                const x = cx + Math.cos(a) * r;
+                const y = cy + Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = "rgba(0,0,0,0.45)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // ---------- Apnea event model (random 190°–255° each time) ----------
+        // We schedule events in "cycle index k" space so we can enforce 2–5 cycle gaps.
+        // For a chosen phase (deg), occurrences happen at:
+        // u = uRef(deg) + k*(1/f)
+        let apneaEvent = null; // { uEvent, kEvent, deg, seenOnScreen }
+
+        function randomApneaDeg() {
+            return randFloat(190, 255);
+        }
+
+        function uRefForDeg(deg, f) {
+            const phase = deg * (Math.PI / 180);
+            return (phase - phaseShift) / (2 * Math.PI * f);
+        }
+
+        // First apnea: make it appear soon.
+        function scheduleFirstApnea(u0) {
+            const f = parseFloat(freqEl.value);
+            const deg = randomApneaDeg();
+            const uRef = uRefForDeg(deg, f);
+
+            const uMin = u0 + 0.20;
+            const uMax = u0 + 0.90;
+
+            const kLow = Math.ceil((uMin - uRef) * f);
+            const kHigh = Math.floor((uMax - uRef) * f);
+
+            const kEvent = (kHigh >= kLow) ? randInt(kLow, kHigh) : kLow;
+            const uEvent = uRef + kEvent * (1 / f);
+
+            apneaEvent = { uEvent, kEvent, deg, seenOnScreen: false };
+        }
+
+        // Next apnea: random gap 2–5 cycles after previous; new random phase 190–255 each time.
+        function scheduleNextApneaAfterGap(u0) {
+            const f = parseFloat(freqEl.value);
+
+            const deg = randomApneaDeg();
+            const uRef = uRefForDeg(deg, f);
+
+            const gap = randInt(2, 5);
+            const kBase = (apneaEvent ? apneaEvent.kEvent : Math.floor((u0 - uRef) * f));
+            let kEvent = kBase + gap;
+            let uEvent = uRef + kEvent * (1 / f);
+
+            // Keep it from being too far away (still respects >=2 cycles gap).
+            const uVisibleSoon = u0 + 3.0;
+            while (uEvent > uVisibleSoon) {
+                kEvent += 1;
+                uEvent = uRef + kEvent * (1 / f);
+            }
+
+            apneaEvent = { uEvent, kEvent, deg, seenOnScreen: false };
+        }
+
+        function drawApneaEvent(u0, u1) {
+            const { left, top, plotW, plotH } = layout();
+            const centerY = top + plotH / 2;
+            const yScale = plotH * 0.38;
+
+            if (!apneaEvent) {
+                scheduleFirstApnea(u0);
+            }
+
+            // Only schedule next once the current event has been seen AND has reached the y axis
+            if (apneaEvent.seenOnScreen && apneaEvent.uEvent <= u0) {
+                scheduleNextApneaAfterGap(u0);
+            }
+
+            // If we somehow missed it due to big parameter changes, make a new soon event
+            if (!apneaEvent.seenOnScreen && apneaEvent.uEvent < u0 - 0.5) {
+                scheduleFirstApnea(u0);
+            }
+
+            const t = (apneaEvent.uEvent - u0) / (u1 - u0);
+            if (t < 0 || t > 1) {
+                return;
+            }
+
+            apneaEvent.seenOnScreen = true;
+
+            const x = left + t * plotW;
+            const y = yAt(apneaEvent.uEvent);
+            const yPx = centerY - y * yScale;
+
+            drawStar(x, yPx, 13, 6);
+
+            // Label includes the randomly chosen degree for teaching clarity
+            ctx.save();
+            const label = "Swallow apnea";
+            ctx.font = "13px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+            const tw = ctx.measureText(label).width;
+            const bx = x + 14;
+            const by = yPx - 22;
+            const pad = 8;
+
+            ctx.fillStyle = "rgba(16,24,38,0.88)";
+            roundRect(ctx, bx - pad, by - 14, tw + pad * 2, 22, 10);
+            ctx.fill();
+
+            ctx.fillStyle = cssVar("--text");
+            ctx.fillText(label, bx, by + 2);
+            ctx.restore();
+        }
+
+        // Animation loop
+        let raf = null;
+        let t0 = performance.now();
+
+        function draw() {
+            clear();
+            drawGridAndAxes();
+
+            const speed = parseFloat(speedEl.value);
+            const seconds = (performance.now() - t0) / 1000;
+
+            const scroll = seconds * speed;
+            const u0 = scroll;
+            const u1 = scroll + 1;
+
+            drawPeakDividers(u0, u1);
+            drawWave(u0, u1);
+            drawApneaEvent(u0, u1);
+
+            if (speed > 0) {
+                raf = requestAnimationFrame(draw);
+            } else {
+                if (raf) cancelAnimationFrame(raf);
+                raf = null;
+            }
+        }
+
+        function updateReadouts() {
+            freqReadout.textContent = parseFloat(freqEl.value).toFixed(2);
+            ampReadout.textContent = parseFloat(ampEl.value).toFixed(2);
+            speedReadout.textContent = parseFloat(speedEl.value).toFixed(2);
+        }
+
+        function rescheduleForParamChange() {
+            // Frequency changes the cycle spacing. Reschedule a new "soon" apnea.
+            apneaEvent = null;
+        }
+
+        function redrawWithReschedule() {
+            updateReadouts();
+            rescheduleForParamChange();
+            if (parseFloat(speedEl.value) === 0) t0 = performance.now();
+            draw();
+        }
+
+        [freqEl, ampEl].forEach(el => {
+            el.addEventListener("input", redrawWithReschedule);
+            el.addEventListener("change", redrawWithReschedule);
+        });
+
+        speedEl.addEventListener("input", () => { updateReadouts(); draw(); });
+        speedEl.addEventListener("change", () => { updateReadouts(); draw(); });
+
+        resetEl.addEventListener("click", () => {
+            freqEl.value = "7.00";
+            ampEl.value = "0.50";
+            speedEl.value = "0.05";
+            t0 = performance.now();
+            apneaEvent = null;
+            updateReadouts();
+            draw();
+        });
+
+        updateReadouts();
+        draw();
+    </script>
+</body>
+
+</html>
