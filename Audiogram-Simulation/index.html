@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audiogram Simulation</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #2f4858;
+      --grid: #9aa3aa;
+      --grid-light: #cfd6db;
+      --red: #d62828;
+      --shadow: rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .wrap {
+      width: min(96vw, 980px);
+      height: min(calc(100dvh - 40px), 980px);
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 6px 24px var(--shadow);
+      padding: 14px 14px 18px;
+      border: 1px solid #edf0f2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .title {
+      text-align: center;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 500;
+      margin: 8px 0 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: clamp(14px, 1.5vw, 16px);
+      color: #5e6f79;
+      margin: 0 0 10px;
+    }
+
+    .audiogram-shell {
+      position: relative;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      background: #fff;
+      cursor: none;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .label-top {
+      font-size: clamp(24px, 2vw, 30px);
+      fill: var(--text);
+      font-weight: 500;
+    }
+
+    .axis-title {
+      font-size: clamp(24px, 2vw, 30px);
+      fill: var(--text);
+      font-weight: 500;
+    }
+
+    .tick-label {
+      font-size: clamp(20px, 1.2vw, 26px);
+      fill: #566972;
+    }
+
+    .grid-major {
+      stroke: var(--grid);
+      stroke-width: 1.2;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .grid-minor {
+      stroke: var(--grid-light);
+      stroke-width: 0.9;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .border {
+      stroke: var(--grid);
+      stroke-width: 1.2;
+      fill: none;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .cursor-dot {
+      fill: var(--red);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .status {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #425965;
+    }
+
+    .pill {
+      background: #f8fafb;
+      border: 1px solid #e6ecef;
+      border-radius: 999px;
+      padding: 8px 12px;
+      min-width: 130px;
+      text-align: center;
+    }
+
+    .note {
+      margin-top: 12px;
+      font-size: clamp(14px, 1.5vw, 16px);
+      line-height: 1.45;
+      color: #667882;
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      text-align: center;
+      font-size: clamp(14px, 1.5vw, 16px);
+      color: #667882;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+
+      .wrap {
+        width: 100%;
+        height: calc(100dvh - 20px);
+      }
+
+      .card {
+        padding: 10px 8px 14px;
+        border-radius: 14px;
+      }
+
+      .status {
+        gap: 8px;
+      }
+
+      .pill {
+        min-width: 108px;
+        padding: 7px 9px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title"> Audiogram</div>
+      <div class="subtitle">Click anywhere on the audiogram to hear a pure tone at that frequency and intensity.</div>
+
+      <div id="audiogram" class="audiogram-shell" aria-label="Interactive audiogram">
+        <svg id="svg" viewBox="0 0 900 840" role="img" aria-labelledby="audiogramTitle">
+          <title id="audiogramTitle">Click</title>
+          <g id="chart"></g>
+          <circle id="cursorDot" class="cursor-dot" r="6"></circle>
+        </svg>
+      </div>
+
+      <div class="status">
+        <div class="pill" id="freqReadout">Frequency: —</div>
+        <div class="pill" id="intReadout">Intensity: —</div>
+      </div>
+
+      <div class="hint">Tip: move across the graph for frequency changes and up/down for intensity changes.</div>
+      <div class="note">
+        This is an educational demonstration, not a calibrated clinical audiometer. Browser audio and speaker or
+        headphone output vary by device, so the dB HL values are represented as an aproximation of relative intensity levels assuming your
+        computer volume is set to maximum.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const freqs = [125, 250, 500, 1000, 2000, 4000, 8000];
+    const intensities = [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+
+    const svg = document.getElementById('svg');
+    const chart = document.getElementById('chart');
+    const cursorDot = document.getElementById('cursorDot');
+    const freqReadout = document.getElementById('freqReadout');
+    const intReadout = document.getElementById('intReadout');
+    const shell = document.getElementById('audiogram');
+
+    const view = {
+      w: 900,
+      h: 840,
+      left: 94,
+      right: 70,
+      top: 88,
+      bottom: 74,
+      labelTopY: 36,
+    };
+
+    const plot = {
+      x: view.left,
+      y: view.top,
+      w: view.w - view.left - view.right,
+      h: view.h - view.top - view.bottom,
+    };
+
+    const topLabelY = 26;
+    const topTicksY = view.top - 18;
+    const yLabelX = 26;
+    const yLabelY = view.top + plot.h / 2;
+
+    function xForIndex(i) {
+      return plot.x + (plot.w * i) / (freqs.length - 1);
+    }
+
+    function yForIntensity(db) {
+      const idx = intensities.indexOf(db);
+      return plot.y + (plot.h * idx) / (intensities.length - 1);
+    }
+
+    function el(name, attrs = {}, text = '') {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+      for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+      if (text) node.textContent = text;
+      return node;
+    }
+
+    function drawChart() {
+      chart.innerHTML = '';
+
+      chart.appendChild(el('text', {
+        x: view.w / 2,
+        y: topLabelY,
+        'text-anchor': 'middle',
+        class: 'label-top'
+      }, 'Frequency (Hz)'));
+
+      chart.appendChild(el('text', {
+        x: yLabelX,
+        y: yLabelY,
+        transform: `rotate(-90 ${yLabelX} ${yLabelY})`,
+        'text-anchor': 'middle',
+        class: 'axis-title'
+      }, 'Intensity (dB HL)'));
+
+      chart.appendChild(el('rect', {
+        x: plot.x,
+        y: plot.y,
+        width: plot.w,
+        height: plot.h,
+        class: 'border'
+      }));
+
+      for (let i = 0; i < freqs.length; i++) {
+        const x = xForIndex(i);
+        chart.appendChild(el('line', {
+          x1: x, y1: plot.y, x2: x, y2: plot.y + plot.h,
+          class: 'grid-major'
+        }));
+
+        chart.appendChild(el('text', {
+          x,
+          y: topTicksY,
+          'text-anchor': 'middle',
+          class: 'tick-label'
+        }, String(freqs[i])));
+
+        if (i < freqs.length - 1) {
+          const nextX = xForIndex(i + 1);
+          const midX = (x + nextX) / 2;
+          chart.appendChild(el('line', {
+            x1: midX, y1: plot.y, x2: midX, y2: plot.y + plot.h,
+            class: 'grid-minor'
+          }));
+        }
+      }
+
+      for (let i = 0; i < intensities.length; i++) {
+        const y = yForIntensity(intensities[i]);
+        chart.appendChild(el('line', {
+          x1: plot.x, y1: y, x2: plot.x + plot.w, y2: y,
+          class: 'grid-major'
+        }));
+
+        chart.appendChild(el('text', {
+          x: plot.x - 14,
+          y: y + 5,
+          'text-anchor': 'end',
+          class: 'tick-label'
+        }, String(intensities[i])));
+      }
+    }
+
+    drawChart();
+
+    let audioCtx = null;
+    let masterGain = null;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.9;
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function nearestIndexFromX(x) {
+      const ratio = clamp((x - plot.x) / plot.w, 0, 1);
+      return Math.round(ratio * (freqs.length - 1));
+    }
+
+    function nearestIndexFromY(y) {
+      const ratio = clamp((y - plot.y) / plot.h, 0, 1);
+      return Math.round(ratio * (intensities.length - 1));
+    }
+
+    function pointToValues(clientX, clientY) {
+      const rect = svg.getBoundingClientRect();
+      const sx = (clientX - rect.left) * (view.w / rect.width);
+      const sy = (clientY - rect.top) * (view.h / rect.height);
+
+      const x = clamp(sx, plot.x, plot.x + plot.w);
+      const y = clamp(sy, plot.y, plot.y + plot.h);
+
+      const fIdx = nearestIndexFromX(x);
+      const iIdx = nearestIndexFromY(y);
+
+      return {
+        x: xForIndex(fIdx),
+        y: yForIntensity(intensities[iIdx]),
+        frequency: freqs[fIdx],
+        intensity: intensities[iIdx],
+      };
+    }
+
+    function intensityToGain(dbHL) {
+      const minDb = -10;
+      const maxDb = 120;
+      const normalized = clamp((dbHL - minDb) / (maxDb - minDb), 0, 1);
+
+      const minGain = 0.00008;
+      const maxGain = 1.0;
+      const gain = minGain * Math.pow(maxGain / minGain, normalized);
+      return gain;
+    }
+
+    function playTone(freq, dbHL) {
+      ensureAudio();
+
+      const now = audioCtx.currentTime;
+      const duration = 1.0;
+      const attack = 0.015;
+      const releaseStart = duration - 0.03;
+      const osc = audioCtx.createOscillator();
+      const toneGain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      const targetGain = intensityToGain(dbHL);
+      toneGain.gain.setValueAtTime(0.00001, now);
+      toneGain.gain.exponentialRampToValueAtTime(Math.max(0.00001, targetGain), now + attack);
+      toneGain.gain.setValueAtTime(Math.max(0.00001, targetGain), now + releaseStart);
+      toneGain.gain.exponentialRampToValueAtTime(0.00001, now + duration);
+
+      osc.connect(toneGain);
+      toneGain.connect(masterGain);
+
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+
+    function updateReadout(freq, intensity) {
+      freqReadout.textContent = `Frequency: ${freq} Hz`;
+      intReadout.textContent = `Intensity: ${intensity} dB HL`;
+    }
+
+    function showDot(clientX, clientY) {
+      const rect = svg.getBoundingClientRect();
+      const x = (clientX - rect.left) * (view.w / rect.width);
+      const y = (clientY - rect.top) * (view.h / rect.height);
+      const inside = x >= plot.x && x <= plot.x + plot.w && y >= plot.y && y <= plot.y + plot.h;
+
+      if (inside) {
+        cursorDot.setAttribute('cx', x);
+        cursorDot.setAttribute('cy', y);
+        cursorDot.style.opacity = '1';
+      } else {
+        cursorDot.style.opacity = '0';
+      }
+    }
+
+    shell.addEventListener('mousemove', (e) => {
+      showDot(e.clientX, e.clientY);
+    });
+
+    shell.addEventListener('mouseleave', () => {
+      cursorDot.style.opacity = '0';
+    });
+
+    shell.addEventListener('click', (e) => {
+      const rect = svg.getBoundingClientRect();
+      const sx = (e.clientX - rect.left) * (view.w / rect.width);
+      const sy = (e.clientY - rect.top) * (view.h / rect.height);
+      const inside = sx >= plot.x && sx <= plot.x + plot.w && sy >= plot.y && sy <= plot.y + plot.h;
+      if (!inside) return;
+
+      const { x, y, frequency, intensity } = pointToValues(e.clientX, e.clientY);
+      cursorDot.setAttribute('cx', x);
+      cursorDot.setAttribute('cy', y);
+      cursorDot.style.opacity = '1';
+      updateReadout(frequency, intensity);
+      playTone(frequency, intensity);
+    });
+
+    shell.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      showDot(t.clientX, t.clientY);
+    }, { passive: true });
+
+    shell.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      showDot(t.clientX, t.clientY);
+    }, { passive: true });
+
+    shell.addEventListener('touchend', () => {
+      cursorDot.style.opacity = '0';
+    });
+  </script>
+</body>
+
+</html>
