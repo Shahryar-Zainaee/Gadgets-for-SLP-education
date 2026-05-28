@@ -1,1 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galton Board</title>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --blue: #2f9de0;
+      --blue-dark: #1b84c6;
+      --gray: #bfc3c9;
+      --green: #16a34a;
+      --red: #ef1f2d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    body {
+      padding: clamp(8px, 1.5vw, 18px);
+    }
+
+    .app {
+      width: 100%;
+      height: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+      gap: clamp(8px, 1.5vw, 16px);
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
+      padding: clamp(10px, 1.4vw, 16px);
+      min-height: 0;
+    }
+
+    .board-card {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(18px, 2vw, 26px);
+    }
+
+    .canvas-wrap {
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .group {
+      border-top: 1px solid #eef2f7;
+      padding-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .group:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .value {
+      color: var(--blue-dark);
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .hint {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .buttons {
+      display: grid;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--green);
+      color: white;
+      font-size: 15px;
+      transition: transform .08s ease, opacity .2s ease;
+    }
+
+    button:hover {
+      opacity: .92;
+    }
+
+    button:active {
+      transform: scale(.98);
+    }
+
+    button.secondary {
+      background: #ffffff;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue);
+    }
+
+    button.red {
+      background: #5b5b5b;
+      color: white;
+    }
+
+    .about {
+      color: #374151;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .teaching-box {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gray) transparent;
+    }
+
+    .teaching-box::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .teaching-box::-webkit-scrollbar-thumb {
+      background: var(--gray);
+      border-radius: 999px;
+    }
+
+    @media (max-width: 760px) {
+
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        height: auto;
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        overflow: visible;
+      }
+
+      canvas {
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="app">
+
+    <section class="card board-card">
+      <h1>Galton Board</h1>
+
+      <div class="canvas-wrap">
+        <canvas id="board" width="820" height="920"></canvas>
+      </div>
+    </section>
+
+    <aside class="card controls">
+
+      <div class="group">
+        <label for="bias">
+          Left / Right Probability
+          <span class="value" id="biasValue">50%</span>
+        </label>
+
+        <input id="bias" type="range" min="0" max="100" value="50" />
+
+        <div class="hint">
+          <span>More Left</span>
+          <span>More Right</span>
+        </div>
+      </div>
+
+      <div class="group buttons">
+        <button id="dropMany">▶ Drop Balls</button>
+        <button id="dropOne" class="secondary">● Drop One</button>
+        <button id="reset" class="red">Reset</button>
+      </div>
+
+      <div class="group about">
+        <div class="teaching-box">
+          <strong>Learning point:</strong><br><br>
+
+          A Galton Board, also called a bean machine, is a physical device
+          created by Francis Galton to illustrate probability principles and
+          demonstrate the Central Limit Theorem. Each individual ball follows
+          only one random left or right path, so a single outcome is
+          unpredictable. However, when many balls are released together,
+          their combined outcomes form a predictable bell-shaped distribution
+          (shown by the red graph). Most outcomes gather near the center,
+          while fewer outcomes appear at the extreme tails.
+
+          <br><br>
+
+          The more balls that are released, the clearer the bell-shaped pattern
+          becomes. If only a few balls are used, the pattern may look uneven or
+          random because chance has a bigger effect. As more and more balls are
+          added, the random differences balance out, and the results become more
+          stable and predictable. This is why larger sample sizes usually give
+          more reliable results that follow a normal distribution in statistics and scientific research.
+
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <script>
+
+    /************************************************************
+     * EDIT THESE VALUES ONLY
+     ************************************************************/
+    const BALL_COUNT = 100;
+    const ROWS = 10;
+    const DROP_SPEED = 20;
+    const MAX_ACTIVE_BALLS = 50;
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+
+    const biasSlider = document.getElementById('bias');
+    const biasValue = document.getElementById('biasValue');
+
+    let bias = Number(biasSlider.value) / 100;
+    let balls = [];
+    let falling = [];
+    let binCounts = Array(ROWS + 1).fill(0);
+    let dropping = false;
+    let lastLaunch = 0;
+
+    const C = {
+      blue: '#2f9de0',
+      gray: '#bfc3c9',
+      green: '#16a34a',
+      red: '#ef1f2d',
+      ink: '#1f2937'
+    };
+
+    function L() {
+      const gapY = Math.min(58, 360 / Math.max(1, ROWS));
+      const gapX = Math.min(72, 590 / Math.max(1, ROWS));
+
+      return {
+        w: canvas.width,
+        h: canvas.height,
+        cx: canvas.width / 2,
+        funnelTop: 42,
+        funnelBottom: 206,
+        releaseY: 258,
+        pegStartY: 315,
+        pegGapY: gapY,
+        pegGapX: gapX,
+        pegR: 13,
+        ballR: 8.5,
+        binTop: 690,
+        binBottom: 875,
+        binLeft: 58,
+        binRight: 762
+      };
+    }
+
+    function getFunnelSlots() {
+      const slots = [];
+      const startY = 60;
+      const gap = 24;
+
+      for (let r = 0; r < 9; r++) {
+        const y = startY + r * 18;
+        const left = 174 + r * 27;
+        const right = 646 - r * 27;
+
+        for (let x = left; x <= right; x += gap) {
+          slots.push({
+            x: x + ((r % 2) * 12),
+            y
+          });
+        }
+      }
+
+      return slots.sort(
+        (a, b) => b.y - a.y || Math.abs(a.x - 410) - Math.abs(b.x - 410)
+      );
+    }
+
+    function makePath() {
+      let rights = 0;
+      const moves = [];
+
+      for (let i = 0; i < ROWS; i++) {
+        const right = Math.random() < bias;
+        moves.push(right);
+        if (right) rights++;
+      }
+
+      return {
+        moves,
+        finalBin: rights
+      };
+    }
+
+    function pathPoint(ball, step) {
+      const l = L();
+
+      if (step <= 0) {
+        return { x: l.cx, y: l.releaseY };
+      }
+
+      let rights = 0;
+
+      for (let i = 0; i < step; i++) {
+        if (ball.moves[i]) rights++;
+      }
+
+      return {
+        x: l.cx + (rights - step / 2) * l.pegGapX,
+        y: l.pegStartY + (step - 1) * l.pegGapY
+      };
+    }
+
+    function binGeometry() {
+      const l = L();
+      const binW = (l.binRight - l.binLeft) / (ROWS + 1);
+      return { l, binW };
+    }
+
+    function finalBinPosition(finalBin, orderInBin) {
+      const { l, binW } = binGeometry();
+      const r = l.ballR;
+
+      const capacityCols = Math.max(
+        1,
+        Math.floor((binW - 14) / (r * 2 + 2))
+      );
+
+      const col = orderInBin % capacityCols;
+      const row = Math.floor(orderInBin / capacityCols);
+
+      const totalColsWidth = capacityCols * (r * 2 + 2) - 2;
+
+      const x0 =
+        l.binLeft +
+        finalBin * binW +
+        binW / 2 -
+        totalColsWidth / 2 +
+        r;
+
+      return {
+        x: x0 + col * (r * 2 + 2),
+        y: l.binBottom - 13 - row * (r * 2 + 2)
+      };
+    }
+
+    function reset() {
+
+      const slots = getFunnelSlots();
+
+      balls = [];
+      falling = [];
+      binCounts = Array(ROWS + 1).fill(0);
+      dropping = false;
+
+      for (let i = 0; i < BALL_COUNT; i++) {
+
+        const s = slots[i % slots.length];
+
+        balls.push({
+          id: i,
+          state: 'funnel',
+          x: s.x,
+          y: s.y,
+          startX: s.x,
+          startY: s.y,
+          moves: [],
+          finalBin: null,
+          t: 0,
+          targetX: null,
+          targetY: null,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+
+      draw();
+    }
+
+    function nextFunnelBall() {
+      return balls.find(b => b.state === 'funnel') || null;
+    }
+
+    function releaseOneBall() {
+
+      const ball = nextFunnelBall();
+
+      if (!ball) return;
+
+      const path = makePath();
+
+      ball.state = 'falling';
+      ball.t = 0;
+      ball.startX = ball.x;
+      ball.startY = ball.y;
+      ball.moves = path.moves;
+      ball.finalBin = path.finalBin;
+      ball.phase = Math.random() * Math.PI * 2;
+
+      falling.push(ball);
+    }
+
+    function startDrop() {
+
+      if (!balls.some(b => b.state === 'funnel') &&
+        falling.length === 0) {
+        reset();
+      }
+
+      dropping = true;
+    }
+
+    function dropOneBall() {
+
+      if (!balls.some(b => b.state === 'funnel') &&
+        falling.length === 0) {
+        reset();
+      }
+
+      releaseOneBall();
+      dropping = false;
+    }
+
+    function ballPosition(ball) {
+
+      const l = L();
+
+      if (ball.t < 1) {
+
+        const ease =
+          ball.t < .5
+            ? 2 * ball.t * ball.t
+            : 1 - Math.pow(-2 * ball.t + 2, 2) / 2;
+
+        return {
+          x:
+            ball.startX +
+            (l.cx - ball.startX) * ease +
+            Math.sin(ball.t * Math.PI * 4 + ball.phase) * 2,
+
+          y:
+            ball.startY +
+            (l.releaseY - ball.startY) * ease
+        };
+      }
+
+      const local = ball.t - 1;
+      const step = Math.floor(local);
+      const frac = local - step;
+
+      if (step >= ROWS) {
+
+        const start = pathPoint(ball, ROWS);
+
+        const end = {
+          x: ball.targetX,
+          y: ball.targetY
+        };
+
+        return {
+          x: start.x + (end.x - start.x) * Math.min(frac, 1),
+          y: start.y + (end.y - start.y) * Math.min(frac, 1)
+        };
+      }
+
+      const a = pathPoint(ball, step);
+      const b = pathPoint(ball, step + 1);
+
+      const arc =
+        Math.sin(frac * Math.PI) *
+        15 *
+        (ball.moves[step] ? 1 : -1);
+
+      return {
+        x: a.x + (b.x - a.x) * frac + arc,
+        y: a.y + (b.y - a.y) * frac
+      };
+    }
+
+    function update(now) {
+
+      const launchInterval =
+        Math.max(90, 520 - DROP_SPEED * 36);
+
+      const fallSpeed =
+        0.008 + DROP_SPEED * 0.0027;
+
+      if (
+        dropping &&
+        falling.length < MAX_ACTIVE_BALLS &&
+        now - lastLaunch > launchInterval
+      ) {
+
+        releaseOneBall();
+        lastLaunch = now;
+      }
+
+      const stillFalling = [];
+
+      for (const ball of falling) {
+
+        if (ball.targetX === null &&
+          ball.t >= ROWS + .82) {
+
+          const order = binCounts[ball.finalBin];
+
+          const pos =
+            finalBinPosition(ball.finalBin, order);
+
+          ball.targetX = pos.x;
+          ball.targetY = pos.y;
+        }
+
+        ball.t += fallSpeed;
+
+        const p = ballPosition(ball);
+
+        ball.x = p.x;
+        ball.y = p.y;
+
+        if (ball.t >= ROWS + 1.0) {
+
+          ball.x = ball.targetX;
+          ball.y = ball.targetY;
+          ball.state = 'settled';
+
+          binCounts[ball.finalBin] += 1;
+
+          ball.targetX = null;
+          ball.targetY = null;
+
+        } else {
+
+          stillFalling.push(ball);
+        }
+      }
+
+      falling = stillFalling;
+
+      if (
+        !balls.some(b => b.state === 'funnel') &&
+        falling.length === 0
+      ) {
+        dropping = false;
+      }
+    }
+
+    function drawFunnelAndFunnelBalls() {
+
+      const l = L();
+
+      ctx.save();
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = C.gray;
+      ctx.lineWidth = 11;
+
+      ctx.beginPath();
+
+      ctx.moveTo(110, l.funnelTop);
+      ctx.lineTo(l.cx - 50, l.funnelBottom);
+
+      ctx.moveTo(700, l.funnelTop);
+      ctx.lineTo(l.cx + 50, l.funnelBottom);
+
+      ctx.stroke();
+
+      drawBallsByState('funnel');
+
+      ctx.fillStyle = C.green;
+
+      ctx.beginPath();
+
+      ctx.moveTo(l.cx, l.funnelBottom + 70);
+      ctx.lineTo(l.cx - 16, l.funnelBottom + 34);
+      ctx.lineTo(l.cx - 6, l.funnelBottom + 34);
+      ctx.lineTo(l.cx - 6, l.funnelBottom + 16);
+      ctx.lineTo(l.cx + 6, l.funnelBottom + 16);
+      ctx.lineTo(l.cx + 6, l.funnelBottom + 34);
+      ctx.lineTo(l.cx + 16, l.funnelBottom + 34);
+
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawPegs() {
+
+      const l = L();
+
+      ctx.fillStyle = C.gray;
+
+      for (let r = 0; r < ROWS; r++) {
+
+        const y = l.pegStartY + r * l.pegGapY;
+
+        for (let p = 0; p <= r; p++) {
+
+          const x =
+            l.cx + (p - r / 2) * l.pegGapX;
+
+          ctx.beginPath();
+          ctx.arc(x, y, l.pegR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawBins() {
+
+      const { l, binW } = binGeometry();
+
+      ctx.save();
+
+      ctx.strokeStyle = C.gray;
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(l.binLeft, l.binBottom);
+      ctx.lineTo(l.binRight, l.binBottom);
+      ctx.stroke();
+
+      for (let i = 0; i <= ROWS + 1; i++) {
+
+        const x = l.binLeft + i * binW;
+
+        ctx.beginPath();
+        ctx.moveTo(x, l.binTop);
+        ctx.lineTo(x, l.binBottom);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawBellCurve() {
+
+      const settled =
+        balls.filter(b => b.state === 'settled').length;
+
+      if (settled < 20) return;
+
+      const { l, binW } = binGeometry();
+
+      const weighted =
+        binCounts.reduce(
+          (sum, count, index) =>
+            sum + count * index,
+          0
+        );
+
+      const mean =
+        weighted / Math.max(1, settled);
+
+      const variance =
+        binCounts.reduce(
+          (sum, count, index) =>
+            sum +
+            count *
+            Math.pow(index - mean, 2),
+          0
+        ) / Math.max(1, settled);
+
+      const sd = Math.max(.8, Math.sqrt(variance));
+
+      const baseY = l.binBottom - 18;
+      const height = 120;
+
+      ctx.save();
+
+      ctx.strokeStyle = C.red;
+      ctx.lineWidth = 12;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+
+      for (
+        let px = l.binLeft + 18;
+        px <= l.binRight - 18;
+        px += 5
+      ) {
+
+        const index =
+          (px - l.binLeft) / binW - .5;
+
+        const z = (index - mean) / sd;
+
+        const y =
+          baseY -
+          height *
+          Math.exp(-0.5 * z * z);
+
+        if (px === l.binLeft + 18)
+          ctx.moveTo(px, y);
+        else
+          ctx.lineTo(px, y);
+      }
+
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawBallsByState(state) {
+
+      const l = L();
+
+      ctx.fillStyle = C.blue;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.4;
+
+      for (const ball of balls) {
+
+        if (ball.state !== state) continue;
+
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, l.ballR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function drawMovingBalls() {
+
+      const l = L();
+
+      ctx.fillStyle = C.blue;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.4;
+
+      for (const ball of falling) {
+
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, l.ballR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function draw() {
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawFunnelAndFunnelBalls();
+      drawPegs();
+      drawBins();
+      drawBallsByState('settled');
+      drawMovingBalls();
+      drawBellCurve();
+    }
+
+    function animate(now) {
+
+      update(now || 0);
+      draw();
+
+      requestAnimationFrame(animate);
+    }
+
+    biasSlider.addEventListener('input', () => {
+
+      bias = Number(biasSlider.value) / 100;
+
+      biasValue.textContent =
+        biasSlider.value + '%';
+
+      reset();
+    });
+
+    document
+      .getElementById('dropMany')
+      .addEventListener('click', startDrop);
+
+    document
+      .getElementById('dropOne')
+      .addEventListener('click', dropOneBall);
+
+    document
+      .getElementById('reset')
+      .addEventListener('click', reset);
+
+    reset();
+    animate();
+
+  </script>
+
+</body>
+
+</html>
