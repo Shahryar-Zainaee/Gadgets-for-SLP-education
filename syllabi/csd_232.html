@@ -95,8 +95,8 @@ property of their respective owners.
 
     a {
       color: var(--accent-dark);
-      overflow-wrap: break-word;
-      word-break: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     [data-theme="dark"] a {
@@ -511,7 +511,7 @@ property of their respective owners.
       }
 
       .nav-links {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .tools-grid {
