@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+<!--
+CSD 431 Interactive Syllabus
+Copyright (c) 2026 Shahryar Zainaee
+
+The HTML, CSS, and JavaScript code contained in this file is licensed under
+the MIT License. See https://opensource.org/license/mit.
+
+Unless otherwise indicated, the original instructional content and syllabus
+materials created by Shahryar Zainaee are © 2026 Shahryar Zainaee. Official
+University of North Dakota policies, resources, trademarks, and other
+third-party materials included or referenced in this document remain the
+property of their respective owners.
+-->
+
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <meta content="Interactive syllabus for CSD 431 — Introduction to Audiology" name="description" />
+  <title>CSD 431 Syllabus</title>
+  <style>
+    :root {
+      --und-green: #009A44;
+      --und-green-dark: #006B35;
+      --und-green-deep: #043D25;
+      --und-white: #FFFFFF;
+      --und-black: #111111;
+      --und-gray: #A7B0AA;
+      --und-pink: #F5B6CD;
+
+      --bg: #F2F6F3;
+      --bg-elevated: #F8FBF9;
+      --panel: rgba(255, 255, 255, .94);
+      --panel-solid: #FFFFFF;
+      --text: #17211B;
+      --muted: #617067;
+      --border: #D7E2DB;
+      --border-strong: #BBCBC1;
+      --accent: #009A44;
+      --accent-dark: #006B35;
+      --accent-deep: #04452A;
+      --soft: #E9F6EF;
+      --soft-strong: #D8F0E3;
+      --success: #006B35;
+      --danger: #A51D2D;
+      --warning: #F5B6CD;
+      --shadow-sm: 0 6px 18px rgba(15, 50, 31, .06);
+      --shadow: 0 18px 46px rgba(15, 50, 31, .10);
+      --shadow-lg: 0 28px 70px rgba(9, 43, 25, .16);
+      --radius-sm: .75rem;
+      --radius: 1rem;
+      --radius-lg: 1.5rem;
+      --topbar-height: 74px;
+      --content-width: 1320px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0D1511;
+      --bg-elevated: #111C16;
+      --panel: rgba(22, 33, 27, .94);
+      --panel-solid: #16211B;
+      --text: #F3F8F5;
+      --muted: #BAC8BF;
+      --border: #33443A;
+      --border-strong: #4A5F52;
+      --accent: #53D58C;
+      --accent-dark: #7BE4A6;
+      --accent-deep: #A1F0BE;
+      --soft: #173424;
+      --soft-strong: #1D4930;
+      --success: #69DF99;
+      --danger: #FF97A2;
+      --warning: #F5B6CD;
+      --shadow-sm: 0 8px 22px rgba(0, 0, 0, .20);
+      --shadow: 0 20px 50px rgba(0, 0, 0, .32);
+      --shadow-lg: 0 30px 80px rgba(0, 0, 0, .40);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      scroll-padding-top: calc(var(--topbar-height) + 1rem);
+    }
+
+    body {
+      margin: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 10% -10%, rgba(0, 154, 68, .13), transparent 28rem),
+        linear-gradient(180deg, var(--bg-elevated) 0, var(--bg) 28rem);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.68;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(rgba(0, 154, 68, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 154, 68, .045) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(to bottom, #000, transparent 45rem);
+    }
+
+    img,
+    svg,
+    video,
+    canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    a {
+      color: var(--accent-dark);
+      text-decoration-thickness: .08em;
+      text-underline-offset: .14em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    a:hover {
+      color: var(--accent-deep);
+    }
+
+    button,
+    input,
+    select {
+      max-width: 100%;
+      font: inherit;
+    }
+
+    button,
+    a,
+    input,
+    select {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--und-pink);
+      outline-offset: 3px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .55rem;
+      width: 100%;
+      min-height: var(--topbar-height);
+      padding: .7rem clamp(.8rem, 2vw, 1.35rem);
+      background: color-mix(in srgb, var(--panel-solid) 88%, transparent);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 8px 30px rgba(7, 45, 24, .08);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+    }
+
+    .topbar::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--und-green), #62D491 50%, var(--und-green));
+    }
+
+    .brand {
+      flex: 1 1 310px;
+      min-width: 0;
+      margin-right: auto;
+      color: var(--accent-deep);
+      font-weight: 800;
+      letter-spacing: -.025em;
+      overflow-wrap: anywhere;
+    }
+
+    .icon-btn {
+      flex: 0 0 auto;
+      min-height: 42px;
+      border: 1px solid var(--border);
+      background: var(--panel-solid);
+      color: var(--text);
+      border-radius: 999px;
+      padding: .52rem .85rem;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      background: var(--soft);
+      color: var(--accent-deep);
+      box-shadow: 0 10px 24px rgba(0, 154, 68, .14);
+    }
+
+    .icon-btn:active {
+      transform: translateY(0);
+    }
+
+    .progress-wrap {
+      flex: 0 1 136px;
+      width: 136px;
+      height: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--und-green), #67D698);
+      transition: width .15s ease;
+    }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      width: 100%;
+      padding: clamp(3.2rem, 8vw, 6.6rem) clamp(1rem, 5vw, 5rem) clamp(3rem, 6vw, 5rem);
+      overflow: hidden;
+      color: var(--und-white);
+      background:
+        radial-gradient(circle at 90% 16%, rgba(255, 255, 255, .17), transparent 19rem),
+        radial-gradient(circle at 72% 120%, rgba(0, 0, 0, .24), transparent 28rem),
+        linear-gradient(135deg, #034D2B 0%, #007E3B 45%, #009A44 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, .18);
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .16);
+    }
+
+    .hero::before {
+      width: 34rem;
+      height: 34rem;
+      top: -22rem;
+      right: -7rem;
+      box-shadow: 0 0 0 4rem rgba(255, 255, 255, .035), 0 0 0 8rem rgba(255, 255, 255, .025);
+    }
+
+    .hero::after {
+      width: 17rem;
+      height: 17rem;
+      bottom: -11rem;
+      left: 7%;
+      box-shadow: 0 0 0 3rem rgba(255, 255, 255, .03);
+    }
+
+    .hero-inner {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .42rem .7rem;
+      border: 1px solid rgba(255, 255, 255, .34);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .09);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      max-width: 950px;
+      margin: .9rem 0 1.4rem;
+      font-size: clamp(2.25rem, 6.4vw, 5rem);
+      line-height: 1.02;
+      letter-spacing: -.055em;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
+      text-shadow: 0 12px 34px rgba(0, 0, 0, .18);
+    }
+
+    .hero p {
+      max-width: 760px;
+      font-size: 1.08rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: .8rem;
+      margin-top: 2rem;
+    }
+
+    .info-card {
+      min-width: 0;
+      min-height: 106px;
+      padding: 1rem 1.05rem;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 1rem;
+      background: rgba(3, 59, 34, .46);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 16px 32px rgba(0, 0, 0, .12);
+      overflow-wrap: anywhere;
+      backdrop-filter: blur(12px);
+      transition: transform .18s ease, background .18s ease;
+    }
+
+    .info-card:hover {
+      transform: translateY(-2px);
+      background: rgba(3, 59, 34, .58);
+    }
+
+    .info-card small {
+      display: block;
+      margin-bottom: .32rem;
+      color: rgba(255, 255, 255, .72);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .info-card strong {
+      display: block;
+      line-height: 1.35;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
+      gap: clamp(1rem, 2.8vw, 2rem);
+      width: 100%;
+      max-width: var(--content-width);
+      margin: -1.4rem auto 0;
+      padding: 0 clamp(.8rem, 2.5vw, 1.5rem) 2rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: calc(var(--topbar-height) + 1rem);
+      align-self: start;
+      min-width: 0;
+      max-height: calc(100vh - var(--topbar-height) - 2rem);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: .85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-strong) transparent;
+    }
+
+    .sidebar::before {
+      content: "Course navigation";
+      display: block;
+      margin: .2rem .35rem .75rem;
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .search {
+      width: 100%;
+      min-height: 46px;
+      margin-bottom: .8rem;
+      padding: .72rem .85rem;
+      border: 1px solid var(--border);
+      border-radius: .85rem;
+      background: var(--bg-elevated);
+      color: var(--text);
+      box-shadow: inset 0 1px 2px rgba(13, 48, 29, .04);
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .search::placeholder {
+      color: var(--muted);
+    }
+
+    .search:focus {
+      border-color: var(--accent);
+      background: var(--panel-solid);
+      box-shadow: 0 0 0 4px rgba(0, 154, 68, .11);
+      outline: 0;
+    }
+
+    .nav-links {
+      display: grid;
+      gap: .2rem;
+    }
+
+    .nav-links a {
+      display: grid;
+      grid-template-columns: 1.75rem minmax(0, 1fr);
+      align-items: start;
+      gap: .55rem;
+      min-width: 0;
+      padding: .58rem .62rem;
+      border-radius: .72rem;
+      color: var(--text);
+      font-size: .9rem;
+      line-height: 1.35;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+      transition: background .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    .nav-links a span {
+      display: grid;
+      place-items: center;
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: .5rem;
+      background: var(--soft);
+      color: var(--accent-dark);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .nav-links a:hover {
+      transform: translateX(2px);
+      background: var(--soft);
+      color: var(--accent-deep);
+    }
+
+    .nav-links a.active {
+      background: linear-gradient(135deg, var(--soft), var(--soft-strong));
+      color: var(--accent-deep);
+      font-weight: 700;
+    }
+
+    .nav-links a.active span {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    main {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .9rem;
+      margin-bottom: 1rem;
+    }
+
+    .metric,
+    .tool-card,
+    .syllabus-section {
+      min-width: 0;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      backdrop-filter: blur(10px);
+    }
+
+    .metric {
+      position: relative;
+      min-height: 118px;
+      padding: 1.1rem 1.15rem 1rem;
+      overflow: hidden;
+      border-radius: var(--radius);
+    }
+
+    .metric::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: linear-gradient(180deg, var(--und-green), #65D895);
+    }
+
+    .metric::after {
+      content: "";
+      position: absolute;
+      width: 7rem;
+      height: 7rem;
+      right: -3.3rem;
+      bottom: -4.2rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 50%;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: .35rem;
+      color: var(--accent-deep);
+      font-size: clamp(1.08rem, 2.1vw, 1.38rem);
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .metric small {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .syllabus-section {
+      margin-bottom: .85rem;
+      overflow: hidden;
+      border-radius: var(--radius);
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    .syllabus-section:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 14px 32px rgba(15, 50, 31, .10);
+    }
+
+    .section-toggle {
+      display: grid;
+      grid-template-columns: 2.65rem minmax(0, 1fr) auto;
+      align-items: center;
+      gap: .85rem;
+      width: 100%;
+      min-height: 68px;
+      padding: .95rem 1.05rem;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: background .18s ease;
+    }
+
+    .section-toggle:hover {
+      background: linear-gradient(90deg, var(--soft), transparent 78%);
+    }
+
+    .section-number {
+      display: grid;
+      place-items: center;
+      width: 2.45rem;
+      height: 2.45rem;
+      border-radius: .8rem;
+      background: linear-gradient(135deg, var(--und-green), var(--und-green-dark));
+      color: var(--und-white);
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(0, 154, 68, .22);
+    }
+
+    .section-title {
+      min-width: 0;
+      font-size: 1.04rem;
+      font-weight: 800;
+      letter-spacing: -.012em;
+      overflow-wrap: anywhere;
+    }
+
+    .chevron {
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      color: var(--accent-dark);
+      font-size: 1.12rem;
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .section-toggle[aria-expanded="false"] .chevron {
+      transform: rotate(-90deg);
+    }
+
+    .section-toggle[aria-expanded="true"] {
+      background: linear-gradient(90deg, var(--soft), transparent 82%);
+    }
+
+    .section-toggle[aria-expanded="true"] .chevron {
+      background: var(--soft-strong);
+    }
+
+    .section-content {
+      min-width: 0;
+      padding: .15rem 1.45rem 1.45rem 4.55rem;
+      color: var(--text);
+      overflow-wrap: anywhere;
+      animation: contentReveal .22s ease;
+    }
+
+    @keyframes contentReveal {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .section-content p {
+      margin: .68rem 0;
+    }
+
+    .section-content ol {
+      padding-left: 1.35rem;
+    }
+
+    .section-content li {
+      margin: .38rem 0;
+      padding-left: .22rem;
+    }
+
+    .section-content h3 {
+      margin: 1.55rem 0 .5rem;
+      padding-top: .3rem;
+      color: var(--accent-deep);
+      line-height: 1.38;
+      letter-spacing: -.01em;
+    }
+
+    .section-content h3:first-child {
+      margin-top: .55rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .tool-card {
+      padding: 1rem;
+      border-radius: var(--radius);
+    }
+
+    .tool-card h2 {
+      margin: .1rem 0 .8rem;
+      font-size: 1.15rem;
+    }
+
+    .grade-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(86px, 110px);
+      align-items: center;
+      gap: .7rem;
+      margin: .45rem 0;
+    }
+
+    .grade-row input {
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      padding: .55rem .65rem;
+      border: 1px solid var(--border);
+      border-radius: .7rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .result {
+      margin-top: .8rem;
+      padding: .9rem;
+      border-left: 5px solid var(--und-green);
+      border-radius: .6rem;
+      background: var(--soft);
+      color: var(--text);
+    }
+
+    .notice {
+      position: relative;
+      margin-top: 1.15rem;
+      padding: 1.15rem 1.2rem 1.15rem 1.35rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--panel), var(--soft));
+      box-shadow: var(--shadow-sm);
+    }
+
+    .notice::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      background: linear-gradient(180deg, var(--und-green), var(--und-green-dark));
+    }
+
+    footer {
+      width: 100%;
+      max-width: var(--content-width);
+      margin: 0 auto;
+      padding: .9rem clamp(.8rem, 2.5vw, 1.5rem) 3.2rem;
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: right;
+    }
+
+    mark {
+      background: var(--und-pink);
+      color: var(--und-black);
+    }
+
+    .read-aloud-status {
+      flex: 1 1 100%;
+      min-height: 1.4em;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    mark.search-highlight {
+      background: #d4ff32;
+      color: #000000;
+      padding: 0 .08em;
+      border-radius: .12em;
+    }
+
+    @media (max-width: 1120px) {
+      .info-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .layout {
+        grid-template-columns: minmax(220px, 250px) minmax(0, 1fr);
+      }
+
+      .quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 820px) {
+      :root {
+        --topbar-height: 0px;
+      }
+
+      .topbar {
+        position: relative;
+      }
+
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+        margin-top: -1rem;
+      }
+
+      .sidebar {
+        position: static;
+        max-height: none;
+      }
+
+      .nav-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .tools-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 15.5px;
+      }
+
+      .topbar {
+        align-items: stretch;
+        gap: .45rem;
+      }
+
+      .brand {
+        flex-basis: 100%;
+        padding-bottom: .2rem;
+      }
+
+      .progress-wrap {
+        display: none;
+      }
+
+      .icon-btn {
+        flex: 1 1 calc(50% - .45rem);
+        border-radius: .8rem;
+      }
+
+      .hero {
+        padding: 2.7rem 1rem 2.5rem;
+      }
+
+      h1 {
+        font-size: clamp(2.15rem, 12vw, 3.25rem);
+      }
+
+      .info-grid,
+      .quick-grid,
+      .nav-links {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .info-card {
+        min-height: 0;
+      }
+
+      .layout {
+        padding-inline: .65rem;
+      }
+
+      .section-toggle {
+        grid-template-columns: 2.35rem minmax(0, 1fr) auto;
+        gap: .65rem;
+        padding: .82rem;
+      }
+
+      .section-number {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: .7rem;
+      }
+
+      .section-content {
+        padding: .05rem .95rem 1.1rem;
+      }
+
+      .grade-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .3rem;
+      }
+
+      footer {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .layout {
+        padding-inline: .5rem;
+      }
+
+      .icon-btn {
+        width: 100%;
+        flex-basis: 100%;
+      }
+
+      .kicker {
+        font-size: .68rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @media print {
+      body {
+        background: #FFFFFF;
+        color: #000000;
+      }
+
+      body::before,
+      .topbar,
+      .sidebar,
+      .tools-grid {
+        display: none !important;
+      }
+
+      .hero {
+        padding: 0 0 1rem;
+        color: #000000;
+        background: #FFFFFF;
+        border-bottom: 3px solid #009A44;
+      }
+
+      .hero::before,
+      .hero::after {
+        display: none;
+      }
+
+      .kicker {
+        padding: 0;
+        border: 0;
+        background: transparent;
+      }
+
+      .info-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .info-card {
+        min-height: 0;
+        color: #000;
+        background: #FFF;
+        border: 1px solid #CCC;
+        box-shadow: none;
+      }
+
+      .info-card small {
+        color: #555;
+      }
+
+      .info-card a {
+        color: #000 !important;
+      }
+
+      .layout {
+        display: block;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .quick-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .metric,
+      .syllabus-section,
+      .notice {
+        box-shadow: none;
+        background: #FFF;
+      }
+
+      .syllabus-section {
+        break-inside: avoid;
+      }
+
+      .section-content {
+        display: block !important;
+      }
+
+      .chevron {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">CSD 431 Introduction to Audiology</div>
+    <div aria-label="Page reading progress" class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <button class="icon-btn" id="expandAll" type="button">Expand all</button>
+    <button aria-label="Toggle dark mode" class="icon-btn" id="themeToggle" type="button">◐</button>
+    <button class="icon-btn" id="printBtn" type="button">Print</button>
+    <button class="icon-btn" id="readSelectionBtn" type="button">Read selected text</button>
+    <button class="icon-btn hidden" id="pauseResumeBtn" type="button">Pause</button>
+    <button class="icon-btn hidden" id="stopReadingBtn" type="button">Stop</button>
+    <div aria-live="polite" class="read-aloud-status" id="readAloudStatus"></div>
+  </header>
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="kicker">University of North Dakota • Fall 2026</div>
+      <h1>CSD 431: Introduction to Audiology</h1>
+      <div class="info-grid">
+        <div class="info-card"><small>Instructor</small><strong>Shahryar Zainaee, Ph.D.</strong></div>
+        <div class="info-card"><small>Meeting</small><strong>MWF 10:10 – 11:00</strong></div>
+        <div class="info-card"><small>Location</small><strong>107 Gamble Hall</strong></div>
+        <div class="info-card">
+          <small>Email</small>
+          <strong>
+            <a href="mailto:Shahryar.zainaee@und.edu" rel="noopener noreferrer" style="color:white" target="_blank">
+              Send email to instructor
+            </a>
+          </strong>
+        </div>
+        <div class="info-card"><small>Office &amp; HOURS</small><strong>TBD</strong></div>
+      </div>
+    </div>
+  </section>
+  <div class="layout">
+    <aside class="sidebar">
+      <input aria-label="Search syllabus" class="search" id="sectionSearch" placeholder="Search in syllabus…"
+        type="search" />
+      <nav aria-label="Syllabus sections" class="nav-links"><a data-nav="section-1"
+          href="#section-1"><span>1</span>Purpose and Description</a><a data-nav="section-2"
+          href="#section-2"><span>2</span>Learning Outcomes</a><a data-nav="section-3"
+          href="#section-3"><span>3</span>Class Lectures and Discussions</a><a data-nav="section-4"
+          href="#section-4"><span>4</span>Materials - Optional Textbook</a><a data-nav="section-5"
+          href="#section-5"><span>5</span>Exams</a><a data-nav="section-6"
+          href="#section-6"><span>6</span>Assignments</a><a data-nav="section-7"
+          href="#section-7"><span>7</span>Grading</a><a data-nav="section-8"
+          href="#section-8"><span>8</span>Attendance</a><a data-nav="section-9" href="#section-9"><span>9</span>Class
+          Disruptions</a><a data-nav="section-10" href="#section-10"><span>10</span>How to succeed in this course</a><a
+          data-nav="section-11" href="#section-11"><span>11</span>My Teaching Philosophy</a><a data-nav="section-12"
+          href="#section-12"><span>12</span>Technical Requirements and Assistance</a><a data-nav="section-13"
+          href="#section-13"><span>13</span>Student Resources</a><a data-nav="section-14"
+          href="#section-14"><span>14</span>University of North Dakota Policies &amp; Resources</a></nav>
+    </aside>
+    <main>
+      <div class="quick-grid">
+        <div class="metric"><span><strong>Exams (3 × 25%)</strong><small>75% of total course grade</small></span></div>
+        <div class="metric"><span><strong>Assignments (25%)</strong><small>Homework &amp; attendance</small></span>
+        </div>
+        <div class="metric"><span><strong>Class meetings (MWF)</strong><small>10:10 AM – 11:00 AM</small></span></div>
+      </div>
+      <section class="syllabus-section searchable" data-title="purpose and description" id="section-1">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">1</span>
+          <span class="section-title">Purpose and Description</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>This syllabus outlines the policies, expectations, and procedures for this course. You are responsible for
+            familiarizing yourself with its contents, so please review it carefully. Any updates or modifications to the
+            syllabus will be communicated, and you are responsible for staying informed of those changes. By remaining
+            enrolled in this course, you acknowledge and agree to comply with all course requirements and policies. This
+            course provides undergraduate students with a comprehensive introduction to audiology and hearing science.
+            Students will explore the profession of audiology, the anatomy and physiology of the auditory system, the
+            basic principles of acoustics and hearing perception, and the nature and impact of hearing disorders. The
+            course introduces major types of hearing loss, including conductive, sensorineural, and mixed hearing loss,
+            and examines their effects on communication and daily functioning. Students will also learn the scientific
+            principles, administration, interpretation, and clinical application of foundational audiology assessment
+            procedures such as pure-tone audiometry.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="learning outcomes" id="section-2"><button
+          aria-expanded="false" class="section-toggle" type="button"><span class="section-number">2</span><span
+            class="section-title">Learning Outcomes</span><span aria-hidden="true" class="chevron">⌄</span></button>
+        <div class="section-content hidden">
+          <p>By the end of this course, you will achieve the following:</p>
+          <ol>
+            <li>Define the fundamental terminology used in audiology, hearing science, and hearing disorders.</li>
+            <li>Recall the basic anatomy and physiology of the auditory-vestibular systems.</li>
+            <li>Describe the physical properties of sound, including frequency, intensity, and their perceptual
+              correlates.</li>
+            <li>Explain the typical processes of hearing and auditory perception.</li>
+            <li>Identify the roles and responsibilities of audiologists across clinical, educational, and research
+              settings.</li>
+            <li>Differentiate among conductive, sensorineural, mixed, and central auditory hearing disorders.</li>
+            <li>Classify hearing disorders according to type, degree, onset, time course, and laterality.</li>
+            <li>Interpret basic audiograms and recognize common patterns of hearing loss.</li>
+            <li>Distinguish between air-conduction and bone-conduction findings and their clinical implications.</li>
+            <li>Explain the principles, purposes, and clinical applications of basic audiology assessment procedures
+              such as pure-tone audiometry.</li>
+            <li>Apply foundational audiology knowledge to interpret basic hearing assessment results.</li>
+            <li>Evaluate the impact of hearing disorders on communication, educational participation, social
+              interaction, and quality of life.</li>
+            <li>Apply acquired knowledge to make informed decisions regarding future educational and professional
+              opportunities in audiology and related fields.</li>
+            <li>Assess personal strengths, areas for growth, and readiness for continued learning in audiology.</li>
+          </ol>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="class lectures and discussions" id="section-3">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">3</span>
+          <span class="section-title">Class Lectures and Discussions</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>Class lectures will be guided using various resources to enhance your learning throughout the semester.
+            Class lectures and discussions will guide the course exams, so please make sure to take attentive notes in
+            class.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="materials - optional textbook" id="section-4">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">4</span>
+          <span class="section-title">Materials - Optional Textbook</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>There is one optional textbook for this class. Students may purchase the following book at their
+            discretion. Please note that the course materials go beyond this textbook and are not limited to it, and
+            class lectures and discussions will guide the course exams.</p>
+          <p>Stach, B. A., &amp; Ramachandran, V. (2021). <em>Clinical audiology: An introduction</em> (3rd ed.). Plural
+            Publishing.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="exams (25 % each, 75 % total)" id="section-5">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">5</span>
+          <span class="section-title">Exams (25 % each, 75 % total)</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>There are 3 equally weighted online exams for this course. The exams will consist of primarily
+            multiple-choice questions that test your understanding of the material covered in each section. To do well
+            on these exams, you must learn concepts (not just memorize). If you have a conflict with any exam, let me
+            know as soon as possible. Make-up exams may or may not be given at the instructor’s discretion.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="assignments (25 % total)" id="section-6">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">6</span>
+          <span class="section-title">Assignments (25 % total)</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>Assignments will be given throughout the semester to help with learning, assess knowledge, and seek your
+            feedback. All assignments will be graded, and due dates will be announced when they are assigned. All
+            homework should be turned in on time for full credit, however contact me if something comes up and you think
+            you might have an issue with a due date. Make-up assignments may or may not be given at the instructor’s
+            discretion.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="grading" id="section-7">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">7</span>
+          <span class="section-title">Grading</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p><strong>Grade Distribution &amp; Conversion to letter grades for CSD 431</strong></p>
+          <p>Exam 1 = 25 %</p>
+          <p>Exam 2 = 25 %</p>
+          <p>Exam 3 = 25 %</p>
+          <p>Assignments = 25 %</p>
+          <p>Total = 100 %</p>
+          <p>A=89.50–100; B=79.50–89.49; C=69.50–79.49; D=59.50–69.49; F=0–59.49</p>
+          <p><strong>Important Note:</strong> Homework, exams, assignments and/or quizzes may be added/removed/changed
+            at the instructor’s discretion.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="attendance" id="section-8">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">8</span>
+          <span class="section-title">Attendance</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>Regular attendance is important for your learning. Therefore, as adults, you are expected to take
+            responsibility for your attendance. Missing class means you might miss out on: (a) important exam material,
+            (b) opportunities to ask questions or share thoughts, (c) homework assignments, (d) discussions about
+            homework, and (e) in-class activities. The information covered in class goes beyond recommended readings,
+            and it's crucial for passing the course. Attendance may or may not be taken in each class at the
+            instructor’s discretion. Taken attendance will count as a homework grade (100% for attendance, 0% for
+            absence). When attendance is taken, it will be counted as an assignment grade and will be included in the
+            overall assignment category of the course grade.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="class disruptions" id="section-9">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">9</span>
+          <span class="section-title">Class Disruptions</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>During class, please give your full attention to the class. Using devices that are not necessary for the
+            class can distract both you and your classmates. Everyone has the right to education. So, kindly silence
+            notifications to help maintain an attentive education environment for everyone. Please be aware that
+            disruptions may result in a penalty affecting your assignment grade. If you have an emergency that requires
+            you to make or receive phone calls or texts during class, please step out of the classroom to attend to it.
+            This way, it minimizes disruptions for everyone in the class. Your cooperation is greatly appreciated.</p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="how to succeed in this course" id="section-10"><button
+          aria-expanded="false" class="section-toggle" type="button"><span class="section-number">10</span><span
+            class="section-title">How to succeed in this course</span><span aria-hidden="true"
+            class="chevron">⌄</span></button>
+        <div class="section-content hidden">
+          <ol>
+            <li>Attend every class period and every exam.</li>
+            <li>Actively participate in class (listen, take notes, ask questions, speak up, volunteer).</li>
+            <li>Spend time on your own reading and learning from class lectures/discussions and your notes.</li>
+            <li>Take all assignments seriously.</li>
+            <li>Ask for help if you do not understand something. Do not wait until exam time.</li>
+            <li>Meet your classmates and form study groups (if that is helpful to you).</li>
+            <li>Take responsibility for your own learning.</li>
+            <li>Have fun learning.</li>
+          </ol>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="my teaching philosophy" id="section-11"><button
+          aria-expanded="false" class="section-toggle" type="button"><span class="section-number">11</span><span
+            class="section-title">My Teaching Philosophy</span><span aria-hidden="true"
+            class="chevron">⌄</span></button>
+        <div class="section-content hidden">
+          <ol>
+            <li>Create a comfortable and respectful learning environment for students.</li>
+            <li>Motivate students to maximize their learning as much as they can.</li>
+            <li>Make learning enjoyable and engaging.</li>
+            <li>Help students apply what they learn to real-life situations.</li>
+            <li>Encourage students to use their knowledge to impact others through their responsibilities positively.
+            </li>
+            <li>Foster students' ability to think critically and analyze course material.</li>
+            <li>Build a classroom where every student feels valued and respects diversity.</li>
+            <li>Facilitate self-directed learning by providing various types of material for students to learn.</li>
+            <li>Recognize the importance of student well-being and create a supportive environment that helps mental and
+              emotional health besides academic growth.</li>
+          </ol>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="technical requirements and assistance" id="section-12">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">12</span>
+          <span class="section-title">Technical Requirements and Assistance</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>
+            Whether you’re taking courses in the classroom or online, it’s important to have the right technology and
+            equipment. Visit the
+            <a href="https://campus.und.edu/campus-services/uit/tech-requirements.html" rel="noopener noreferrer"
+              target="_blank">
+              UND Technical Requirements
+            </a>
+            webpage for more information. Students are expected to use their official UND email in the course. For
+            technical assistance, please contact
+            <a href="https://campus.und.edu/campus-services/uit/tech-requirements.html" rel="noopener noreferrer"
+              target="_blank">
+              UND Technical Support
+            </a>.
+            Visit the University Information Technologies (UIT) website for their hours, help documents, and other
+            resources. Visit the UIT website for additional support and information about general tech requirements for
+            students including information about devices, operating systems, software, internet connection, and
+            major-specific tech requirements.
+          </p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="student resources" id="section-13">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">13</span>
+          <span class="section-title">Student Resources</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <p>
+            UND is committed to supporting your academic success and personal well-being. For a comprehensive list of
+            available services, please visit the
+            <a href="https://und.edu/academics/services/index.html" rel="noopener noreferrer" target="_blank">Student
+              Resources Page</a>.
+            Students have access to a wide range of support services, including the
+            <a href="https://und.edu/academics/writing-center/" rel="noopener noreferrer" target="_blank">UND Writing
+              Center</a>,
+            <a href="https://und.edu/academics/services/academic-support/tutoring.html" rel="noopener noreferrer"
+              target="_blank">Tutoring and Learning Services</a>,
+            <a href="https://und.edu/academics/testing-services/index.html" rel="noopener noreferrer"
+              target="_blank">Testing Services</a>,
+            and many other academic and student support resources. Students also have access to the UND Student Resource
+            Site through
+            Blackboard. You are encouraged to become familiar with the tools, tutorials, and resources available within
+            Blackboard, as they can help you successfully navigate the course and make effective use of the
+            <a href="https://und.edu/academics/ttada/academic-technologies/" rel="noopener noreferrer"
+              target="_blank">university’s educational technologies</a>.
+          </p>
+        </div>
+      </section>
+      <section class="syllabus-section searchable" data-title="university of north dakota policies &amp; resources"
+        id="section-14">
+        <button aria-expanded="false" class="section-toggle" type="button">
+          <span class="section-number">14</span>
+          <span class="section-title">University of North Dakota Policies &amp; Resources</span>
+          <span aria-hidden="true" class="chevron">⌄</span>
+        </button>
+        <div class="section-content hidden">
+          <h3>14.1. Academic Integrity</h3>
+          <p>Academic integrity is a serious matter, and any deviations from appropriate behavior will be dealt with
+            strongly. At the discretion of the professor, situations of concern may be dealt with as a scholastic matter
+            or a disciplinary matter.</p>
+          <p>As a scholastic matter, the professor has the discretion to determine appropriate penalties to the
+            student’s workload or grade, but the situation may be resolved without involving many individuals. An
+            alternative is to treat the situation as a disciplinary matter, which can result in suspension from the
+            University, or have lesser penalties. Be aware that I view this as a very serious matter, and will have
+            little tolerance of or sympathy for questionable practices. A student who attempts to obtain credit for work
+            that is not their own (whether that be on a paper, quiz, homework assignment, exam, etc.) will likely
+            receive a failing grade for that item of work, and at the professor’s discretion, may also receive a failing
+            grade in the course. Read more in the <a href="https://und.edu/student-life/code-of-student-life.html"
+              rel="noopener noreferrer" target="_blank">Code of Student Life</a>.
+          </p>
+          <h3>14.2. Accessibility for Students</h3>
+          <p>The University of North Dakota is committed to providing equal access to students with documented
+            disabilities. To ensure access to your classes and program, please contact <a
+              href="https://und.edu/student-life/student-disability-resources/index.html" rel="noopener noreferrer"
+              target="_blank">Student Disability Resources</a> to
+            engage in a confidential discussion about accommodations for the classroom, clinical and/or online course
+            settings. Accommodations are not provided retroactively. Students are encouraged to register with Student
+            Disability Resources at the start of their class/program. More information can be obtained by email
+            <a href="mailto:UND.sdr@UND.edu" rel="noopener noreferrer" target="_blank">UND.sdr@UND.edu</a> or by phone
+            at 701.777.2664.
+          </p>
+          <p>If you receive an exam accommodation from Student Disability Resources, please share the letter with the
+            Office of Extended Learning at <a href="mailto:UND.courses@UND.edu" rel="noopener noreferrer"
+              target="_blank">UND.courses@UND.edu</a>.
+          </p>
+          <h3>14.3. Religious Accommodations</h3>
+          <p>UND offers religious accommodations, which are reasonable changes in the academic environment that enable a
+            student to practice or observe a sincerely held religious belief without undue hardship on the University.
+            Examples include time for prayer or the ability to attend religious events or observe a religious holiday.
+            To request an accommodation, complete <a
+              href="https://cm.maxient.com/reportingform.php?UnivofND&amp;layout_id=4" rel="noopener noreferrer"
+              target="_blank">student religious accommodation request form</a>. If you have any
+            questions, you may contact the <a href="https://campus.und.edu/civil-rights/staff.html"
+              rel="noopener noreferrer" target="_blank">Equal Opportunity &amp; Title IX Office</a>.
+          </p>
+          <h3>14.4. Pregnancy Accommodations</h3>
+          <p>Students who need assistance with academic adjustments related to pregnancy or childbirth may contact the
+            Equal Opportunity &amp; Title IX Office to learn about your options. Additional information and services may
+            be found at <a href="https://campus.und.edu/civil-rights/pregnancy.html" rel="noopener noreferrer"
+              target="_blank">Pregnancy Resources</a>.
+          </p>
+          <h3>14.5. Resolution of Problems</h3>
+          <p>Should a problem occur, you should speak to your instructor first. If the problem is not resolved by
+            speaking with your instructor, contact the department chair, and next to the Dean’s office. Should the
+            problem persist after taking these initial steps, you have the right to go to the provost next, and then to
+            the president.</p>
+          <h3>14.6. Notice of Nondiscrimination</h3>
+          <p>It is the policy of the University of North Dakota that no person shall be discriminated against because of
+            race, religion, age, color, gender, disability, national origin, creed, sexual orientation, gender identity,
+            genetic information, marital status, veteran’s status, or political belief or affiliation and the equal
+            opportunity and access to facilities shall be available to all. Concerns regarding Title IX, Title VI, Title
+            VII, ADA, and Section 504 may be addressed to Donna Smith, Assistant Vice President for Equal Opportunity
+            &amp; Title IX and Title IX/ADA Coordinator, by calling 701.777.4171 or emailing <a
+              href="mailto:UND.EO.TitleIX@UND.edu" rel="noopener noreferrer" target="_blank">UND.EO.TitleIX@UND.edu</a>.
+            Concerns can also be directed to the Office for Civil Rights, U.S. Department of Education, 230 S. Dearborn
+            St., 37th Floor, Chicago, IL 60604, or any other federal agency.</p>
+          <h3>14.7. Reporting Discrimination, Harassment, or Sexual Misconduct</h3>
+          <p>If you or a friend has experienced sexual misconduct, such as sexual harassment, sexual assault, domestic
+            violence, dating violence, or stalking, please contact the <a
+              href="https://campus.und.edu/civil-rights/staff.html" rel="noopener noreferrer" target="_blank">Equal
+              Opportunity &amp; Title IX Office</a> or UND’s
+            Title IX Coordinator, Donna Smith, for assistance:</p>
+          <p>701.777.4171; <a href="mailto:donna.smith@UND.edu" rel="noopener noreferrer"
+              target="_blank">donna.smith@UND.edu</a>. You may also contact the Equal Opportunity &amp; Title
+            IX office if you
+            or a friend has experienced discrimination or harassment based on a protected class, such as race, color,
+            national origin, religion, sex, age, disability, sexual orientation, gender identity, genetic information,
+            pregnancy, marital or parental status, veteran's status, or political belief or affiliation.</p>
+          <h3>14.8. Faculty Reporting Obligations Regarding Discrimination, Harassment, and Sexual Misconduct</h3>
+          <p>It is important for students to understand that faculty are required to share with UND’s Title IX
+            Coordinator any incidents of sexual misconduct or of discrimination or harassment based on a protected class
+            they become aware of, even if those incidents occurred in the past or are disclosed as part of a class
+            assignment. This does not mean an investigation will occur if the student does not want that, but it does
+            allow UND to provide resources to help the student continue to be successful at UND. If you have been
+            impacted by discrimination, harassment, or sexual misconduct, you can find information about confidential
+            support services at the <a href="https://campus.und.edu/civil-rights/staff.html" rel="noopener noreferrer"
+              target="_blank">Equal Opportunity &amp; Title IX Office</a>.
+          </p>
+          <h3>14.9. How to Seek Help When in Distress</h3>
+          <p>We know that while college is a wonderful time for most students, some students may struggle or have issues
+            that arise. You may experience students in distress on campus, in your classroom, in your home, or within
+            residence halls. Distressed students may initially seek assistance from faculty, staff members, their
+            parents, and other students. In addition to the support we can provide to each other, there are also
+            professional support services available to students on campus through the Dean of Students and the
+            <a href="https://und.edu/student-life/counseling-center/index.html" rel="noopener noreferrer"
+              target="_blank">University Counseling Center</a>. Both staffs are available to consult with you
+            about getting help or providing
+            a friend with the help that he or she may need. For more information, visit the <a
+              href="https://und.edu/npcc/und-care.html" rel="noopener noreferrer" target="_blank"> UND Cares
+              Program</a>.
+          </p>
+          <h3>14.10. Land Acknowledgement Statement</h3>
+          <p>Today, the University of North Dakota rests on the ancestral lands of the Pembina and Red Lake Bands of
+            Ojibwe and the Dakota Oyate - presently existing as composite parts of the Red Lake, Turtle Mountain, White
+            Earth Bands, and the Dakota Tribes of Minnesota and North Dakota.</p>
+          <p>We acknowledge the people who resided here for generations and recognize that the spirit of the Ojibwe and
+            Oyate people permeates this land. As a university community, we will continue to build upon our relations
+            with the First Nations of the State of North Dakota - the Mandan, Hidatsa, and Arikara Nation,
+            Sisseton-Wahpeton Oyate Nation, Spirit Lake Nation, Standing Rock Sioux Tribe, and Turtle Mountain Band of
+            Chippewa Indians.</p>
+        </div>
+      </section>
+      <div class="notice">
+        <strong>IMPORTANT NOTE:</strong> The instructor reserves the right to update the syllabus as class needs arise.
+        For example, homework, exams, assignments and/or quizzes may be added/removed/changed at the instructor’s
+        discretion. Changes to the schedule, syllabus, course content, or policies will be communicated promptly through
+        the course learning-management system.
+      </div>
+    </main>
+  </div>
+  <footer>
+    Last update August 1, 2026.
+  </footer>
+  <script>
+    const sectionButtons = [...document.querySelectorAll('.section-toggle')];
+    const allSections = [...document.querySelectorAll('.syllabus-section')];
+    const expandButton = document.getElementById('expandAll');
+
+    sectionButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        btn.nextElementSibling.classList.toggle('hidden', expanded);
+        updateExpandLabel();
+      });
+    });
+
+    function updateExpandLabel() {
+      const openCount = sectionButtons.filter(b => b.getAttribute('aria-expanded') === 'true').length;
+      expandButton.textContent = openCount === 0 ? 'Expand all' : 'Collapse all';
+    }
+
+    expandButton.addEventListener('click', () => {
+      const shouldExpand = sectionButtons.every(b => b.getAttribute('aria-expanded') === 'false');
+      sectionButtons.forEach(btn => {
+        btn.setAttribute('aria-expanded', String(shouldExpand));
+        btn.nextElementSibling.classList.toggle('hidden', !shouldExpand);
+      });
+      updateExpandLabel();
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+    });
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            document.querySelectorAll('[data-nav]').forEach(a => a.classList.remove('active'));
+            const link = document.querySelector('[data-nav="' + entry.target.id + '"]');
+            if (link) link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-25% 0px -65% 0px' });
+      allSections.forEach(s => observer.observe(s));
+    }
+
+    function clearSearchHighlights(root) {
+      root.querySelectorAll('mark.search-highlight').forEach(mark => {
+        const parent = mark.parentNode;
+        parent.replaceChild(document.createTextNode(mark.textContent), mark);
+        parent.normalize();
+      });
+    }
+
+    function highlightSearchTerm(root, query) {
+      if (!query) return;
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'gi');
+      const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent || parent.closest('mark.search-highlight') ||
+              ['SCRIPT', 'STYLE', 'INPUT', 'BUTTON'].includes(parent.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return regex.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          }
+        }
+      );
+
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+
+      nodes.forEach(node => {
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+        node.nodeValue.replace(regex, (match, offset) => {
+          fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex, offset)));
+          const mark = document.createElement('mark');
+          mark.className = 'search-highlight';
+          mark.textContent = match;
+          fragment.appendChild(mark);
+          lastIndex = offset + match.length;
+          return match;
+        });
+        fragment.appendChild(document.createTextNode(node.nodeValue.slice(lastIndex)));
+        node.parentNode.replaceChild(fragment, node);
+      });
+    }
+
+    document.getElementById('sectionSearch').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+
+      allSections.forEach(section => {
+        clearSearchHighlights(section);
+
+        const match = !q || section.textContent.toLowerCase().includes(q);
+        section.classList.toggle('hidden', !match);
+
+        if (match && q) {
+          const btn = section.querySelector('.section-toggle');
+          btn.setAttribute('aria-expanded', 'true');
+          section.querySelector('.section-content').classList.remove('hidden');
+          highlightSearchTerm(section, q);
+        }
+      });
+    });
+
+    const readSelectionBtn = document.getElementById('readSelectionBtn');
+    const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+    const stopReadingBtn = document.getElementById('stopReadingBtn');
+    const readAloudStatus = document.getElementById('readAloudStatus');
+    let selectedTextForReading = '';
+    let currentUtterance = null;
+
+    function getSelectedText() {
+      const selection = window.getSelection ? window.getSelection() : null;
+      return selection ? selection.toString().trim() : '';
+    }
+
+    function resetReadAloudControls(message = '') {
+      pauseResumeBtn.classList.add('hidden');
+      stopReadingBtn.classList.add('hidden');
+      pauseResumeBtn.textContent = 'Pause';
+      readAloudStatus.textContent = message;
+      currentUtterance = null;
+    }
+
+    document.addEventListener('selectionchange', () => {
+      const selected = getSelectedText();
+      if (selected) selectedTextForReading = selected;
+    });
+
+    readSelectionBtn.addEventListener('mousedown', () => {
+      const selected = getSelectedText();
+      if (selected) selectedTextForReading = selected;
+    });
+
+    readSelectionBtn.addEventListener('click', () => {
+      const selected = getSelectedText() || selectedTextForReading;
+
+      if (!selected) {
+        readAloudStatus.textContent = 'Select text on the page first, then choose “Read selected text.”';
+        return;
+      }
+
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        readAloudStatus.textContent = 'Read aloud is not supported by this browser. Please use the device or browser screen-reader feature.';
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      currentUtterance = new SpeechSynthesisUtterance(selected);
+      currentUtterance.lang = document.documentElement.lang || 'en-US';
+
+      currentUtterance.onstart = () => {
+        readAloudStatus.textContent = 'Reading selected text.';
+        pauseResumeBtn.classList.remove('hidden');
+        stopReadingBtn.classList.remove('hidden');
+        pauseResumeBtn.textContent = 'Pause';
+      };
+
+      currentUtterance.onpause = () => {
+        readAloudStatus.textContent = 'Reading paused.';
+        pauseResumeBtn.textContent = 'Resume';
+      };
+
+      currentUtterance.onresume = () => {
+        readAloudStatus.textContent = 'Reading selected text.';
+        pauseResumeBtn.textContent = 'Pause';
+      };
+
+      currentUtterance.onend = () => resetReadAloudControls('Finished reading selected text.');
+      currentUtterance.onerror = () => resetReadAloudControls('The selected text could not be read on this device or browser.');
+      window.speechSynthesis.speak(currentUtterance);
+    });
+
+    pauseResumeBtn.addEventListener('click', () => {
+      if (!('speechSynthesis' in window) || !currentUtterance) return;
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      else if (window.speechSynthesis.speaking) window.speechSynthesis.pause();
+    });
+
+    stopReadingBtn.addEventListener('click', () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      resetReadAloudControls('Reading stopped.');
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    });
+
+  </script>
+</body>
+
+</html>
