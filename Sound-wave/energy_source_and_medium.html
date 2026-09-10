@@ -1,0 +1,486 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sound Wave</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+  }
+
+  .app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 220px;
+    width: 100%;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .controls {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+  }
+
+  .slider-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 220px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .slider-control input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 90px;
+  }
+
+  .slider-value {
+    min-width: 38px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .caption-row {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    padding: 7px 10px 9px;
+    border-top: 1px solid #eee;
+    background: #fff;
+    font-size: 13px;
+    color: #333;
+  }
+
+  .caption-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .caption-symbol {
+    font-weight: 700;
+  }
+
+  button {
+    border: 1px solid #bbb;
+    background: #fff;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #f4f4f4;
+  }
+
+  @media (max-width: 420px) {
+    .controls {
+      padding: 7px;
+    }
+
+    button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px 6px;
+      font-size: 12px;
+    }
+
+    .slider-control {
+      width: 100%;
+      min-width: 0;
+      font-size: 12px;
+    }
+
+    .caption-row {
+      gap: 14px;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="playBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+    <button id="sendBtn">Send E</button>
+
+    <label class="slider-control">
+      <span>Particles</span>
+      <input id="particleCount" type="range" min="5" max="50" value="15" step="1">
+      <span class="slider-value" id="particleCountValue">15</span>
+    </label>
+
+    <label class="slider-control">
+      <span>Particle Speed</span>
+      <input id="particleSpeed" type="range" min="0.4" max="20" value="1" step="0.1">
+      <span class="slider-value" id="particleSpeedValue">1.0×</span>
+    </label>
+  </div>
+
+  <div class="caption-row">
+    <span class="caption-item"><span class="caption-symbol">P</span> = Particle</span>
+    <span class="caption-item"><span class="caption-symbol">E</span> = Energy</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const playBtn = document.getElementById('playBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const particleCount = document.getElementById('particleCount');
+  const particleCountValue = document.getElementById('particleCountValue');
+  const particleSpeed = document.getElementById('particleSpeed');
+  const particleSpeedValue = document.getElementById('particleSpeedValue');
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+
+  let running = true;
+  let time = 0;
+  let last = performance.now();
+
+  let packets = [];
+
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    width = Math.max(260, r.width);
+    height = Math.max(220, r.height);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function getLayout() {
+    const small = width < 520;
+
+    const sourceX = small ? 20 : 35;
+    const startX = small ? 58 : 90;
+    const endX = width - (small ? 20 : 40);
+
+    const available = Math.max(160, endX - startX);
+
+    const requestedCount = Number(particleCount.value);
+    const count = Math.max(5, Math.min(50, requestedCount));
+
+    const gap = available / (count - 1);
+    const radius = Math.max(9, Math.min(small ? 13 : 17, gap * 0.33));
+    const amplitude = Math.min(gap * 0.28, small ? 9 : 15);
+
+    return {
+      small,
+      sourceX,
+      startX,
+      endX,
+      available,
+      count,
+      gap,
+      radius,
+      amplitude,
+      y: height * 0.5
+    };
+  }
+
+  function particlePosition(i, L) {
+    const restX = L.startX + i * L.gap;
+
+    // Longitudinal motion:
+    // every particle moves ONLY horizontally,
+    // with a phase delay from one particle to the next.
+    const phaseDelay = 0.72;
+    const speed = 2.8 * Number(particleSpeed.value);
+
+    const x = restX + Math.sin(time * speed - i * phaseDelay) * L.amplitude;
+
+    return { x, y: L.y, restX };
+  }
+
+  function drawSource(L) {
+    const w = L.small ? 18 : 26;
+    const h = L.small ? 62 : 82;
+
+    const x = L.sourceX;
+    const y = L.y - h / 2;
+
+    ctx.save();
+
+    ctx.fillStyle = "#ececec";
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 2;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    const movingEdge = x + w + Math.sin(time * 2.8 * Number(particleSpeed.value)) * (L.small ? 3 : 4);
+
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(movingEdge, y);
+    ctx.lineTo(movingEdge, y + h);
+    ctx.stroke();
+
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${L.small ? 9 : 11}px Arial`;
+    ctx.save();
+    ctx.translate(x + w / 2, L.y);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Source", 0, 0);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function drawParticles(L, particles) {
+    ctx.save();
+
+    ctx.strokeStyle = "#d0d0d0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(L.startX - L.gap * 0.4, L.y);
+    ctx.lineTo(L.endX + L.gap * 0.25, L.y);
+    ctx.stroke();
+
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, L.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#e8f0ff";
+      ctx.fill();
+      ctx.strokeStyle = "#2f64c5";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#1f4da3";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `bold ${Math.max(10, L.radius * 0.82)}px Arial`;
+      ctx.fillText("P", p.x, p.y + 0.5);
+    }
+
+    ctx.restore();
+  }
+
+  function drawEnergyPacket(x, y, L) {
+    const s = L.small ? 19 : 24;
+
+    ctx.save();
+
+    ctx.fillStyle = "#ffe7a8";
+    ctx.strokeStyle = "#a86d00";
+    ctx.lineWidth = 2;
+
+    ctx.fillRect(x - s / 2, y - s / 2, s, s);
+    ctx.strokeRect(x - s / 2, y - s / 2, s, s);
+
+    ctx.fillStyle = "#7a4b00";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${L.small ? 10 : 12}px Arial`;
+    ctx.fillText("E", x, y + 0.5);
+
+    ctx.restore();
+  }
+
+  function updatePackets(dt, particles, L) {
+    for (const packet of packets) {
+      if (packet.finished) continue;
+
+      const i = packet.holderIndex;
+      const current = particles[i];
+      const next = particles[i + 1];
+
+      if (!current || !next) {
+        packet.finished = true;
+        continue;
+      }
+
+      if (packet.state === "held") {
+        // The energy packet moves back and forth WITH the particle holding it.
+        // It can be handed forward only when the next two particles come close together.
+        const gap = next.x - current.x;
+        const handoffGap = L.gap * 0.82;
+
+        if (gap <= handoffGap && packet.readyToHandOff) {
+          packet.state = "transfer";
+          packet.transferProgress = 0;
+          packet.readyToHandOff = false;
+        }
+
+        // Require separation before another handoff can occur.
+        if (gap > L.gap * 0.94) {
+          packet.readyToHandOff = true;
+        }
+      }
+
+      if (packet.state === "transfer") {
+        packet.transferProgress += dt / 0.18;
+
+        if (packet.transferProgress >= 1) {
+          packet.holderIndex += 1;
+          packet.state = "held";
+          packet.transferProgress = 0;
+          packet.readyToHandOff = false;
+
+          if (packet.holderIndex >= particles.length - 1) {
+            packet.finished = true;
+          }
+        }
+      }
+    }
+
+    packets = packets.filter(p => !p.finished);
+  }
+
+  function drawPackets(L, particles) {
+    for (const packet of packets) {
+      const i = packet.holderIndex;
+      const current = particles[i];
+
+      if (!current) continue;
+
+      let x = current.x;
+
+      if (packet.state === "transfer") {
+        const next = particles[i + 1];
+        if (!next) continue;
+
+        // During the handoff, E moves only horizontally from one particle to the next.
+        const u = Math.max(0, Math.min(1, packet.transferProgress));
+        x = current.x + (next.x - current.x) * u;
+      }
+
+      drawEnergyPacket(x, L.y, L);
+    }
+  }
+
+  function draw() {
+    const L = getLayout();
+
+    ctx.clearRect(0, 0, width, height);
+
+    const particles = Array.from(
+      { length: L.count },
+      (_, i) => particlePosition(i, L)
+    );
+
+    drawSource(L);
+    drawParticles(L, particles);
+    drawPackets(L, particles);
+  }
+
+  function frame(now) {
+    const dt = Math.min(0.04, (now - last) / 1000);
+    last = now;
+
+    if (running) {
+      time += dt;
+
+      const L = getLayout();
+      const particles = Array.from(
+        { length: L.count },
+        (_, i) => particlePosition(i, L)
+      );
+
+      updatePackets(dt, particles, L);
+    }
+
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  playBtn.addEventListener("click", () => {
+    running = !running;
+    playBtn.textContent = running ? "Pause" : "Play";
+  });
+
+  resetBtn.addEventListener("click", () => {
+    time = 0;
+    packets = [];
+  });
+
+  sendBtn.addEventListener("click", () => {
+    packets.push({
+      holderIndex: 0,
+      state: "held",
+      transferProgress: 0,
+      readyToHandOff: true,
+      finished: false
+    });
+  });
+
+  particleCount.addEventListener("input", () => {
+    particleCountValue.textContent = particleCount.value;
+    packets = [];
+    draw();
+  });
+
+  particleSpeed.addEventListener("input", () => {
+    particleSpeedValue.textContent = Number(particleSpeed.value).toFixed(1) + "×";
+    draw();
+  });
+
+  const observer = new ResizeObserver(() => {
+    resize();
+    draw();
+  });
+
+  observer.observe(stage);
+
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
