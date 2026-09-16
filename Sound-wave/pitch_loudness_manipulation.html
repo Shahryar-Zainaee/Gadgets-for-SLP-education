@@ -1,0 +1,1046 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Pitch & Loudness Manipulation</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      min-height: 100vh;
+
+      padding: clamp(15px, 3vw, 40px);
+    }
+
+    /* =====================================================
+       MAIN LAYOUT
+       ===================================================== */
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: clamp(25px, 5vw, 70px);
+    }
+
+
+    /* =====================================================
+       LEFT CONTROLS
+       ===================================================== */
+
+    .controls {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+
+      gap: clamp(20px, 3vw, 40px);
+
+      flex-shrink: 0;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      gap: 10px;
+    }
+
+    .slider-label {
+      font-size: clamp(13px, 1.5vw, 17px);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .slider-value {
+      font-size: clamp(13px, 1.4vw, 16px);
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+
+    /* =====================================================
+       VERTICAL SLIDERS
+       ===================================================== */
+
+    input[type="range"].vertical {
+      writing-mode: vertical-lr;
+      direction: rtl;
+
+      height: clamp(170px, 35vh, 300px);
+      width: 28px;
+
+      cursor: pointer;
+
+      margin: 0;
+      padding: 0;
+    }
+
+
+    /* =====================================================
+       RIGHT PANEL
+       ===================================================== */
+
+    .right-panel {
+      flex: 1;
+
+      min-width: 0;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      gap: clamp(12px, 2vw, 20px);
+    }
+
+
+    /* =====================================================
+       CANVAS
+       ===================================================== */
+
+    .canvas-container {
+      width: 100%;
+      max-width: 750px;
+
+      aspect-ratio: 16 / 9;
+
+      min-height: 200px;
+
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      border: 1px solid #000;
+      background: #ffffff;
+    }
+
+
+    /* =====================================================
+       BUTTON
+       ===================================================== */
+
+    button {
+      padding: 10px 28px;
+
+      font-size: clamp(14px, 1.5vw, 17px);
+
+      cursor: pointer;
+
+      border: 1px solid #999;
+      background: #f3f3f3;
+
+      border-radius: 6px;
+
+      min-width: 90px;
+    }
+
+    button:hover {
+      background: #e8e8e8;
+    }
+
+
+    /* =====================================================
+       SMALL SCREENS
+       ===================================================== */
+
+    @media (max-width: 700px) {
+
+      body {
+        align-items: flex-start;
+      }
+
+      .container {
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .controls {
+        width: 100%;
+
+        gap: clamp(35px, 12vw, 80px);
+      }
+
+      input[type="range"].vertical {
+        height: clamp(150px, 28vh, 220px);
+      }
+
+      .right-panel {
+        width: 100%;
+      }
+
+      .canvas-container {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+
+
+    /* =====================================================
+       VERY SMALL SCREENS
+       ===================================================== */
+
+    @media (max-width: 400px) {
+
+      body {
+        padding: 12px;
+      }
+
+      .slider-label {
+        font-size: 13px;
+      }
+
+      .controls {
+        gap: 25px;
+      }
+
+      input[type="range"].vertical {
+        height: 150px;
+      }
+
+      .canvas-container {
+        min-height: 180px;
+      }
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+  <div class="container">
+
+
+    <!-- ===================================================
+         LEFT CONTROLS
+         =================================================== -->
+
+    <div class="controls">
+
+
+      <!-- FREQUENCY -->
+
+      <div class="slider-group">
+
+        <label
+          class="slider-label"
+          for="pitch"
+        >
+          Frequency (pitch)
+        </label>
+
+        <input
+          id="pitch"
+          class="vertical"
+          type="range"
+          min="100"
+          max="2000"
+          value="200"
+          step="1"
+        >
+
+        <div
+          id="frequencyValue"
+          class="slider-value"
+        >
+          200 Hz
+        </div>
+
+      </div>
+
+
+
+      <!-- INTENSITY -->
+
+      <div class="slider-group">
+
+        <label
+          class="slider-label"
+          for="loudness"
+        >
+          Intensity (loudness)
+        </label>
+
+        <input
+          id="loudness"
+          class="vertical"
+          type="range"
+          min="0"
+          max="100"
+          value="25"
+          step="1"
+        >
+
+        <div class="slider-value">
+          &nbsp;
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         RIGHT PANEL
+         =================================================== -->
+
+    <div class="right-panel">
+
+      <div class="canvas-container">
+
+        <canvas id="waveCanvas"></canvas>
+
+      </div>
+
+      <button id="toggleBtn">
+        Play
+      </button>
+
+    </div>
+
+
+  </div>
+
+
+
+  <script>
+
+    /* =====================================================
+       AUDIO VARIABLES
+       ===================================================== */
+
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let isPlaying = false;
+
+
+    /* =====================================================
+       ELEMENT REFERENCES
+       ===================================================== */
+
+    const pitchSlider =
+      document.getElementById("pitch");
+
+    const loudnessSlider =
+      document.getElementById("loudness");
+
+    const frequencyValue =
+      document.getElementById("frequencyValue");
+
+    const toggleBtn =
+      document.getElementById("toggleBtn");
+
+    const canvas =
+      document.getElementById("waveCanvas");
+
+    const ctx =
+      canvas.getContext("2d");
+
+
+    /* =====================================================
+       AUDIO GAIN
+       ===================================================== */
+
+    function getGainValue() {
+
+      const value =
+        Number(loudnessSlider.value) / 100;
+
+      return 0.2 * value * value;
+    }
+
+
+    /* =====================================================
+       CANVAS RESIZING
+       ===================================================== */
+
+    function resizeCanvas() {
+
+      const rect =
+        canvas.getBoundingClientRect();
+
+      const dpr =
+        window.devicePixelRatio || 1;
+
+      canvas.width =
+        Math.round(rect.width * dpr);
+
+      canvas.height =
+        Math.round(rect.height * dpr);
+
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+      );
+
+      drawWave();
+    }
+
+
+    /* =====================================================
+       DRAW TRUE 10-MILLISECOND SINE WAVE
+       ===================================================== */
+
+    function drawWave() {
+
+      const rect =
+        canvas.getBoundingClientRect();
+
+      const w =
+        rect.width;
+
+      const h =
+        rect.height;
+
+      if (w <= 0 || h <= 0) {
+        return;
+      }
+
+
+      /* ---------------------------------------------------
+         GRAPH DIMENSIONS
+         --------------------------------------------------- */
+
+      const leftPadding =
+        Math.max(55, w * 0.09);
+
+      const rightPadding =
+        Math.max(20, w * 0.04);
+
+      const topPadding =
+        Math.max(20, h * 0.07);
+
+      const bottomPadding =
+        Math.max(48, h * 0.15);
+
+
+      const graphWidth =
+        w - leftPadding - rightPadding;
+
+      const graphHeight =
+        h - topPadding - bottomPadding;
+
+      const centerY =
+        topPadding + graphHeight / 2;
+
+
+      /* ---------------------------------------------------
+         VALUES
+         --------------------------------------------------- */
+
+      const frequency =
+        Number(pitchSlider.value);
+
+      const intensity =
+        Number(loudnessSlider.value) / 100;
+
+
+      /*
+        The horizontal axis represents exactly
+        10 milliseconds = 0.010 seconds.
+      */
+
+      const durationSeconds =
+        0.010;
+
+
+      /*
+        Visual amplitude is relative.
+
+        The intensity slider controls the
+        visible amplitude without assigning
+        a physical dB SPL value.
+      */
+
+      const maxAmplitude =
+        graphHeight * 0.42;
+
+      const amplitude =
+        maxAmplitude * intensity;
+
+
+      /* ---------------------------------------------------
+         CLEAR CANVAS
+         --------------------------------------------------- */
+
+      ctx.clearRect(
+        0,
+        0,
+        w,
+        h
+      );
+
+
+      ctx.strokeStyle = "#000";
+      ctx.fillStyle = "#000";
+
+      ctx.lineWidth = 1;
+
+      ctx.font =
+        `${Math.max(11, Math.min(15, w * 0.025))}px Arial`;
+
+
+      /* ===================================================
+         AXES
+         =================================================== */
+
+
+      /* X axis */
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        leftPadding,
+        centerY
+      );
+
+      ctx.lineTo(
+        w - rightPadding,
+        centerY
+      );
+
+      ctx.stroke();
+
+
+
+      /* Y axis */
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        leftPadding,
+        topPadding
+      );
+
+      ctx.lineTo(
+        leftPadding,
+        h - bottomPadding
+      );
+
+      ctx.stroke();
+
+
+      /* ===================================================
+         X AXIS TICKS
+         0–10 milliseconds
+         =================================================== */
+
+      const timeTicks =
+        [0, 2, 4, 6, 8, 10];
+
+
+      ctx.textAlign =
+        "center";
+
+      ctx.textBaseline =
+        "top";
+
+
+      timeTicks.forEach(ms => {
+
+        const x =
+          leftPadding +
+          (ms / 10) * graphWidth;
+
+
+        /* Tick */
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          x,
+          centerY - 4
+        );
+
+        ctx.lineTo(
+          x,
+          centerY + 4
+        );
+
+        ctx.stroke();
+
+
+        /* Number */
+
+        ctx.fillText(
+          ms,
+          x,
+          h - bottomPadding + 10
+        );
+
+      });
+
+
+      /* X axis title */
+
+      ctx.font =
+        `bold ${Math.max(12, Math.min(16, w * 0.027))}px Arial`;
+
+      ctx.fillText(
+        "Time (ms)",
+        leftPadding + graphWidth / 2,
+        h - 24
+      );
+
+
+      /* ===================================================
+         Y AXIS LABEL
+         =================================================== */
+
+      ctx.save();
+
+
+      ctx.translate(
+        18,
+        topPadding + graphHeight / 2
+      );
+
+
+      ctx.rotate(
+        -Math.PI / 2
+      );
+
+
+      ctx.textAlign =
+        "center";
+
+      ctx.textBaseline =
+        "middle";
+
+
+      ctx.fillText(
+        "Amplitude",
+        0,
+        0
+      );
+
+
+      ctx.restore();
+
+
+      /* ===================================================
+         SINE WAVE
+         =================================================== */
+
+      ctx.beginPath();
+
+      ctx.lineWidth = 2;
+
+
+      for (
+        let pixel = 0;
+        pixel <= graphWidth;
+        pixel += 1
+      ) {
+
+        /*
+          Convert horizontal position into time.
+
+          Left side = 0 seconds
+          Right side = 0.010 seconds
+        */
+
+        const proportion =
+          pixel / graphWidth;
+
+
+        const time =
+          proportion * durationSeconds;
+
+
+        /*
+          True sine-wave equation:
+
+          y = A sin(2πft)
+
+          frequency is directly taken
+          from the frequency slider.
+        */
+
+        const waveValue =
+
+          Math.sin(
+            2 *
+            Math.PI *
+            frequency *
+            time
+          );
+
+
+        const x =
+          leftPadding + pixel;
+
+
+        const y =
+          centerY -
+          amplitude * waveValue;
+
+
+        if (pixel === 0) {
+
+          ctx.moveTo(
+            x,
+            y
+          );
+
+        }
+
+        else {
+
+          ctx.lineTo(
+            x,
+            y
+          );
+
+        }
+
+      }
+
+
+      ctx.stroke();
+
+    }
+
+
+    /* =====================================================
+       START PURE TONE
+       ===================================================== */
+
+    async function startTone() {
+
+      const AudioContextClass =
+
+        window.AudioContext ||
+
+        window.webkitAudioContext;
+
+
+      if (!AudioContextClass) {
+        return;
+      }
+
+
+      if (!audioContext) {
+
+        audioContext =
+          new AudioContextClass();
+
+      }
+
+
+      if (
+        audioContext.state ===
+        "suspended"
+      ) {
+
+        await audioContext.resume();
+
+      }
+
+
+      oscillator =
+        audioContext.createOscillator();
+
+
+      gainNode =
+        audioContext.createGain();
+
+
+      oscillator.type =
+        "sine";
+
+
+      oscillator.frequency.setValueAtTime(
+
+        Number(
+          pitchSlider.value
+        ),
+
+        audioContext.currentTime
+
+      );
+
+
+      gainNode.gain.setValueAtTime(
+
+        0,
+
+        audioContext.currentTime
+
+      );
+
+
+      gainNode.gain.linearRampToValueAtTime(
+
+        getGainValue(),
+
+        audioContext.currentTime + 0.03
+
+      );
+
+
+      oscillator.connect(
+        gainNode
+      );
+
+
+      gainNode.connect(
+        audioContext.destination
+      );
+
+
+      oscillator.start();
+
+
+      isPlaying = true;
+
+
+      toggleBtn.textContent =
+        "Stop";
+
+    }
+
+
+    /* =====================================================
+       STOP PURE TONE
+       ===================================================== */
+
+    function stopTone() {
+
+      if (
+        !oscillator ||
+        !audioContext ||
+        !gainNode
+      ) {
+        return;
+      }
+
+
+      const now =
+        audioContext.currentTime;
+
+
+      gainNode.gain.cancelScheduledValues(
+        now
+      );
+
+
+      gainNode.gain.setValueAtTime(
+
+        gainNode.gain.value,
+
+        now
+
+      );
+
+
+      gainNode.gain.linearRampToValueAtTime(
+
+        0,
+
+        now + 0.03
+
+      );
+
+
+      oscillator.stop(
+        now + 0.04
+      );
+
+
+      oscillator = null;
+
+      gainNode = null;
+
+      isPlaying = false;
+
+
+      toggleBtn.textContent =
+        "Play";
+
+    }
+
+
+    /* =====================================================
+       PLAY / STOP BUTTON
+       ===================================================== */
+
+    toggleBtn.addEventListener(
+
+      "click",
+
+      async () => {
+
+        if (isPlaying) {
+
+          stopTone();
+
+        }
+
+        else {
+
+          await startTone();
+
+        }
+
+      }
+
+    );
+
+
+    /* =====================================================
+       FREQUENCY SLIDER
+       ===================================================== */
+
+    pitchSlider.addEventListener(
+
+      "input",
+
+      () => {
+
+        const frequency =
+          Number(pitchSlider.value);
+
+
+        /* Update displayed Hz */
+
+        frequencyValue.textContent =
+          frequency + " Hz";
+
+
+        /* Update sound */
+
+        if (
+          oscillator &&
+          audioContext
+        ) {
+
+          oscillator.frequency.setTargetAtTime(
+
+            frequency,
+
+            audioContext.currentTime,
+
+            0.01
+
+          );
+
+        }
+
+
+        /* Update wave */
+
+        drawWave();
+
+      }
+
+    );
+
+
+    /* =====================================================
+       INTENSITY SLIDER
+       ===================================================== */
+
+    loudnessSlider.addEventListener(
+
+      "input",
+
+      () => {
+
+        if (
+          gainNode &&
+          audioContext
+        ) {
+
+          gainNode.gain.setTargetAtTime(
+
+            getGainValue(),
+
+            audioContext.currentTime,
+
+            0.01
+
+          );
+
+        }
+
+
+        drawWave();
+
+      }
+
+    );
+
+
+    /* =====================================================
+       RESPONSIVE RESIZING
+       ===================================================== */
+
+    const resizeObserver =
+      new ResizeObserver(() => {
+
+        resizeCanvas();
+
+      });
+
+
+    resizeObserver.observe(
+      canvas.parentElement
+    );
+
+
+    window.addEventListener(
+
+      "resize",
+
+      resizeCanvas
+
+    );
+
+
+    /* =====================================================
+       INITIAL DRAW
+       ===================================================== */
+
+    resizeCanvas();
+
+  </script>
+
+</body>
+</html>
