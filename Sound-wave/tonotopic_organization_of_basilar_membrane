@@ -1,0 +1,901 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Tonotopic Organization</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      min-height: 100vh;
+
+      padding: clamp(15px, 3vw, 40px);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      gap: clamp(25px, 5vw, 70px);
+    }
+
+    .controls {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+
+      flex-shrink: 0;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      gap: 10px;
+    }
+
+    .slider-label {
+      font-size: clamp(13px, 1.5vw, 17px);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .slider-value {
+      font-size: clamp(13px, 1.4vw, 16px);
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+    input[type="range"].vertical {
+      writing-mode: vertical-lr;
+      direction: rtl;
+
+      height: clamp(170px, 35vh, 300px);
+      width: 28px;
+
+      cursor: pointer;
+
+      margin: 0;
+      padding: 0;
+    }
+
+    .right-panel {
+      flex: 1;
+
+      min-width: 0;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      gap: clamp(12px, 2vw, 20px);
+    }
+
+    .canvas-container {
+      width: 100%;
+      max-width: 750px;
+
+      aspect-ratio: 16 / 9;
+
+      min-height: 200px;
+
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      border: 1px solid #000;
+      background: #ffffff;
+    }
+
+    button {
+      padding: 10px 28px;
+
+      font-size: clamp(14px, 1.5vw, 17px);
+
+      cursor: pointer;
+
+      border: 1px solid #999;
+      background: #f3f3f3;
+
+      border-radius: 6px;
+
+      min-width: 90px;
+    }
+
+    button:hover {
+      background: #e8e8e8;
+    }
+
+    @media (max-width: 700px) {
+      body {
+        align-items: flex-start;
+      }
+
+      .container {
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .controls {
+        width: 100%;
+      }
+
+      input[type="range"].vertical {
+        height: clamp(150px, 28vh, 220px);
+      }
+
+      .right-panel {
+        width: 100%;
+      }
+
+      .canvas-container {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 400px) {
+      body {
+        padding: 12px;
+      }
+
+      .slider-label {
+        font-size: 13px;
+      }
+
+      input[type="range"].vertical {
+        height: 150px;
+      }
+
+      .canvas-container {
+        min-height: 180px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="controls">
+
+      <div class="slider-group">
+
+        <label
+          class="slider-label"
+          for="pitch"
+        >
+          Frequency (pitch)
+        </label>
+
+        <input
+          id="pitch"
+          class="vertical"
+          type="range"
+          min="100"
+          max="2000"
+          value="200"
+          step="1"
+        >
+
+        <div
+          id="frequencyValue"
+          class="slider-value"
+        >
+          200 Hz
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="right-panel">
+
+      <div class="canvas-container">
+        <canvas id="waveCanvas"></canvas>
+      </div>
+
+      <button id="toggleBtn">
+        Play
+      </button>
+
+    </div>
+
+  </div>
+
+  <script>
+
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let isPlaying = false;
+
+    let animationFrameId = null;
+    let animationStartTime = 0;
+
+    const pitchSlider =
+      document.getElementById("pitch");
+
+    const frequencyValue =
+      document.getElementById("frequencyValue");
+
+    const toggleBtn =
+      document.getElementById("toggleBtn");
+
+    const canvas =
+      document.getElementById("waveCanvas");
+
+    const ctx =
+      canvas.getContext("2d");
+
+    /*
+      Fixed listening level close to the earlier default.
+    */
+    const FIXED_GAIN = 0.05;
+
+    function resizeCanvas() {
+
+      const rect =
+        canvas.getBoundingClientRect();
+
+      const dpr =
+        window.devicePixelRatio || 1;
+
+      canvas.width =
+        Math.round(rect.width * dpr);
+
+      canvas.height =
+        Math.round(rect.height * dpr);
+
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+      );
+
+      drawDiagram();
+    }
+
+    /*
+      Map frequency to the PEAK location on the basilar membrane.
+
+      Higher frequency -> closer to BASE
+      Lower frequency  -> closer to APEX
+    */
+    function getPeakRatioFromFrequency(frequency) {
+
+      const minF = Number(pitchSlider.min);
+      const maxF = Number(pitchSlider.max);
+
+      const normalized =
+        (frequency - minF) / (maxF - minF);
+
+      const minPosition = 0.05;  // closest to Base
+      const maxPosition = 0.95;  // closest to Apex
+
+      return maxPosition -
+        normalized * (maxPosition - minPosition);
+    }
+
+    function drawDiagram(animationTime = 0) {
+
+      const rect =
+        canvas.getBoundingClientRect();
+
+      const w =
+        rect.width;
+
+      const h =
+        rect.height;
+
+      if (w <= 0 || h <= 0) {
+        return;
+      }
+
+      const leftPadding =
+        Math.max(55, w * 0.09);
+
+      const rightPadding =
+        Math.max(70, w * 0.09);
+
+      const topPadding =
+        Math.max(30, h * 0.09);
+
+      const bottomPadding =
+        Math.max(70, h * 0.20);
+
+      const graphWidth =
+        w - leftPadding - rightPadding;
+
+      const membraneY =
+        h - bottomPadding;
+
+      const waveAmplitude =
+        Math.min(
+          (membraneY - topPadding) * 0.55,
+          h * 0.30
+        );
+
+      const frequency =
+        Number(pitchSlider.value);
+
+      /*
+        The PEAK is what moves from BASE to APEX.
+
+        The visible wave begins at BASE and rises to that peak.
+        To keep it as a half-cycle, its full width is twice the
+        base-to-peak distance.
+
+        Therefore:
+          peakX = startX + halfCycleWidth / 2
+          halfCycleWidth = 2 * (peakX - startX)
+
+        If the peak is very far right (even at APEX), the
+        descending part after the peak naturally gets clipped
+        by the right boundary and is not shown.
+      */
+      const peakRatio =
+        getPeakRatioFromFrequency(frequency);
+
+      const peakX =
+        leftPadding +
+        peakRatio * graphWidth;
+
+      const halfCycleWidth =
+        2 * (peakX - leftPadding);
+
+      const visibleEndX =
+        Math.min(
+          leftPadding + halfCycleWidth,
+          leftPadding + graphWidth
+        );
+
+      ctx.clearRect(
+        0,
+        0,
+        w,
+        h
+      );
+
+      ctx.strokeStyle = "#000";
+      ctx.fillStyle = "#000";
+      ctx.lineWidth = 1;
+
+      /* ===================================================
+         BASILAR MEMBRANE AXIS
+         =================================================== */
+
+        ctx.strokeStyle = "#0066ff";   // x-axis color
+        ctx.lineWidth = 6.5;              // x-axis thickness
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          leftPadding,
+          membraneY
+        );
+
+        ctx.lineTo(
+          w - rightPadding,
+          membraneY
+        );
+
+        ctx.stroke();
+      ctx.beginPath();
+
+      ctx.moveTo(
+        leftPadding,
+        membraneY - 5
+      );
+
+      ctx.lineTo(
+        leftPadding,
+        membraneY + 5
+      );
+
+      ctx.moveTo(
+        w - rightPadding,
+        membraneY - 5
+      );
+
+      ctx.lineTo(
+        w - rightPadding,
+        membraneY + 5
+      );
+
+      ctx.stroke();
+
+      const endLabelSize =
+        Math.max(12, Math.min(17, w * 0.026));
+
+      ctx.font =
+        `bold ${endLabelSize}px Arial`;
+
+      ctx.textBaseline =
+        "middle";
+
+      ctx.textAlign =
+        "right";
+
+      ctx.fillText(
+        "Base",
+        leftPadding - 10,
+        membraneY
+      );
+
+      ctx.textAlign =
+        "left";
+
+      ctx.textBaseline =
+        "middle";
+
+      ctx.fillText(
+        "Apex",
+        w - rightPadding + 10,
+        membraneY
+      );
+
+      const axisTitleSize =
+        Math.max(12, Math.min(16, w * 0.027));
+
+      ctx.font =
+        `bold ${axisTitleSize}px Arial`;
+
+      ctx.textAlign =
+        "center";
+
+      ctx.textBaseline =
+        "top";
+
+      ctx.fillText(
+        "Basilar Membrane",
+        leftPadding + graphWidth / 2,
+        membraneY + 22
+      );
+
+      /* ===================================================
+         HALF-CYCLE WAVE
+         =================================================== */
+
+      ctx.beginPath();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#000";
+
+      /*
+        Special case: if the peak is exactly at BASE, the wave is
+        essentially collapsed to zero width. To avoid drawing
+        nothing weirdly, treat it as a tiny visible segment.
+      */
+      const safeWidth =
+        Math.max(halfCycleWidth, 1);
+
+      const visibleSamples =
+        Math.max(
+          80,
+          Math.round(visibleEndX - leftPadding)
+        );
+
+      for (
+        let i = 0;
+        i <= visibleSamples;
+        i += 1
+      ) {
+
+        const x =
+          leftPadding +
+          (i / visibleSamples) *
+          (visibleEndX - leftPadding);
+
+        const proportion =
+          (x - leftPadding) / safeWidth;
+
+        /*
+          One half-cycle:
+              sin(0 ... pi)
+
+          If the right side is clipped because the peak is near
+          APEX, only the visible part up to APEX is shown.
+        */
+        const waveValue =
+          Math.sin(
+            Math.PI * proportion
+          );
+
+        const y =
+          membraneY -
+          waveAmplitude * waveValue;
+
+        if (i === 0) {
+          ctx.moveTo(
+            x,
+            y
+          );
+        }
+        else {
+          ctx.lineTo(
+            x,
+            y
+          );
+        }
+      }
+
+      ctx.stroke();
+
+      /* ===================================================
+         RED P AT THE PEAK
+         =================================================== */
+
+      const peakY =
+        membraneY - waveAmplitude;
+
+      ctx.fillStyle =
+        "#d92323";
+
+      const pSize =
+        Math.max(18, Math.min(26, w * 0.04));
+
+      ctx.font =
+        `bold ${pSize}px Arial`;
+
+      ctx.textAlign =
+        "center";
+
+      ctx.textBaseline =
+        "bottom";
+
+      ctx.fillText(
+        "P",
+        peakX,
+        peakY - 8
+      );
+
+      ctx.beginPath();
+
+      ctx.arc(
+        peakX,
+        peakY,
+        4,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+
+      /* ===================================================
+         GUIDE LINE DOWN TO BASILAR MEMBRANE
+         =================================================== */
+
+      ctx.save();
+
+      ctx.strokeStyle =
+        "#0066ff";
+
+      ctx.lineWidth = 1.5;
+
+      ctx.setLineDash(
+        [5, 5]
+      );
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        peakX,
+        peakY + 7
+      );
+
+      ctx.lineTo(
+        peakX,
+        membraneY - 7
+      );
+
+      ctx.stroke();
+
+      ctx.restore();
+
+      /* ===================================================
+         LOCALIZED BASILAR MEMBRANE VIBRATION
+         =================================================== */
+
+      const vibrationWidth =
+        Math.max(14, Math.min(26, graphWidth * 0.04));
+
+      const vibrationAmplitude =
+        Math.max(3, Math.min(7, h * 0.014));
+
+      let vibrationOffset = 0;
+
+      if (isPlaying) {
+
+        const animationFrequency = 5;
+
+        vibrationOffset =
+          Math.sin(
+            2 *
+            Math.PI *
+            animationFrequency *
+            animationTime
+          ) *
+          vibrationAmplitude;
+      }
+
+      ctx.strokeStyle =
+        "#0066ff";
+
+      ctx.lineWidth = 5;
+
+      ctx.lineCap =
+        "round";
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        peakX - vibrationWidth / 2,
+        membraneY + vibrationOffset
+      );
+
+      ctx.lineTo(
+        peakX + vibrationWidth / 2,
+        membraneY + vibrationOffset
+      );
+
+      ctx.stroke();
+
+      ctx.lineCap =
+        "butt";
+      ctx.strokeStyle =
+        "#000";
+      ctx.fillStyle =
+        "#000";
+      ctx.lineWidth = 1;
+    }
+
+    function animate(timestamp) {
+
+      if (!isPlaying) {
+        animationFrameId = null;
+        drawDiagram(0);
+        return;
+      }
+
+      if (!animationStartTime) {
+        animationStartTime = timestamp;
+      }
+
+      const elapsedSeconds =
+        (timestamp - animationStartTime) / 1000;
+
+      drawDiagram(
+        elapsedSeconds
+      );
+
+      animationFrameId =
+        requestAnimationFrame(
+          animate
+        );
+    }
+
+    function startAnimation() {
+
+      animationStartTime = 0;
+
+      if (!animationFrameId) {
+        animationFrameId =
+          requestAnimationFrame(
+            animate
+          );
+      }
+    }
+
+    function stopAnimation() {
+
+      if (animationFrameId) {
+        cancelAnimationFrame(
+          animationFrameId
+        );
+
+        animationFrameId = null;
+      }
+
+      animationStartTime = 0;
+
+      drawDiagram(0);
+    }
+
+    async function startTone() {
+
+      const AudioContextClass =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        return;
+      }
+
+      if (!audioContext) {
+        audioContext =
+          new AudioContextClass();
+      }
+
+      if (
+        audioContext.state ===
+        "suspended"
+      ) {
+        await audioContext.resume();
+      }
+
+      oscillator =
+        audioContext.createOscillator();
+
+      gainNode =
+        audioContext.createGain();
+
+      oscillator.type =
+        "sine";
+
+      oscillator.frequency.setValueAtTime(
+        Number(pitchSlider.value),
+        audioContext.currentTime
+      );
+
+      gainNode.gain.setValueAtTime(
+        0,
+        audioContext.currentTime
+      );
+
+      gainNode.gain.linearRampToValueAtTime(
+        FIXED_GAIN,
+        audioContext.currentTime + 0.03
+      );
+
+      oscillator.connect(
+        gainNode
+      );
+
+      gainNode.connect(
+        audioContext.destination
+      );
+
+      oscillator.start();
+
+      isPlaying = true;
+      toggleBtn.textContent = "Stop";
+
+      startAnimation();
+    }
+
+    function stopTone() {
+
+      if (
+        !oscillator ||
+        !audioContext ||
+        !gainNode
+      ) {
+        isPlaying = false;
+        toggleBtn.textContent = "Play";
+        stopAnimation();
+        return;
+      }
+
+      const now =
+        audioContext.currentTime;
+
+      gainNode.gain.cancelScheduledValues(
+        now
+      );
+
+      gainNode.gain.setValueAtTime(
+        gainNode.gain.value,
+        now
+      );
+
+      gainNode.gain.linearRampToValueAtTime(
+        0,
+        now + 0.03
+      );
+
+      oscillator.stop(
+        now + 0.04
+      );
+
+      oscillator = null;
+      gainNode = null;
+      isPlaying = false;
+
+      toggleBtn.textContent = "Play";
+
+      stopAnimation();
+    }
+
+    toggleBtn.addEventListener(
+      "click",
+      async () => {
+        if (isPlaying) {
+          stopTone();
+        }
+        else {
+          await startTone();
+        }
+      }
+    );
+
+    pitchSlider.addEventListener(
+      "input",
+      () => {
+
+        const frequency =
+          Number(pitchSlider.value);
+
+        frequencyValue.textContent =
+          frequency + " Hz";
+
+        if (
+          oscillator &&
+          audioContext
+        ) {
+          oscillator.frequency.setTargetAtTime(
+            frequency,
+            audioContext.currentTime,
+            0.01
+          );
+        }
+
+        drawDiagram(0);
+      }
+    );
+
+    const resizeObserver =
+      new ResizeObserver(() => {
+        resizeCanvas();
+      });
+
+    resizeObserver.observe(
+      canvas.parentElement
+    );
+
+    window.addEventListener(
+      "resize",
+      resizeCanvas
+    );
+
+    resizeCanvas();
+
+  </script>
+
+</body>
+</html>
