@@ -8,13 +8,10 @@
 
   <title>Tonotopic Organization</title>
 
-    <style>
-    * {
-      box-sizing: border-box;
-    }
+  <style>
+    * { box-sizing: border-box; }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       width: 100%;
       min-height: 100%;
@@ -23,24 +20,19 @@
     body {
       font-family: Arial, sans-serif;
       background: #ffffff;
-
       display: flex;
       justify-content: center;
       align-items: center;
-
       min-height: 100vh;
-
       padding: clamp(15px, 3vw, 40px);
     }
 
     .container {
       width: 100%;
       max-width: 1200px;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       gap: clamp(25px, 5vw, 70px);
     }
 
@@ -48,7 +40,7 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-
+      gap: clamp(20px, 3vw, 40px);
       flex-shrink: 0;
     }
 
@@ -56,7 +48,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-
       gap: 10px;
     }
 
@@ -75,72 +66,75 @@
     input[type="range"].vertical {
       writing-mode: vertical-lr;
       direction: rtl;
-
       height: clamp(170px, 35vh, 300px);
       width: 28px;
-
       cursor: pointer;
-
       margin: 0;
       padding: 0;
     }
 
     .right-panel {
       flex: 1;
-
       min-width: 0;
-
       display: flex;
       flex-direction: column;
       align-items: center;
-
       gap: clamp(12px, 2vw, 20px);
     }
 
     .canvas-container {
       width: 100%;
       max-width: 750px;
-
       aspect-ratio: 16 / 9;
-
       min-height: 200px;
-
       position: relative;
     }
 
     canvas {
       display: block;
-
       width: 100%;
       height: 100%;
-
       border: 1px solid #000;
       background: #ffffff;
     }
 
+    .play-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
     button {
       padding: 10px 28px;
-
       font-size: clamp(14px, 1.5vw, 17px);
-
       cursor: pointer;
-
       border: 1px solid #999;
       background: #f3f3f3;
-
       border-radius: 6px;
-
       min-width: 90px;
     }
 
-    button:hover {
-      background: #e8e8e8;
+    button:hover { background: #e8e8e8; }
+
+    .mute-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: clamp(14px, 1.5vw, 17px);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mute-control input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
     }
 
     @media (max-width: 700px) {
-      body {
-        align-items: flex-start;
-      }
+      body { align-items: flex-start; }
 
       .container {
         flex-direction: column;
@@ -149,15 +143,14 @@
 
       .controls {
         width: 100%;
+        gap: clamp(35px, 12vw, 80px);
       }
 
       input[type="range"].vertical {
         height: clamp(150px, 28vh, 220px);
       }
 
-      .right-panel {
-        width: 100%;
-      }
+      .right-panel { width: 100%; }
 
       .canvas-container {
         width: 100%;
@@ -166,21 +159,15 @@
     }
 
     @media (max-width: 400px) {
-      body {
-        padding: 12px;
-      }
+      body { padding: 12px; }
 
-      .slider-label {
-        font-size: 13px;
-      }
+      .slider-label { font-size: 13px; }
 
-      input[type="range"].vertical {
-        height: 150px;
-      }
+      .controls { gap: 25px; }
 
-      .canvas-container {
-        min-height: 180px;
-      }
+      input[type="range"].vertical { height: 150px; }
+
+      .canvas-container { min-height: 180px; }
     }
   </style>
 </head>
@@ -192,11 +179,7 @@
     <div class="controls">
 
       <div class="slider-group">
-
-        <label
-          class="slider-label"
-          for="pitch"
-        >
+        <label class="slider-label" for="pitch">
           Frequency (pitch)
         </label>
 
@@ -206,17 +189,33 @@
           type="range"
           min="100"
           max="2000"
-          value="1040"
+          value="1000"
           step="1"
         >
 
-        <div
-          id="frequencyValue"
-          class="slider-value"
-        >
-          1040 Hz
+        <div id="frequencyValue" class="slider-value">
+          1000 Hz
         </div>
+      </div>
 
+      <div class="slider-group">
+        <label class="slider-label" for="intensity">
+          Intensity (loudness)
+        </label>
+
+        <input
+          id="intensity"
+          class="vertical"
+          type="range"
+          min="0"
+          max="100"
+          value="50"
+          step="1"
+        >
+
+        <div id="intensityValue" class="slider-value">
+          50%
+        </div>
       </div>
 
     </div>
@@ -227,9 +226,18 @@
         <canvas id="waveCanvas"></canvas>
       </div>
 
-      <button id="toggleBtn">
-        Play
-      </button>
+      <div class="play-controls">
+
+        <button id="toggleBtn">
+          Play
+        </button>
+
+        <label class="mute-control">
+          <input id="muteCheckbox" type="checkbox">
+          Mute sound
+        </label>
+
+      </div>
 
     </div>
 
@@ -248,8 +256,17 @@
     const pitchSlider =
       document.getElementById("pitch");
 
+    const intensitySlider =
+      document.getElementById("intensity");
+
     const frequencyValue =
       document.getElementById("frequencyValue");
+
+    const intensityValue =
+      document.getElementById("intensityValue");
+
+    const muteCheckbox =
+      document.getElementById("muteCheckbox");
 
     const toggleBtn =
       document.getElementById("toggleBtn");
@@ -260,10 +277,33 @@
     const ctx =
       canvas.getContext("2d");
 
+
+    /* =====================================================
+       AUDIO LEVEL
+       ===================================================== */
+
     /*
-      Fixed listening level close to the earlier default.
+      25% intensity gives gain 0.025, matching the
+      previous fixed listening level.
     */
-    const FIXED_GAIN = 0.025;
+    const MAX_AUDIO_GAIN = 0.10;
+
+    function getIntensityRatio() {
+      return Number(intensitySlider.value) / 100;
+    }
+
+    function getAudioGain() {
+      if (muteCheckbox.checked) {
+        return 0;
+      }
+
+      return MAX_AUDIO_GAIN * getIntensityRatio();
+    }
+
+
+    /* =====================================================
+       CANVAS RESIZING
+       ===================================================== */
 
     function resizeCanvas() {
 
@@ -291,26 +331,39 @@
       drawDiagram();
     }
 
-    /*
-      Map frequency to the PEAK location on the basilar membrane.
 
-      Higher frequency -> closer to BASE
-      Lower frequency  -> closer to APEX
-    */
+    /* =====================================================
+       FREQUENCY -> PEAK POSITION
+       ===================================================== */
+
     function getPeakRatioFromFrequency(frequency) {
 
-      const minF = Number(pitchSlider.min);
-      const maxF = Number(pitchSlider.max);
+      const minF =
+        Number(pitchSlider.min);
+
+      const maxF =
+        Number(pitchSlider.max);
 
       const normalized =
-        (frequency - minF) / (maxF - minF);
+        (frequency - minF) /
+        (maxF - minF);
 
-      const minPosition = 0.05;  // closest to Base
-      const maxPosition = 0.95;  // closest to Apex
+      /*
+        0.00 = Base
+        1.00 = Apex
+      */
+      const minPosition = 0.05;
+      const maxPosition = 0.95;
 
       return maxPosition -
-        normalized * (maxPosition - minPosition);
+        normalized *
+        (maxPosition - minPosition);
     }
+
+
+    /* =====================================================
+       DRAW DIAGRAM
+       ===================================================== */
 
     function drawDiagram(animationTime = 0) {
 
@@ -345,30 +398,26 @@
       const membraneY =
         h - bottomPadding;
 
-      const waveAmplitude =
-        Math.min(
-          (membraneY - topPadding) * 0.55,
-          h * 0.30
-        );
-
       const frequency =
         Number(pitchSlider.value);
 
+      const intensityRatio =
+        getIntensityRatio();
+
       /*
-        The PEAK is what moves from BASE to APEX.
-
-        The visible wave begins at BASE and rises to that peak.
-        To keep it as a half-cycle, its full width is twice the
-        base-to-peak distance.
-
-        Therefore:
-          peakX = startX + halfCycleWidth / 2
-          halfCycleWidth = 2 * (peakX - startX)
-
-        If the peak is very far right (even at APEX), the
-        descending part after the peak naturally gets clipped
-        by the right boundary and is not shown.
+        Maximum height of the half-cycle at 100% intensity.
+        The actual peak height scales with the intensity slider.
       */
+      const maxWaveAmplitude =
+        Math.min(
+          (membraneY - topPadding) * 0.99,
+          h * 0.66
+        );
+
+      const waveAmplitude =
+        maxWaveAmplitude *
+        intensityRatio;
+
       const peakRatio =
         getPeakRatioFromFrequency(frequency);
 
@@ -376,9 +425,16 @@
         leftPadding +
         peakRatio * graphWidth;
 
+      /*
+        Peak occurs halfway through the half-cycle.
+      */
       const halfCycleWidth =
         2 * (peakX - leftPadding);
 
+      /*
+        Clip the part of the wave that would extend
+        beyond the Apex.
+      */
       const visibleEndX =
         Math.min(
           leftPadding + halfCycleWidth,
@@ -392,16 +448,78 @@
         h
       );
 
-      ctx.strokeStyle = "#000";
-      ctx.fillStyle = "#000";
-      ctx.lineWidth = 1;
 
       /* ===================================================
-         BASILAR MEMBRANE AXIS
+         BASILAR MEMBRANE
          =================================================== */
 
-        ctx.strokeStyle = "#0066ff";   // x-axis color
-        ctx.lineWidth = 6.5;              // x-axis thickness
+      const membraneColor =
+        "#0066ff";
+
+      const membraneThickness =
+        6.5;
+
+      /*
+        Width of the region that visibly vibrates.
+      */
+      const jitterWidth =
+        Math.max(
+          28,
+          Math.min(
+            50,
+            graphWidth * 0.07
+          )
+        );
+
+      /*
+        Maximum visible displacement at 100% intensity.
+      */
+      const maxJitterAmplitude =
+        Math.max(
+          6,
+          Math.min(
+            14,
+            h * 0.03
+          )
+        );
+
+      /*
+        Intensity directly controls vibration magnitude.
+      */
+      const jitterAmplitude =
+        maxJitterAmplitude *
+        intensityRatio;
+
+      const jitterStartX =
+        Math.max(
+          leftPadding,
+          peakX - jitterWidth / 2
+        );
+
+      const jitterEndX =
+        Math.min(
+          leftPadding + graphWidth,
+          peakX + jitterWidth / 2
+        );
+
+      ctx.strokeStyle =
+        membraneColor;
+
+      ctx.lineWidth =
+        membraneThickness;
+
+      ctx.lineCap =
+        "round";
+
+
+      /*
+        When stopped, or when intensity is zero,
+        the membrane is straight.
+      */
+      if (
+        !isPlaying ||
+        intensityRatio === 0
+      ) {
 
         ctx.beginPath();
 
@@ -416,6 +534,145 @@
         );
 
         ctx.stroke();
+
+      }
+
+      else {
+
+        /* Left straight portion */
+
+        if (jitterStartX > leftPadding) {
+
+          ctx.beginPath();
+
+          ctx.moveTo(
+            leftPadding,
+            membraneY
+          );
+
+          ctx.lineTo(
+            jitterStartX,
+            membraneY
+          );
+
+          ctx.stroke();
+        }
+
+
+        /* Jittering membrane portion */
+
+        const jitterPoints = 24;
+
+        ctx.beginPath();
+
+        for (
+          let i = 0;
+          i <= jitterPoints;
+          i += 1
+        ) {
+
+          const proportion =
+            i / jitterPoints;
+
+          const x =
+            jitterStartX +
+            proportion *
+            (
+              jitterEndX -
+              jitterStartX
+            );
+
+          /*
+            Smoothly taper vibration to zero
+            at the edges of the active region.
+          */
+          const envelope =
+            Math.sin(
+              Math.PI * proportion
+            );
+
+          /*
+            Visual animation rate only.
+            It is not the acoustic frequency.
+          */
+          const phase =
+            2 *
+            Math.PI *
+            8 *
+            animationTime +
+            i * 1.15;
+
+          const regularMotion =
+            Math.sin(phase) *
+            jitterAmplitude;
+
+          const irregularMotion =
+            Math.sin(
+              phase * 1.73 +
+              i * 0.8
+            ) *
+            jitterAmplitude *
+            0.28;
+
+          const displacement =
+            (
+              regularMotion +
+              irregularMotion
+            ) *
+            envelope;
+
+          const y =
+            membraneY +
+            displacement;
+
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          }
+          else {
+            ctx.lineTo(x, y);
+          }
+        }
+
+        ctx.stroke();
+
+
+        /* Right straight portion */
+
+        if (
+          jitterEndX <
+          w - rightPadding
+        ) {
+
+          ctx.beginPath();
+
+          ctx.moveTo(
+            jitterEndX,
+            membraneY
+          );
+
+          ctx.lineTo(
+            w - rightPadding,
+            membraneY
+          );
+
+          ctx.stroke();
+        }
+      }
+
+      ctx.lineCap =
+        "butt";
+
+
+      /* ===================================================
+         BASE / APEX END MARKS
+         =================================================== */
+
+      ctx.strokeStyle =
+        membraneColor;
+
+      ctx.lineWidth =
+        membraneThickness;
+
       ctx.beginPath();
 
       ctx.moveTo(
@@ -440,8 +697,22 @@
 
       ctx.stroke();
 
+
+      /* ===================================================
+         BASE / APEX LABELS
+         =================================================== */
+
+      ctx.fillStyle =
+        "#000";
+
       const endLabelSize =
-        Math.max(12, Math.min(17, w * 0.026));
+        Math.max(
+          12,
+          Math.min(
+            17,
+            w * 0.026
+          )
+        );
 
       ctx.font =
         `bold ${endLabelSize}px Arial`;
@@ -461,17 +732,25 @@
       ctx.textAlign =
         "left";
 
-      ctx.textBaseline =
-        "middle";
-
       ctx.fillText(
         "Apex",
         w - rightPadding + 10,
         membraneY
       );
 
+
+      /* ===================================================
+         BASILAR MEMBRANE LABEL
+         =================================================== */
+
       const axisTitleSize =
-        Math.max(12, Math.min(16, w * 0.027));
+        Math.max(
+          12,
+          Math.min(
+            16,
+            w * 0.027
+          )
+        );
 
       ctx.font =
         `bold ${axisTitleSize}px Arial`;
@@ -484,9 +763,11 @@
 
       ctx.fillText(
         "Basilar Membrane",
-        leftPadding + graphWidth / 2,
+        leftPadding +
+        graphWidth / 2,
         membraneY + 22
       );
+
 
       /* ===================================================
          HALF-CYCLE WAVE
@@ -495,20 +776,23 @@
       ctx.beginPath();
 
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "#000";
 
-      /*
-        Special case: if the peak is exactly at BASE, the wave is
-        essentially collapsed to zero width. To avoid drawing
-        nothing weirdly, treat it as a tiny visible segment.
-      */
+      ctx.strokeStyle =
+        "#000";
+
       const safeWidth =
-        Math.max(halfCycleWidth, 1);
+        Math.max(
+          halfCycleWidth,
+          1
+        );
 
       const visibleSamples =
         Math.max(
           80,
-          Math.round(visibleEndX - leftPadding)
+          Math.round(
+            visibleEndX -
+            leftPadding
+          )
         );
 
       for (
@@ -519,56 +803,63 @@
 
         const x =
           leftPadding +
-          (i / visibleSamples) *
-          (visibleEndX - leftPadding);
+          (
+            i /
+            visibleSamples
+          ) *
+          (
+            visibleEndX -
+            leftPadding
+          );
 
         const proportion =
-          (x - leftPadding) / safeWidth;
+          (
+            x -
+            leftPadding
+          ) /
+          safeWidth;
 
-        /*
-          One half-cycle:
-              sin(0 ... pi)
-
-          If the right side is clipped because the peak is near
-          APEX, only the visible part up to APEX is shown.
-        */
         const waveValue =
           Math.sin(
-            Math.PI * proportion
+            Math.PI *
+            proportion
           );
 
         const y =
           membraneY -
-          waveAmplitude * waveValue;
+          waveAmplitude *
+          waveValue;
 
         if (i === 0) {
-          ctx.moveTo(
-            x,
-            y
-          );
+          ctx.moveTo(x, y);
         }
         else {
-          ctx.lineTo(
-            x,
-            y
-          );
+          ctx.lineTo(x, y);
         }
       }
 
       ctx.stroke();
 
+
       /* ===================================================
-         RED P AT THE PEAK
+         PEAK
          =================================================== */
 
       const peakY =
-        membraneY - waveAmplitude;
+        membraneY -
+        waveAmplitude;
 
       ctx.fillStyle =
         "#d92323";
 
       const pSize =
-        Math.max(18, Math.min(26, w * 0.04));
+        Math.max(
+          18,
+          Math.min(
+            26,
+            w * 0.04
+          )
+        );
 
       ctx.font =
         `bold ${pSize}px Arial`;
@@ -597,8 +888,9 @@
 
       ctx.fill();
 
+
       /* ===================================================
-         GUIDE LINE DOWN TO BASILAR MEMBRANE
+         GUIDE LINE FROM PEAK TO MEMBRANE
          =================================================== */
 
       ctx.save();
@@ -606,7 +898,8 @@
       ctx.strokeStyle =
         "#0066ff";
 
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth =
+        1.5;
 
       ctx.setLineDash(
         [5, 5]
@@ -628,77 +921,48 @@
 
       ctx.restore();
 
-      /* ===================================================
-         LOCALIZED BASILAR MEMBRANE VIBRATION
-         =================================================== */
 
-      const vibrationWidth =
-        Math.max(14, Math.min(26, graphWidth * 0.04));
+      /* Reset */
 
-      const vibrationAmplitude =
-        Math.max(3, Math.min(7, h * 0.014));
-
-      let vibrationOffset = 0;
-
-      if (isPlaying) {
-
-        const animationFrequency = 5;
-
-        vibrationOffset =
-          Math.sin(
-            2 *
-            Math.PI *
-            animationFrequency *
-            animationTime
-          ) *
-          vibrationAmplitude;
-      }
-
-      ctx.strokeStyle =
-        "#0066ff";
-
-      ctx.lineWidth = 5;
-
-      ctx.lineCap =
-        "round";
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        peakX - vibrationWidth / 2,
-        membraneY + vibrationOffset
-      );
-
-      ctx.lineTo(
-        peakX + vibrationWidth / 2,
-        membraneY + vibrationOffset
-      );
-
-      ctx.stroke();
-
-      ctx.lineCap =
-        "butt";
       ctx.strokeStyle =
         "#000";
+
       ctx.fillStyle =
         "#000";
-      ctx.lineWidth = 1;
+
+      ctx.lineWidth =
+        1;
     }
+
+
+    /* =====================================================
+       ANIMATION LOOP
+       ===================================================== */
 
     function animate(timestamp) {
 
       if (!isPlaying) {
-        animationFrameId = null;
+
+        animationFrameId =
+          null;
+
         drawDiagram(0);
+
         return;
       }
 
       if (!animationStartTime) {
-        animationStartTime = timestamp;
+
+        animationStartTime =
+          timestamp;
       }
 
       const elapsedSeconds =
-        (timestamp - animationStartTime) / 1000;
+        (
+          timestamp -
+          animationStartTime
+        ) /
+        1000;
 
       drawDiagram(
         elapsedSeconds
@@ -710,11 +974,14 @@
         );
     }
 
+
     function startAnimation() {
 
-      animationStartTime = 0;
+      animationStartTime =
+        0;
 
       if (!animationFrameId) {
+
         animationFrameId =
           requestAnimationFrame(
             animate
@@ -722,20 +989,29 @@
       }
     }
 
+
     function stopAnimation() {
 
       if (animationFrameId) {
+
         cancelAnimationFrame(
           animationFrameId
         );
 
-        animationFrameId = null;
+        animationFrameId =
+          null;
       }
 
-      animationStartTime = 0;
+      animationStartTime =
+        0;
 
       drawDiagram(0);
     }
+
+
+    /* =====================================================
+       START PURE TONE
+       ===================================================== */
 
     async function startTone() {
 
@@ -748,6 +1024,7 @@
       }
 
       if (!audioContext) {
+
         audioContext =
           new AudioContextClass();
       }
@@ -756,6 +1033,7 @@
         audioContext.state ===
         "suspended"
       ) {
+
         await audioContext.resume();
       }
 
@@ -779,7 +1057,7 @@
       );
 
       gainNode.gain.linearRampToValueAtTime(
-        FIXED_GAIN,
+        getAudioGain(),
         audioContext.currentTime + 0.03
       );
 
@@ -793,11 +1071,19 @@
 
       oscillator.start();
 
-      isPlaying = true;
-      toggleBtn.textContent = "Stop";
+      isPlaying =
+        true;
+
+      toggleBtn.textContent =
+        "Stop";
 
       startAnimation();
     }
+
+
+    /* =====================================================
+       STOP PURE TONE
+       ===================================================== */
 
     function stopTone() {
 
@@ -806,9 +1092,15 @@
         !audioContext ||
         !gainNode
       ) {
-        isPlaying = false;
-        toggleBtn.textContent = "Play";
+
+        isPlaying =
+          false;
+
+        toggleBtn.textContent =
+          "Play";
+
         stopAnimation();
+
         return;
       }
 
@@ -833,18 +1125,30 @@
         now + 0.04
       );
 
-      oscillator = null;
-      gainNode = null;
-      isPlaying = false;
+      oscillator =
+        null;
 
-      toggleBtn.textContent = "Play";
+      gainNode =
+        null;
+
+      isPlaying =
+        false;
+
+      toggleBtn.textContent =
+        "Play";
 
       stopAnimation();
     }
 
+
+    /* =====================================================
+       PLAY / STOP
+       ===================================================== */
+
     toggleBtn.addEventListener(
       "click",
       async () => {
+
         if (isPlaying) {
           stopTone();
         }
@@ -853,6 +1157,11 @@
         }
       }
     );
+
+
+    /* =====================================================
+       FREQUENCY
+       ===================================================== */
 
     pitchSlider.addEventListener(
       "input",
@@ -868,6 +1177,7 @@
           oscillator &&
           audioContext
         ) {
+
           oscillator.frequency.setTargetAtTime(
             frequency,
             audioContext.currentTime,
@@ -879,8 +1189,78 @@
       }
     );
 
+
+    /* =====================================================
+       INTENSITY
+       ===================================================== */
+
+    intensitySlider.addEventListener(
+      "input",
+      () => {
+
+        const intensity =
+          Number(intensitySlider.value);
+
+        intensityValue.textContent =
+          intensity + "%";
+
+        /*
+          Change audible intensity immediately.
+        */
+        if (
+          gainNode &&
+          audioContext
+        ) {
+
+          gainNode.gain.setTargetAtTime(
+            getAudioGain(),
+            audioContext.currentTime,
+            0.01
+          );
+        }
+
+        /*
+          Jitter magnitude also changes immediately.
+        */
+        drawDiagram(0);
+      }
+    );
+
+
+    /* =====================================================
+       MUTE / UNMUTE
+       ===================================================== */
+
+    muteCheckbox.addEventListener(
+      "change",
+      () => {
+
+        /*
+          Mute affects the audio only.
+          The visual vibration continues while Play is active.
+        */
+        if (
+          gainNode &&
+          audioContext
+        ) {
+
+          gainNode.gain.setTargetAtTime(
+            getAudioGain(),
+            audioContext.currentTime,
+            0.01
+          );
+        }
+      }
+    );
+
+
+    /* =====================================================
+       RESPONSIVE RESIZING
+       ===================================================== */
+
     const resizeObserver =
       new ResizeObserver(() => {
+
         resizeCanvas();
       });
 
@@ -893,10 +1273,14 @@
       resizeCanvas
     );
 
+
+    /* =====================================================
+       INITIAL DRAW
+       ===================================================== */
+
     resizeCanvas();
 
   </script>
 
 </body>
 </html>
-
