@@ -387,44 +387,16 @@ https://doi.org/10.1073/pnas.262663699
 
 
     /*
-      The cited cochlear-mechanics study showed that,
-      as stimulus level increased, the location of the
-      maximum BM response shifted toward the BASE.
+      Peak LOCATION depends only on FREQUENCY.
 
-      This is a schematic teaching-scale shift, not a
-      quantitative conversion from the gerbil data.
+      Intensity must not change the horizontal position
+      of the peak or the horizontal duration/width of
+      the half-cycle.
     */
-    function getPeakRatio(
-      frequency,
-      intensityRatio
-    ) {
+    function getPeakRatio(frequency) {
 
-      const characteristicPlace =
-        getCharacteristicPlaceRatio(
-          frequency
-        );
-
-      /*
-        Maximum basal shift = 8% of the displayed
-        basilar-membrane length.
-      */
-      const maxBasalShift = 0.08;
-
-      /*
-        Make the shift small at low levels and more
-        visible at higher levels.
-      */
-      const basalShift =
-        maxBasalShift *
-        Math.pow(
-          intensityRatio,
-          1.4
-        );
-
-      return Math.max(
-        0.02,
-        characteristicPlace -
-        basalShift
+      return getCharacteristicPlaceRatio(
+        frequency
       );
     }
 
@@ -500,8 +472,11 @@ https://doi.org/10.1073/pnas.262663699
         getIntensityRatio();
 
       /*
-        The stimulus-level control is linear, but the
-        illustrated BM response grows compressively.
+        Intensity affects only response magnitude.
+        It does not change the horizontal cycle width
+        or peak location.
+
+        The illustrated magnitude grows compressively.
       */
       const responseRatio =
         getCompressedResponseRatio(
@@ -519,20 +494,22 @@ https://doi.org/10.1073/pnas.262663699
         );
 
       /*
-        Peak magnitude grows compressively with level.
+        Peak HEIGHT grows compressively with intensity.
+        Its horizontal location does not change.
       */
       const waveAmplitude =
         maxWaveAmplitude *
         responseRatio;
 
       /*
-        Frequency determines the main cochlear place,
-        while increasing intensity adds a small basal shift.
+        Frequency alone determines the horizontal peak
+        position and therefore the half-cycle width.
+
+        Intensity changes only vertical magnitude.
       */
       const peakRatio =
         getPeakRatio(
-          frequency,
-          intensityRatio
+          frequency
         );
 
       const peakX =
@@ -541,6 +518,10 @@ https://doi.org/10.1073/pnas.262663699
 
       /*
         Peak occurs halfway through the half-cycle.
+
+        Because peakX depends only on frequency,
+        changing intensity cannot change this
+        horizontal half-cycle width.
       */
       const halfCycleWidth =
         2 * (peakX - leftPadding);
@@ -574,17 +555,11 @@ https://doi.org/10.1073/pnas.262663699
         6.5;
 
       /*
-        INTENSITY affects not only vibration magnitude
-        but also the longitudinal spread of BM response.
+        The horizontal extent of the jittering region
+        depends on frequency only, not intensity.
 
-        The cited study found:
-        - low-level responses were spatially restricted;
-        - the response spread increased with level;
-        - lower-frequency responses were broader than
-          higher-frequency responses.
-
-        For visual clarity in this teaching demo, the
-        displayed jitter region is centered on the peak.
+        Intensity changes only the vertical magnitude
+        of the vibration.
       */
 
       const frequencyNormalized =
@@ -593,8 +568,10 @@ https://doi.org/10.1073/pnas.262663699
         );
 
       /*
-        Lower frequency -> broader response.
-        Higher frequency -> sharper/narrower response.
+        Lower frequency -> somewhat broader response.
+        Higher frequency -> somewhat narrower response.
+
+        This width remains fixed when intensity changes.
       */
       const frequencySpreadFactor =
         1 +
@@ -604,29 +581,13 @@ https://doi.org/10.1073/pnas.262663699
         ) *
         0.55;
 
-      /*
-        Spatial spread increases with intensity.
-        This is a schematic proportion of the displayed
-        membrane, not a micrometer conversion.
-      */
-      const minimumSpread =
-        graphWidth * 0.035;
-
-      const additionalSpread =
-        graphWidth *
-        0.16 *
-        Math.pow(
-          intensityRatio,
-          0.80
-        );
+      const baseJitterWidth =
+        graphWidth * 0.10;
 
       const jitterWidth =
         Math.min(
-          graphWidth * 0.34,
-          (
-            minimumSpread +
-            additionalSpread
-          ) *
+          graphWidth * 0.22,
+          baseJitterWidth *
           frequencySpreadFactor
         );
 
