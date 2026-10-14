@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harmonics</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(16px, 3vh, 36px) clamp(12px, 3vw, 32px);
+    }
+
+    .app {
+      width: min(100%, 850px);
+      text-align: center;
+    }
+
+    .question {
+      margin: 0 0 clamp(24px, 5vh, 48px);
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 700;
+      line-height: 1.25;
+      text-wrap: balance;
+    }
+
+    .frequency {
+      font-size: clamp(28px, 5vw, 46px);
+      font-weight: 700;
+      margin-bottom: 22px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .range-label {
+      width: 58px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      min-height: 40px;
+      cursor: pointer;
+      accent-color: #111111;
+      touch-action: pan-y;
+    }
+
+    button { font-family: inherit; touch-action: manipulation; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #356be8; outline-offset: 4px; }
+
+    .mute-button {
+      margin-top: clamp(16px, 3vh, 28px);
+      border: 2px solid #111111;
+      background: #ffffff;
+      color: #111111;
+      border-radius: 10px;
+      padding: 11px 24px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mute-button:hover {
+      background: #f2f2f2;
+    }
+
+    .harmonics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: clamp(22px, 5vh, 48px);
+    }
+
+    .harmonic-button {
+      min-height: clamp(88px, 13vh, 120px);
+      min-width: 0;
+      border: 2px solid #111111;
+      background: #ffffff;
+      color: #111111;
+      border-radius: 14px;
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+    }
+
+    .harmonic-hz {
+      display: block;
+      margin-top: 7px;
+      font-size: clamp(16px, 2.4vw, 21px);
+      font-weight: 400;
+    }
+
+    .harmonic-button:hover {
+      background: #f2f2f2;
+    }
+
+    .harmonic-button:active {
+      transform: scale(0.98);
+    }
+
+    .harmonic-button.active {
+      background: #111111;
+      color: #ffffff;
+    }
+
+    .harmonic-button.fundamental {
+      background: #e2ad37;
+      border-color: #ba8214;
+      color: #201607;
+    }
+
+    .harmonic-button.fundamental:hover { background: #f0bf55; }
+
+    .harmonic-hz.hidden { visibility: hidden; }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .quiz {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin-top: clamp(18px, 4vh, 34px);
+    }
+
+    .answer-button {
+      flex: 1;
+      max-width: 220px;
+      min-height: 70px;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 25px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .answer-button:disabled { opacity: .6; cursor: default; }
+    .true { background: #208a40; }
+    .false { background: #c83131; }
+
+    .quiz-status {
+      margin-top: 18px;
+      min-height: 29px;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 560px) {
+      .slider-row { gap: 8px; }
+      .range-label { width: 42px; font-size: 14px; }
+      .harmonics { gap: 8px; }
+      .harmonic-button { padding: 10px 4px; font-size: clamp(17px, 5vw, 24px); }
+      .harmonic-hz { font-size: clamp(12px, 3.5vw, 17px); }
+      .mute-button { font-size: 16px; padding: 10px 16px; }
+      .answer-button { min-height: 62px; font-size: 22px; }
+      .quiz { gap: 10px; }
+    }
+
+    @media (max-width: 340px) {
+      .harmonic-button { font-size: 16px; }
+      .harmonic-hz { font-size: 12px; }
+    }
+
+    @media (max-height: 620px) and (min-width: 561px) {
+      body { align-items: flex-start; }
+      .question { margin-bottom: 18px; }
+      .frequency { margin-bottom: 10px; }
+      .harmonics { margin-top: 18px; }
+      .harmonic-button { min-height: 72px; }
+      .quiz { margin-top: 16px; }
+      .answer-button { min-height: 52px; }
+      .quiz-status { margin-top: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .harmonic-button { transition: none; }
+    }
+
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1 class="question">Guess whether f0 (H1) is the correct fundamental frequency based on H2 and H3</h1>
+    <div class="frequency">H4: <span id="frequencyValue">1000</span> Hz</div>
+
+    <div class="slider-row">
+      <div class="range-label">1000</div>
+      <input
+        id="frequencySlider"
+        type="range"
+        min="1000"
+        max="2000"
+        step="100"
+        value="1000"
+        aria-label="Fourth harmonic frequency"
+      />
+      <div class="range-label">2000</div>
+    </div>
+
+    <div class="controls">
+      <button id="muteButton" class="mute-button" type="button">Mute</button>
+      <button id="visibilityButton" class="mute-button" type="button" aria-pressed="false">Show Hz</button>
+    </div>
+
+    <div class="harmonics">
+      <button class="harmonic-button" type="button" data-harmonic="3">H3<span class="harmonic-hz hidden" id="hz3">750 Hz</span></button>
+      <button class="harmonic-button" type="button" data-harmonic="2">H2<span class="harmonic-hz hidden" id="hz2">500 Hz</span></button>
+      <button class="harmonic-button fundamental" type="button" data-harmonic="1">H1 (f0)<span class="harmonic-hz hidden" id="hz1">250 Hz</span></button>
+    </div>
+
+    <div class="quiz">
+      <button id="trueButton" class="answer-button true" type="button">True</button>
+      <button id="falseButton" class="answer-button false" type="button">False</button>
+    </div>
+    <div class="quiz-status" id="quizStatus" aria-live="polite"></div>
+    <button id="newTrialButton" class="mute-button" type="button">New Trial</button>
+  </main>
+
+  <script>
+    const slider = document.getElementById("frequencySlider");
+    const frequencyValue = document.getElementById("frequencyValue");
+    const muteButton = document.getElementById("muteButton");
+    const harmonicButtons = document.querySelectorAll(".harmonic-button");
+
+    let audioContext = null;
+    let currentOscillator = null;
+    let currentGain = null;
+    let muted = false;
+    let shownHz = false;
+    let candidateF0 = 250;
+    let trialIsTrue = true;
+    let answered = false;
+
+    function newTrial(randomizeH4 = false) {
+      stopTone();
+      if (randomizeH4) {
+        const current = Number(slider.value);
+        const options = [];
+        for (let f = 1000; f <= 2000; f += 100) {
+          if (f !== current) options.push(f);
+        }
+        slider.value = options[Math.floor(Math.random() * options.length)];
+      }
+      const correctF0 = Number(slider.value) / 4;
+      trialIsTrue = Math.random() < 0.5;
+      if (trialIsTrue) {
+        candidateF0 = correctF0;
+      } else {
+        const alternatives = [];
+        for (let f = 250; f <= 500; f += 25) {
+          if (Math.abs(f - correctF0) >= 50) alternatives.push(f);
+        }
+        candidateF0 = alternatives[Math.floor(Math.random() * alternatives.length)];
+      }
+      answered = false;
+      document.getElementById('quizStatus').textContent = '';
+      document.getElementById('trueButton').disabled = false;
+      document.getElementById('falseButton').disabled = false;
+      updateFrequencyLabels();
+    }
+
+    function updateFrequencyLabels() {
+      const h4 = Number(slider.value);
+      frequencyValue.textContent = h4;
+      document.getElementById('hz3').textContent = `${h4 * 3 / 4} Hz`;
+      document.getElementById('hz2').textContent = `${h4 / 2} Hz`;
+      document.getElementById('hz1').textContent = `${candidateF0} Hz`;
+    }
+
+    async function ensureAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+    }
+
+    function stopTone() {
+      if (!currentOscillator || !audioContext) return;
+      const now = audioContext.currentTime;
+      currentGain.gain.cancelScheduledValues(now);
+      currentGain.gain.setValueAtTime(currentGain.gain.value, now);
+      currentGain.gain.linearRampToValueAtTime(0, now + 0.01);
+      try { currentOscillator.stop(now + 0.015); } catch (_) {}
+      currentOscillator = null;
+      currentGain = null;
+    }
+
+    async function playHarmonic(harmonic) {
+      if (muted) return;
+      await ensureAudio();
+      stopTone();
+      if (muted) return;
+
+      const frequency = harmonic === 1
+        ? candidateF0
+        : (Number(slider.value) / 4) * harmonic;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const start = audioContext.currentTime;
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.10, start + 0.015);
+      gain.gain.setValueAtTime(0.10, start + 0.95);
+      gain.gain.linearRampToValueAtTime(0, start + 1.0);
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start(start);
+      osc.stop(start + 1.005);
+      currentOscillator = osc;
+      currentGain = gain;
+
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+        if (currentOscillator === osc) {
+          currentOscillator = null;
+          currentGain = null;
+        }
+      };
+    }
+
+    slider.addEventListener("input", () => newTrial(false));
+
+    document.getElementById('visibilityButton').addEventListener('click', () => {
+      shownHz = !shownHz;
+      document.querySelectorAll('.harmonic-hz').forEach(el => {
+        el.classList.toggle('hidden', !shownHz);
+      });
+      document.getElementById('visibilityButton').textContent = shownHz ? 'Hide Hz' : 'Show Hz';
+      document.getElementById('visibilityButton').setAttribute('aria-pressed', String(shownHz));
+    });
+
+    function answer(guess) {
+      if (answered) return;
+      answered = true;
+      const correct = guess === trialIsTrue;
+      const status = document.getElementById('quizStatus');
+      status.textContent = correct ? 'Correct!' : 'Incorrect';
+      status.style.color = correct ? '#208a40' : '#c83131';
+      document.getElementById('trueButton').disabled = true;
+      document.getElementById('falseButton').disabled = true;
+    }
+
+    document.getElementById('trueButton').addEventListener('click', () => answer(true));
+    document.getElementById('falseButton').addEventListener('click', () => answer(false));
+    document.getElementById('newTrialButton').addEventListener('click', () => newTrial(true));
+
+    muteButton.addEventListener("click", () => {
+      muted = !muted;
+      muteButton.textContent = muted ? "Unmute" : "Mute";
+      if (muted) stopTone();
+    });
+
+    harmonicButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        playHarmonic(Number(button.dataset.harmonic));
+      });
+    });
+
+    newTrial();
+  </script>
+</body>
+</html>
