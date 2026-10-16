@@ -1,0 +1,521 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vocal Fold PAR Simulation</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --border: #d1d5db;
+      --fold: #FFEBC7;
+      --edge: #948972;
+      --space: #4b5563;
+      --accent: #2563eb;
+      --text: #111827;
+      --muted: #596273;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-width: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .page {
+      width: min(100% - 32px, 1180px);
+      margin: clamp(12px, 2.5vw, 32px) auto;
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(235px, 285px);
+      align-items: start;
+      gap: clamp(12px, 2vw, 22px);
+    }
+    .card {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: clamp(12px, 1.8vw, 20px);
+    }
+    .stage {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .stage svg {
+      display: block;
+      width: 100%;
+      max-width: 760px;
+      height: auto;
+      aspect-ratio: 700 / 620;
+      overflow: visible;
+    }
+    .control-stack { display: grid; min-width: 0; gap: 16px; }
+    .controls { display: flex; flex-direction: column; min-width: 0; gap: 13px; }
+    .control-heading { margin: 0 0 3px; font-size: clamp(15px, 1.5vw, 18px); line-height: 1.3; }
+    .controls label { font-size: 14px; }
+    input[type="range"] {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+      touch-action: pan-y;
+    }
+    button {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font: 700 14px/1.3 Arial, Helvetica, sans-serif;
+      padding: 10px;
+      cursor: pointer;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    @media (hover: hover) and (pointer: fine) { button:hover { background: #f3f4f6; } }
+    .range-ends { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+    .pitch-readout { font-size: clamp(20px, 2vw, 25px); font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+    @media (max-width: 850px) {
+      .wrap { grid-template-columns: minmax(0, 1fr); }
+      .stage svg { max-width: min(100%, 660px); }
+      .control-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    }
+    @media (max-width: 520px) {
+      .page { width: calc(100% - 16px); margin: 8px auto 20px; }
+      .card { padding: 10px; border-radius: 12px; }
+      .wrap, .control-stack { gap: 10px; }
+      .control-stack { grid-template-columns: 1fr; }
+      .controls { gap: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="wrap">
+      <section class="card stage">
+        <svg viewBox="0 0 700 620" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="diagramTitle diagramDesc">
+          <title id="diagramTitle">Vocal folds, superior view</title>
+          <desc id="diagramDesc">Vocal folds shown with anatomical side labels. Use the sliders to change the opening and the length.</desc>
+          <ellipse cx="350" cy="315" rx="285" ry="250" fill="#FFC7C7" stroke="#9ca3af" stroke-width="4"/>
+
+          <!-- glottal space -->
+          <path id="glottis" d="M350,530 L350,160 L350,160 Z" fill="var(--space)" opacity="0.9"></path>
+
+          <!-- Label is clipped to the actual glottal opening, so it disappears
+               behind the folds as they adduct. -->
+          <defs>
+            <clipPath id="glottisTextClip" clipPathUnits="userSpaceOnUse">
+              <use href="#glottis" xlink:href="#glottis"></use>
+            </clipPath>
+          </defs>
+          <text id="glottisLabel" x="350" y="345" text-anchor="middle"
+                dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif"
+                font-size="27" font-weight="700" fill="#ffffff"
+                pointer-events="none" clip-path="url(#glottisTextClip)">Glottis</text>
+
+          <!-- folds -->
+          <path id="leftFold" fill="var(--fold)" stroke="var(--edge)" stroke-width="4" stroke-linejoin="round"></path>
+          <path id="rightFold" fill="var(--fold)" stroke="var(--edge)" stroke-width="4" stroke-linejoin="round"></path>
+
+          <!-- medial vibrating edges -->
+          <path id="leftMedial" fill="none" stroke="#948972" stroke-width="5" stroke-linecap="round"></path>
+          <path id="rightMedial" fill="none" stroke="#948972" stroke-width="5" stroke-linecap="round"></path>
+
+          <!-- anterior point -->
+          <circle id="anteriorPoint" cx="350" cy="530" r="6" fill="#948972"></circle>
+
+          <!-- Orientation labels: right and left refer to the anatomical sides. -->
+          <g fill="#111111" font-family="Arial, Helvetica, sans-serif" font-size="25"
+             font-weight="700" text-anchor="middle" pointer-events="none">
+            <text x="350" y="42">Back</text>
+            <text x="350" y="610">Front</text>
+            <text x="25" y="326" font-size="22">Right</text>
+            <text x="669" y="326" font-size="22">Left</text>
+          </g>
+
+          <!-- Labels follow each fold's centerline as opening and length change. -->
+          <defs>
+            <path id="rightFoldLabelGuide" d="M 320 475 L 320 200"></path>
+            <path id="leftFoldLabelGuide" d="M 380 475 L 380 200"></path>
+          </defs>
+          <g fill="#695844" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="bold" text-anchor="middle" pointer-events="none">
+            <text><textPath href="#rightFoldLabelGuide" startOffset="50%">Right vocal fold</textPath></text>
+            <text><textPath href="#leftFoldLabelGuide" startOffset="50%">Left vocal fold</textPath></text>
+          </g>
+        </svg>
+      </section>
+
+      <aside class="control-stack">
+        <section class="card controls" aria-label="Vocal fold abduction and adduction controls">
+          <h2 class="control-heading">Glottal Phonation</h2>
+          <input id="openingSlider" type="range" min="0" max="100" value="0" step="1" aria-label="Vocal fold opening" aria-valuetext="Fully adducted" />
+          <div class="range-ends"><span>Adduction</span><span>Abduction</span></div>
+          <button id="soundBtn" type="button">No Phonation</button>
+          <button id="closedBtn" type="button">Fully ADDUCTED</button>
+          <button id="openBtn" type="button">Fully ABDUCTED</button>
+        </section>
+        <section class="card controls" aria-label="Vocal fold elongation and pitch controls">
+          <h2 class="control-heading">F0 Control</h2>
+          <label for="pitchSlider">Vocal fold elongation</label>
+          <input id="pitchSlider" type="range" min="0" max="100" value="35" step="1" aria-label="Vocal fold elongation" />
+          <div class="range-ends"><span>Shorter</span><span>Longer</span></div>
+          <output class="pitch-readout" id="pitchReadout" for="pitchSlider">170 Hz</output>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+<script>
+(() => {
+  const slider = document.getElementById('openingSlider');
+  const pitchSlider = document.getElementById('pitchSlider');
+  const pitchReadout = document.getElementById('pitchReadout');
+  const anteriorPoint = document.getElementById('anteriorPoint');
+  const leftFold = document.getElementById('leftFold');
+  const rightFold = document.getElementById('rightFold');
+  const leftMedial = document.getElementById('leftMedial');
+  const rightMedial = document.getElementById('rightMedial');
+  const glottis = document.getElementById('glottis');
+  const soundBtn = document.getElementById('soundBtn');
+  const closedBtn = document.getElementById('closedBtn');
+  const openBtn = document.getElementById('openBtn');
+
+  let audioReady = false;
+  let soundEnabled = false;
+  let audioCtx, masterGain, osc1, osc2, buzzGain, noiseSource, noiseFilter, noiseGain;
+
+  // =========================================================
+  // SOUND VOLUME SETTINGS — edit these four values independently.
+  // 0.0 = silent; higher values = louder. Start below 1.0.
+  // These control each sound type's overall level while keeping
+  // its existing buzz/noise mixture unchanged.
+  // =========================================================
+  const SOUND_VOLUME = {
+    pressed: 0.30,
+    modal: 0.30,
+    breathy: 0.50,    // Buzz mixed with breathy airflow noise
+    noiseOnly: 4.0  // Breathy airflow noise without vocal buzz
+  };
+
+  // PITCH SETTINGS: edit these to change the pitch range.
+  // Elongation slider: 0 = shortest (lowest F0), 100 = longest (highest F0).
+  const PITCH_MIN_HZ = 100;
+  const PITCH_MAX_HZ = 300;
+  function pitchFrequency(){
+    const ratio = Number(pitchSlider.value) / 100;
+    return PITCH_MIN_HZ + ratio * (PITCH_MAX_HZ - PITCH_MIN_HZ);
+  }
+
+  // Slider boundaries (0 = complete closure, 100 = wide opening).
+  const SOUND_RANGES = {
+    pressedEnd: 4,
+    modalEnd: 8,
+    breathyEnd: 11,
+    noiseOnlyEnd: 100
+  };
+
+
+  function makeNoiseBuffer(ctx){
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++){
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  function initAudio(){
+    if(audioReady) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(audioCtx.destination);
+
+    osc1 = audioCtx.createOscillator();
+    osc2 = audioCtx.createOscillator();
+    buzzGain = audioCtx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.value = 130;
+    osc2.frequency.value = 260;
+    buzzGain.gain.value = 0.05;
+
+    osc1.connect(buzzGain);
+    osc2.connect(buzzGain);
+    buzzGain.connect(masterGain);
+
+    noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = makeNoiseBuffer(audioCtx);
+    noiseSource.loop = true;
+
+    noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = 100;
+    noiseFilter.Q.value = 1.5;
+
+    noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.0;
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+
+    osc1.start();
+    osc2.start();
+    noiseSource.start();
+    audioReady = true;
+  }
+
+  function phonationState(v){
+    if(v <= 0) return 'none-closed';
+    if(v <= SOUND_RANGES.pressedEnd) return 'pressed';
+    if(v <= SOUND_RANGES.modalEnd) return 'modal';
+    if(v <= SOUND_RANGES.breathyEnd) return 'breathy';
+    if(v <= SOUND_RANGES.noiseOnlyEnd) return 'noiseOnly';
+    return 'none-open';
+  }
+
+  function setAudioFromValue(v){
+    if(!audioReady) return;
+
+    const t = audioCtx.currentTime;
+    const state = phonationState(v);
+    if (!soundEnabled || state === 'none-closed' || state === 'none-open') {
+      masterGain.gain.setTargetAtTime(0, t, 0.01);
+      return;
+    }
+
+    // The master gain now depends on the selected sound type.
+    masterGain.gain.setTargetAtTime(SOUND_VOLUME[state], t, 0.02);
+
+    // Pitch is controlled independently by the elongation slider.
+    const baseF0 = pitchFrequency();
+    osc1.frequency.setTargetAtTime(baseF0, t, 0.03);
+    osc2.frequency.setTargetAtTime(baseF0 * 2.0, t, 0.03);
+
+    if(state === 'pressed'){
+      buzzGain.gain.setTargetAtTime(0.075, t, 0.03);
+      noiseGain.gain.setTargetAtTime(0.006, t, 0.03);
+    } else if(state === 'modal'){
+      buzzGain.gain.setTargetAtTime(0.055, t, 0.03);
+      noiseGain.gain.setTargetAtTime(0.012, t, 0.03);
+    } else if(state === 'breathy'){
+      buzzGain.gain.setTargetAtTime(0.040, t, 0.03);
+      noiseGain.gain.setTargetAtTime(0.030, t, 0.03);
+    } else if(state === 'noiseOnly'){
+      buzzGain.gain.setTargetAtTime(0.0, t, 0.01);
+      noiseGain.gain.setTargetAtTime(0.13, t, 0.03);
+    }
+  }
+
+  // Use the same changing-phase wave and secondary irregular component
+  // as the basilar-membrane illustration. The visual rate is slowed
+  // for teaching; it does not represent the acoustic fundamental frequency.
+  function movingMedialEdge(side, topX, lowerX, topY, lowerY, amplitude, timeSeconds) {
+    const samples = 32;
+    const points = [];
+    const left = side === 'left';
+
+    for (let i = 0; i <= samples; i++) {
+      const p = i / samples; // 0 = lower end, 1 = upper end
+      const y = lowerY + (topY - lowerY) * p;
+      const baseX = lowerX + (topX - lowerX) * p;
+      const envelope = Math.sin(Math.PI * p); // stationary ends
+      const phase = 2 * Math.PI * 15 * timeSeconds + i * 1.15;
+      const regularMotion = Math.sin(phase) * amplitude;
+      const irregularMotion = Math.sin(phase * 1.73 + i * 0.8)
+        * amplitude * 0.28;
+      const displacement = (regularMotion + irregularMotion) * envelope;
+
+      // Moving toward the midline must not cause the edges to cross.
+      const distanceFromCenter = Math.abs(baseX - 350);
+      const outward = left ? -1 : 1;
+      const bounded = Math.max(-Math.max(0, distanceFromCenter - 0.5), displacement);
+      points.push([baseX + outward * bounded, y]);
+    }
+    return points;
+  }
+
+  function pathThrough(points) {
+    return points.map(([x,y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+  }
+
+  function updateVisual(){
+    const v = Number(slider.value);
+    slider.setAttribute('aria-valuetext', v === 0 ? 'Fully adducted' : v === 100 ? 'Fully abducted' : `${v}% open`);
+
+    const anteriorX = 350;
+    // Length changes independently of the abduction/adduction angle.
+    // Keep the fold center fixed while extending both ends.
+    const lengthRatio = Number(pitchSlider.value) / 100;
+    const lengthScale = 0.76 + 0.30 * lengthRatio;
+    const centerY = 345;
+    // Keep the glottis label centered lengthwise as the folds elongate.
+    document.getElementById('glottisLabel').setAttribute('y', centerY);
+    const halfLength = 185 * lengthScale;
+    const anteriorY = centerY + halfLength;
+    const posteriorY = centerY - halfLength;
+    const lowerY = anteriorY - 30 * lengthScale;
+    anteriorPoint.setAttribute('cy', anteriorY);
+    pitchReadout.textContent = Math.round(pitchFrequency()) + ' Hz';
+    pitchSlider.setAttribute('aria-valuetext', `${Math.round(pitchFrequency())} hertz`);
+
+    // At full closure there must be NO gap.
+    // After that the gap widens quickly so PAR is short and early.
+    let posteriorGap;
+    if(v <= 0){
+      posteriorGap = 0;
+    } else {
+      // quick opening once abduction begins
+      posteriorGap = Math.min(150, 3 + v * 3.6);
+    }
+
+    // Keep a tiny/zero near-anterior gap; fully closed at v=0.
+    let lowerGap;
+    if(v <= 0){
+      lowerGap = 0;
+    } else {
+      lowerGap = Math.min(26, v * 0.45);
+    }
+
+    const leftTopMed = anteriorX - posteriorGap;
+    const rightTopMed = anteriorX + posteriorGap;
+    const leftLowMed = anteriorX - lowerGap;
+    const rightLowMed = anteriorX + lowerGap;
+
+    const thicknessTop = 58;
+    const thicknessBottom = 32;
+
+    const leftTopOuter = leftTopMed - thicknessTop;
+    const rightTopOuter = rightTopMed + thicknessTop;
+    const leftLowOuter = leftLowMed - thicknessBottom;
+    const rightLowOuter = rightLowMed + thicknessBottom;
+
+    // Keep fold labels centered inside the tissue, without interfering with vibration.
+    const guideStartY = lowerY - 12 * lengthScale;
+    const guideEndY = posteriorY + 14 * lengthScale;
+    document.getElementById('rightFoldLabelGuide').setAttribute('d',
+      `M ${(leftLowMed + leftLowOuter) / 2} ${guideStartY} L ${(leftTopMed + leftTopOuter) / 2} ${guideEndY}`);
+    document.getElementById('leftFoldLabelGuide').setAttribute('d',
+      `M ${(rightLowMed + rightLowOuter) / 2} ${guideStartY} L ${(rightTopMed + rightTopOuter) / 2} ${guideEndY}`);
+
+    const state = phonationState(v);
+    const isPhonating = state === 'pressed' || state === 'modal' || state === 'breathy';
+    // Fixed visual vibration magnitude during audible phonation only.
+    // The geometry still prevents the medial edges from crossing.
+    const FIXED_VIBRATION_AMPLITUDE = 20.1;
+    const amp = (soundEnabled && isPhonating) ? FIXED_VIBRATION_AMPLITUDE : 0;
+
+    const seconds = performance.now() / 1000;
+    const leftPoints = movingMedialEdge('left', leftTopMed, leftLowMed, posteriorY, lowerY, amp, seconds);
+    const rightPoints = movingMedialEdge('right', rightTopMed, rightLowMed, posteriorY, lowerY, amp, seconds);
+    const leftInner = pathThrough(leftPoints);
+    const rightInner = pathThrough(rightPoints);
+
+    // The fold tissue follows the moving edges; the wave is not merely
+    // an animated line laid over a rigid, unmoving fold.
+    const leftReverse = leftPoints.slice().reverse();
+    const rightReverse = rightPoints.slice().reverse();
+    leftFold.setAttribute('d',
+      `M ${anteriorX} ${anteriorY} L ${leftLowOuter} ${lowerY} L ${leftTopOuter} ${posteriorY} ` +
+      `L ${leftTopMed} ${posteriorY} ` +
+      leftReverse.slice(1).map(([x,y]) => `L ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ') + ' Z');
+    rightFold.setAttribute('d',
+      `M ${anteriorX} ${anteriorY} L ${rightLowOuter} ${lowerY} L ${rightTopOuter} ${posteriorY} ` +
+      `L ${rightTopMed} ${posteriorY} ` +
+      rightReverse.slice(1).map(([x,y]) => `L ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ') + ' Z');
+    leftMedial.setAttribute('d', leftInner);
+    rightMedial.setAttribute('d', rightInner);
+
+    // Trace the opening in one continuous, non-self-intersecting loop:
+    // anterior tip -> left medial edge upward -> right medial edge downward.
+    // The glottis is placed behind the tissue in the SVG, so it always fills
+    // the full space between the edges and never covers either vocal fold.
+    if (v <= 0) {
+      glottis.setAttribute('d', '');
+    } else {
+      const leftFromBottomToTop = leftPoints;
+      const rightFromTopToBottom = rightPoints.slice().reverse();
+      const outline = [
+        [anteriorX, anteriorY],
+        ...leftFromBottomToTop,
+        ...rightFromTopToBottom
+      ];
+      glottis.setAttribute('d', pathThrough(outline) + ' Z');
+    }
+  }
+
+  let frameId = null;
+  function frame(){
+    updateVisual();
+    frameId = requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = null;
+      if (audioReady) masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01);
+    } else {
+      if (frameId === null) frameId = requestAnimationFrame(frame);
+      if (audioReady) setAudioFromValue(Number(slider.value));
+    }
+  });
+
+  soundBtn.addEventListener('click', async () => {
+    initAudio();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+    soundEnabled = !soundEnabled;
+    soundBtn.textContent = soundEnabled ? 'With Phonation' : 'No Phonation';
+    setAudioFromValue(Number(slider.value));
+  });
+
+  pitchSlider.addEventListener('input', () => {
+    updateVisual();
+    setAudioFromValue(Number(slider.value));
+  });
+
+  slider.addEventListener('input', () => {
+    updateVisual();
+    setAudioFromValue(Number(slider.value));
+  });
+
+  closedBtn.addEventListener('click', () => {
+    slider.value = 0;
+    updateVisual();
+    setAudioFromValue(0);
+  });
+
+  openBtn.addEventListener('click', () => {
+    slider.value = 100;
+    updateVisual();
+    setAudioFromValue(100);
+  });
+
+  updateVisual();
+  frameId = requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
