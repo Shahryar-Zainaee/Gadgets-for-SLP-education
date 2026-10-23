@@ -333,8 +333,8 @@ Once you hear the tone, decrease its intensity in 10 dB steps after each respons
       function renderReadout() {
         selectedText.textContent = frequencies[selectedIndex] + ' Hz threshold: ' + levels[selectedIndex] + ' dB HL';
         axisHint.textContent = invertInput.checked
-          ? 'Inverted axis: higher dB HL values appear toward the top.'
-          : 'Standard axis: higher dB HL values appear toward the bottom.';
+          ? 'Inverted axis: higher dB HL values appear toward the bottom.'
+          : 'Non-inverted axis: higher dB HL values appear toward the top.';
       }
 
       function render() {
