@@ -1,0 +1,571 @@
+
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Minimum Audibility Curve</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20324d;
+      --muted: #53647b;
+      --blue: #245ba3;
+      --audible: #d7f1e6;
+      --audible-ink: #11664f;
+      --inaudible: #fbe1dc;
+      --inaudible-ink: #9b493e;
+      --border: #d8e0ea;
+      --page: #f3f6fa;
+    }
+
+    * { box-sizing: border-box; }
+    html { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: var(--page); color: var(--ink); overflow: hidden; }
+    button, input { font: inherit; }
+    button, input { accent-color: var(--blue); }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid #77a9f4;
+      outline-offset: 3px;
+    }
+
+    .app {
+      width: min(1400px, 100%);
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      margin: 0 auto;
+      padding: clamp(7px, 1.4vw, 18px);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(5px, 1vh, 11px);
+    }
+    header { flex: none; }
+    h1 { font-size: clamp(1.3rem, 2.4vw, 2rem); line-height: 1.12; margin: 0 0 4px; letter-spacing: -.025em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: clamp(.78rem, 1.1vw, .98rem); line-height: 1.3; }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 5px 24px rgb(33 58 95 / 6%);
+      overflow: hidden;
+    }
+    .chart-card { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px 22px;
+      padding: 10px clamp(12px, 2vw, 22px);
+      border-bottom: 1px solid var(--border);
+      flex: none;
+    }
+    .switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-weight: 650; font-size: .9rem; white-space: nowrap; }
+    .switch input { width: 19px; height: 19px; margin: 0; flex: 0 0 auto; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    button {
+      cursor: pointer;
+      border: 1px solid #c8d3e2;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+      padding: 6px 11px;
+      font-size: .86rem;
+      font-weight: 600;
+      min-height: 34px;
+    }
+    button:hover { background: #eef5ff; border-color: #8badde; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 22px;
+      align-items: center;
+      padding: 9px clamp(12px, 2vw, 22px) 0;
+      font-size: .85rem;
+      font-weight: 650;
+      flex: none;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 8px; }
+    .swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgb(0 0 0 / 9%); }
+    .swatch.audible { background: var(--audible); }
+    .swatch.inaudible { background: var(--inaudible); }
+    .legend-item.audible { color: var(--audible-ink); }
+    .legend-item.inaudible { color: var(--inaudible-ink); }
+    .chart-viewport {
+      width: 100%;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #chart {
+      display: block;
+      width: min(100%, 480px);
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 1;
+      flex: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .plot-fill-audible { fill: var(--audible); }
+    .plot-fill-inaudible { fill: var(--inaudible); }
+    .grid { stroke: #dce4ee; stroke-width: 1; }
+    .grid.zero { stroke: #bdcadc; stroke-width: 2; }
+    .grid.vertical { stroke: #e9eef5; }
+    .axis { stroke: #42536c; stroke-width: 2.5; }
+    .axis-tick { fill: #3e4f66; }
+    .axis-title { fill: #34445b; font-weight: 650; }
+    .threshold-line { fill: none; stroke: #22599f; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    .point-group { cursor: grab; touch-action: none; outline: none; }
+    .point-group.dragging { cursor: grabbing; }
+    .point-halo { fill: transparent; }
+    .point-dot { fill: #22599f; stroke: #fff; stroke-width: 3; filter: drop-shadow(0 1px 2px #0003); }
+    .point-group:is(:hover, :focus-visible, .dragging) .point-dot { fill: #164274; stroke-width: 4; }
+    .point-group:focus-visible .point-halo { fill: #77b5fb55; }
+    .point-value {
+      font-weight: 750;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-width: 5px;
+      fill: #24446f;
+      pointer-events: none;
+    }
+    .readout {
+      padding: 8px 16px;
+      background: #fbfcff;
+      border-top: 1px solid #edf1f6;
+      color: #45576f;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px 16px;
+      font-size: .81rem;
+      flex: none;
+    }
+    #selectedText { color: var(--ink); font-weight: 650; }
+
+    .footnote { flex: none; margin: 0 4px; color: var(--muted); font-size: clamp(.68rem, 1.2vw, .8rem); line-height: 1.25; }
+
+    @media (max-width: 700px) {
+      .app { padding: 7px; }
+      .card { border-radius: 12px; }
+      .toolbar { padding: 8px; gap: 8px 12px; }
+      .switch { font-size: .77rem; }
+      .switch input { width: 17px; height: 17px; }
+      .buttons button { font-size: .75rem; min-height: 30px; }
+      .legend { gap: 6px 12px; padding: 7px 9px 0; font-size: .75rem; }
+      .readout { padding: 6px 10px; font-size: .71rem; }
+      .footnote { font-size: .67rem; }
+    }
+    @media (max-height: 620px) {
+      .subtitle { font-size: .75rem; }
+      .legend { padding-top: 4px; }
+      .readout { padding-top: 4px; padding-bottom: 4px; }
+      .footnote { font-size: .64rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Minimum Audibility Curve</h1>
+      <p class="subtitle">Drag the blue dots to adjust pure-tone thresholds in 10 dB steps. Watch how the audible and inaudible regions change.</p>
+    </header>
+
+    <section class="card chart-card" aria-label="Interactive hearing threshold chart">
+      <div class="toolbar">
+        <label class="switch"><input type="checkbox" id="invertAxis"> Invert vertical axis</label>
+        <label class="switch"><input type="checkbox" id="soundEnabled"> Pure tone sound ON</label>
+        <div class="buttons">
+          <button type="button" id="normalPreset">All thresholds: 0 dB HL</button>
+        </div>
+      </div>
+      <div class="legend" aria-label="Color legend">
+        <span class="legend-item audible"><span class="swatch audible" aria-hidden="true"></span>Supra-threshold (audible)</span>
+        <span class="legend-item inaudible"><span class="swatch inaudible" aria-hidden="true"></span>Below threshold (inaudible)</span>
+      </div>
+
+      <div class="chart-viewport">
+        <svg id="chart" viewBox="0 0 600 600" role="group" aria-labelledby="graphTitle graphDescription">
+          <title id="graphTitle">Hearing thresholds at seven pure-tone frequencies</title>
+          <desc id="graphDescription">Interactive graph with draggable points at 125, 250, 500, 1000, 2000, 4000 and 8000 hertz. Green represents sound levels above threshold; peach represents levels below threshold. Values change in 10-decibel steps.</desc>
+        </svg>
+      </div>
+      <div class="readout">
+        <span id="selectedText">Select or drag a point to inspect its threshold.</span>
+        <span id="axisHint">Standard axis: higher dB HL values appear higher.</span>
+      </div>
+    </section>
+
+    <p class="footnote">Drag a dot vertically (or use arrow keys) to change its threshold by 10 dB. Begin by presenting a 1,000 Hz tone at 30 dB HL to familiarize yourself with the task. If you cannot hear the tone, increase the level to 50 dB HL and continue increasing it in 10 dB steps until you hear it. Then determine your initial hearing threshold.
+
+For each subsequent frequency (2,000, 4,000, 8,000, 500, 250, and 125 Hz), begin testing 10 dB above the threshold determined at the previously tested frequency.
+
+Once you hear the tone, decrease its intensity in 10 dB steps after each response until you can no longer hear it. Repeat this procedure until you determine the lowest intensity level at which you can hear the tone in at least two out of three ascending presentations. The green region is above threshold; peach is below threshold. Audio volume is illustrative, <strong>not calibrated to dB HL</strong>; start with your device volume low. This is not a hearing test.</p>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const frequencies = [125, 250, 500, 1000, 2000, 4000, 8000];
+      const levels = [50, 30, 20, 10, 0, 0, 10];
+      const dbMin = -20;
+      const dbMax = 120;
+      const dbStep = 10;
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.getElementById('chart');
+      const invertInput = document.getElementById('invertAxis');
+      const soundInput = document.getElementById('soundEnabled');
+      const selectedText = document.getElementById('selectedText');
+      const axisHint = document.getElementById('axisHint');
+      const plot = { left: 60, right: 900, top: 40, bottom: 500 };
+
+      let handles = [];
+      let yLabels = [];
+      let audiblePath;
+      let inaudiblePath;
+      let curve;
+      let selectedIndex = 3;
+      let chartWidth = 0;
+      let chartHeight = 0;
+      let audioContext = null;
+      let currentOscillator = null;
+      let keyboardToneTimer = null;
+
+      function element(tag, attributes = {}, parent = svg, content = '') {
+        const node = document.createElementNS(ns, tag);
+        Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+        if (content !== '') node.textContent = content;
+        parent.appendChild(node);
+        return node;
+      }
+
+      const clamp = number => Math.max(dbMin, Math.min(dbMax, number));
+      const snap = number => clamp(Math.round(number / dbStep) * dbStep);
+      const xAt = index => plot.left + (plot.right - plot.left) * index / (frequencies.length - 1);
+      const yAt = value => invertInput.checked
+        ? plot.top + (value - dbMin) * (plot.bottom - plot.top) / (dbMax - dbMin)
+        : plot.bottom - (value - dbMin) * (plot.bottom - plot.top) / (dbMax - dbMin);
+
+      function pointerDb(event) {
+        const point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return levels[selectedIndex];
+        const local = point.matrixTransform(matrix.inverse());
+        const fraction = (local.y - plot.top) / (plot.bottom - plot.top);
+        return snap(invertInput.checked
+          ? dbMin + fraction * (dbMax - dbMin)
+          : dbMax - fraction * (dbMax - dbMin));
+      }
+
+      function stopTone() {
+        if (!currentOscillator) return;
+        try { currentOscillator.stop(); } catch (_) { /* Already stopped. */ }
+        currentOscillator = null;
+      }
+
+      async function playTone(index) {
+        if (!soundInput.checked) return;
+        const AudioContextType = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextType) return;
+        try {
+          if (!audioContext) audioContext = new AudioContextType();
+          if (audioContext.state === 'suspended') await audioContext.resume();
+          if (!soundInput.checked) return;
+          stopTone();
+
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          const now = audioContext.currentTime;
+          const relativeLevel = (levels[index] - dbMin) / (dbMax - dbMin);
+          // A deliberately quiet illustration, not a dB HL calibration.
+          const peak = 0.001 + 0.045 * Math.pow(relativeLevel, 1.7);
+
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(frequencies[index], now);
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(peak, now + 0.025);
+          gain.gain.setValueAtTime(peak, now + 0.92);
+          gain.gain.linearRampToValueAtTime(0, now + 1);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.onended = () => {
+            oscillator.disconnect();
+            gain.disconnect();
+            if (currentOscillator === oscillator) currentOscillator = null;
+          };
+          currentOscillator = oscillator;
+          oscillator.start(now);
+          oscillator.stop(now + 1.01);
+        } catch (_) {
+          selectedText.textContent = 'Audio could not start on this device. You can still adjust the graph.';
+        }
+      }
+
+      function updateThreshold(index, value) {
+        levels[index] = snap(value);
+        selectedIndex = index;
+        render();
+      }
+
+      function regionPath(points, edgeY) {
+        const segments = points.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L ');
+        return 'M ' + plot.left + ' ' + edgeY + ' L ' + segments + ' L ' + plot.right + ' ' + edgeY + ' Z';
+      }
+
+      function renderReadout() {
+        selectedText.textContent = frequencies[selectedIndex] + ' Hz threshold: ' + levels[selectedIndex] + ' dB HL';
+        axisHint.textContent = invertInput.checked
+          ? 'Inverted axis: higher dB HL values appear toward the top.'
+          : 'Standard axis: higher dB HL values appear toward the bottom.';
+      }
+
+      function render() {
+        if (!audiblePath || !inaudiblePath || !curve) return;
+        const points = levels.map((level, index) => ({ x: xAt(index), y: yAt(level) }));
+        audiblePath.setAttribute('d', regionPath(points, invertInput.checked ? plot.bottom : plot.top));
+        inaudiblePath.setAttribute('d', regionPath(points, invertInput.checked ? plot.top : plot.bottom));
+        curve.setAttribute('d', 'M ' + points.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L '));
+
+        yLabels.forEach(({ db, line, text }) => {
+          const y = yAt(db);
+          line.setAttribute('y1', y);
+          line.setAttribute('y2', y);
+          if (text) text.setAttribute('y', y);
+        });
+
+        points.forEach((point, index) => {
+          const { group, valueLabel, tooltip } = handles[index];
+          group.setAttribute('transform', 'translate(' + point.x.toFixed(2) + ' ' + point.y.toFixed(2) + ')');
+          group.setAttribute('aria-valuenow', levels[index]);
+          group.setAttribute('aria-valuetext', levels[index] + ' decibels hearing level');
+          valueLabel.setAttribute('y', point.y < plot.top + 24 ? '27' : '-17');
+          valueLabel.textContent = levels[index];
+          tooltip.textContent = frequencies[index] + ' Hz: ' + levels[index] + ' dB HL';
+        });
+        renderReadout();
+      }
+
+      function buildChart() {
+        const availableWidth = svg.parentElement.clientWidth;
+        const availableHeight = svg.parentElement.clientHeight;
+        const size = Math.floor(Math.min(availableWidth, availableHeight));
+        if (size <= 0) return;
+        const width = size;
+        const height = size;
+        if (width === chartWidth && height === chartHeight) return;
+        chartWidth = width;
+        chartHeight = height;
+        svg.style.width = size + 'px';
+        svg.style.height = size + 'px';
+        const compact = width < 640;
+        const short = height < 320;
+
+        const leftMargin = size < 450 ? 48 : 74;
+        const rightMargin = size < 450 ? 14 : 20;
+        const topMargin = size < 450 ? 24 : 36;
+        const bottomMargin = size < 450 ? 50 : 64;
+        const plotSide = Math.min(
+          size - leftMargin - rightMargin,
+          size - topMargin - bottomMargin
+        );
+        plot.left = leftMargin + (size - leftMargin - rightMargin - plotSide) / 2;
+        plot.top = topMargin + (size - topMargin - bottomMargin - plotSide) / 2;
+        plot.right = plot.left + plotSide;
+        plot.bottom = plot.top + plotSide;
+
+        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+        svg.replaceChildren();
+        element('title', { id: 'graphTitle' }, svg, 'Hearing thresholds at seven pure-tone frequencies');
+        element('desc', { id: 'graphDescription' }, svg,
+          'Drag seven threshold markers in 10-decibel steps. Green is above threshold and peach is below threshold.');
+
+        const defs = element('defs');
+        const clip = element('clipPath', { id: 'plotClip' }, defs);
+        element('rect', {
+          x: plot.left, y: plot.top,
+          width: plot.right - plot.left, height: plot.bottom - plot.top
+        }, clip);
+        element('rect', {
+          x: plot.left, y: plot.top, width: plot.right - plot.left,
+          height: plot.bottom - plot.top, fill: '#fff'
+        });
+
+        const fills = element('g', { 'clip-path': 'url(#plotClip)' });
+        audiblePath = element('path', { class: 'plot-fill-audible' }, fills);
+        inaudiblePath = element('path', { class: 'plot-fill-inaudible' }, fills);
+
+        const gridLayer = element('g', { 'aria-hidden': 'true' });
+        yLabels = [];
+        const tickEvery = height < 420 ? 20 : 10;
+        const tiny = size < 260;
+        const tickSize = tiny ? 8 : (compact ? (short ? 10 : 11) : 14);
+        for (let db = dbMin; db <= dbMax; db += dbStep) {
+          const line = element('line', {
+            x1: plot.left, x2: plot.right,
+            class: db === 0 ? 'grid zero' : 'grid'
+          }, gridLayer);
+          const showLabel = (db - dbMin) % tickEvery === 0;
+          const label = showLabel ? element('text', {
+            x: plot.left - (compact ? 6 : 12),
+            'text-anchor': 'end', 'dominant-baseline': 'middle',
+            class: 'axis-tick', 'font-size': tickSize
+          }, gridLayer, String(db).replace('-', '−')) : null;
+          yLabels.push({ db, line, text: label });
+        }
+
+        frequencies.forEach((frequency, index) => {
+          const x = xAt(index);
+          const labelY = plot.bottom + (short ? 15 : (compact ? 19 : 25));
+          element('line', {
+            x1: x, x2: x, y1: plot.top, y2: plot.bottom, class: 'grid vertical'
+          }, gridLayer);
+          element('line', {
+            x1: x, x2: x, y1: plot.bottom, y2: plot.bottom + 5, class: 'axis'
+          }, gridLayer);
+          element('text', {
+            x, y: labelY,
+            'text-anchor': tiny ? 'end' : 'middle', class: 'axis-tick',
+            'font-size': tickSize,
+            ...(tiny ? { transform: 'rotate(-45 ' + x + ' ' + labelY + ')' } : {})
+          }, gridLayer, String(frequency));
+        });
+
+        element('line', { x1: plot.left, x2: plot.left, y1: plot.top, y2: plot.bottom, class: 'axis' });
+        element('line', { x1: plot.left, x2: plot.right, y1: plot.bottom, y2: plot.bottom, class: 'axis' });
+
+        const xTitleY = height - (short ? 6 : (compact ? 11 : 15));
+        element('text', {
+          x: (plot.left + plot.right) / 2, y: xTitleY,
+          class: 'axis-title', 'font-size': compact ? 12 : 16,
+          'text-anchor': 'middle'
+        }, svg, 'Frequency (Hz)');
+
+        const yTitleX = compact ? 12 : 22;
+        const yTitleCenter = (plot.top + plot.bottom) / 2;
+        element('text', {
+          x: yTitleX, y: yTitleCenter,
+          class: 'axis-title', 'font-size': compact ? 11 : 15,
+          'text-anchor': 'middle',
+          transform: 'rotate(-90 ' + yTitleX + ' ' + yTitleCenter + ')'
+        }, svg, compact ? 'Level (dB HL)' : 'Hearing level (dB HL)');
+
+        curve = element('path', { class: 'threshold-line', 'pointer-events': 'none' });
+        const front = element('g');
+        handles = [];
+
+        frequencies.forEach((frequency, index) => {
+          const group = element('g', {
+            class: 'point-group', tabindex: '0', role: 'slider',
+            'aria-label': 'Threshold at ' + frequency + ' hertz',
+            'aria-valuemin': dbMin, 'aria-valuemax': dbMax,
+            'aria-orientation': 'vertical'
+          }, front);
+          element('circle', { r: compact ? 19 : 24, class: 'point-halo' }, group);
+          element('circle', { r: compact ? 7.5 : 9, class: 'point-dot' }, group);
+          const valueLabel = element('text', {
+            class: 'point-value', 'font-size': compact ? 11 : 15
+          }, group);
+          const tooltip = element('title', {}, group);
+          handles.push({ group, valueLabel, tooltip });
+
+          group.addEventListener('pointerdown', event => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            group.classList.add('dragging');
+            group.setPointerCapture(event.pointerId);
+            updateThreshold(index, pointerDb(event));
+            event.preventDefault();
+          });
+          group.addEventListener('pointermove', event => {
+            if (!group.hasPointerCapture(event.pointerId)) return;
+            updateThreshold(index, pointerDb(event));
+            event.preventDefault();
+          });
+          group.addEventListener('pointerup', event => {
+            group.classList.remove('dragging');
+            if (group.hasPointerCapture(event.pointerId)) group.releasePointerCapture(event.pointerId);
+            updateThreshold(index, pointerDb(event));
+            playTone(index);
+          });
+          group.addEventListener('pointercancel', event => {
+            group.classList.remove('dragging');
+            if (group.hasPointerCapture(event.pointerId)) group.releasePointerCapture(event.pointerId);
+          });
+          group.addEventListener('focus', () => {
+            selectedIndex = index;
+            renderReadout();
+          });
+          group.addEventListener('keydown', event => {
+            let next = levels[index];
+            if (event.key === 'ArrowUp') next += invertInput.checked ? -dbStep : dbStep;
+            else if (event.key === 'ArrowDown') next += invertInput.checked ? dbStep : -dbStep;
+            else if (event.key === 'ArrowRight') next += dbStep;
+            else if (event.key === 'ArrowLeft') next -= dbStep;
+            else if (event.key === 'Home') next = dbMin;
+            else if (event.key === 'End') next = dbMax;
+            else return;
+
+            event.preventDefault();
+            if (snap(next) !== levels[index]) {
+              updateThreshold(index, next);
+              clearTimeout(keyboardToneTimer);
+              keyboardToneTimer = setTimeout(() => playTone(index), 160);
+            }
+          });
+        });
+        render();
+      }
+
+      invertInput.addEventListener('change', render);
+      soundInput.addEventListener('change', () => {
+        clearTimeout(keyboardToneTimer);
+        if (!soundInput.checked) {
+          stopTone();
+          return;
+        }
+        const AudioContextType = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextType) {
+          soundInput.checked = false;
+          selectedText.textContent = 'Audio playback is not supported on this device.';
+          return;
+        }
+        try {
+          if (!audioContext) audioContext = new AudioContextType();
+          audioContext.resume().catch(() => {});
+        } catch (_) {
+          soundInput.checked = false;
+        }
+      });
+      document.getElementById('normalPreset').addEventListener('click', () => {
+        levels.fill(0);
+        render();
+        stopTone();
+      });
+
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(buildChart).observe(svg.parentElement);
+      } else {
+        window.addEventListener('resize', buildChart);
+      }
+      buildChart();
+    })();
+  </script>
+</body>
+</html>
