@@ -1,3 +1,6 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -198,7 +201,7 @@
   <div class="wrap">
     <div class="card">
       <div class="title"> Audiogram</div>
-      <div class="subtitle">Click anywhere on the audiogram to hear a pure tone at that frequency and intensity.</div>
+      <div class="subtitle">Click anywhere on the audiogram to hear a pure tone at that frequency and hearing level.</div>
 
       <div id="audiogram" class="audiogram-shell" aria-label="Interactive audiogram">
         <svg id="svg" viewBox="0 0 900 840" role="img" aria-labelledby="audiogramTitle">
@@ -210,20 +213,24 @@
 
       <div class="status">
         <div class="pill" id="freqReadout">Frequency: —</div>
-        <div class="pill" id="intReadout">Intensity: —</div>
+        <div class="pill" id="intReadout">Hearing level: —</div>
       </div>
 
-      <div class="hint">Tip: move across the graph for frequency changes and up/down for intensity changes.</div>
+      <div class="hint">Tip: move across the graph to change frequency, and up/down to change hearing level.</div>
       <div class="note">
-        This is an educational demonstration, not a calibrated clinical audiometer. Browser audio and speaker or
-        headphone output vary by device, so the dB HL values are represented as an aproximation of relative intensity levels assuming your
-        computer volume is set to maximum.
+        Educational demonstration only; this is not a calibrated audiometer. Each frequency uses a different
+        reference SPL for 0 dB HL. The displayed SPL is calculated from those reference values, but actual
+        sound levels depend on your speakers/headphones and volume. Different reference SPLs do not mean that tones at 0 dB HL are equally loud or that one will necessarily
+        sound louder: dB HL normalizes hearing thresholds, not perceived loudness.
       </div>
     </div>
   </div>
 
   <script>
-    const freqs = [125, 250, 500, 1000, 2000, 4000, 8000];
+    const freqs = [125, 250, 500, 1000, 2000, 3000, 4000, 6000, 8000];
+    // Reference SPL assigned to 0 dB HL at each frequency (provided table).
+    // These are illustration-specific values, not calibration for the user's device.
+    const referenceSPL = [45.0, 25.5, 13.5, 7.5, 9.0, 10.0, 12.0, 15.5, 15.5];
     const intensities = [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 
     const svg = document.getElementById('svg');
@@ -287,7 +294,7 @@
         transform: `rotate(-90 ${yLabelX} ${yLabelY})`,
         'text-anchor': 'middle',
         class: 'axis-title'
-      }, 'Intensity (dB HL)'));
+      }, 'Hearing Level (dB HL)'));
 
       chart.appendChild(el('rect', {
         x: plot.x,
@@ -347,7 +354,7 @@
         const Ctx = window.AudioContext || window.webkitAudioContext;
         audioCtx = new Ctx();
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.9;
+        masterGain.gain.value = 0.20;
         masterGain.connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') {
@@ -388,15 +395,21 @@
       };
     }
 
-    function intensityToGain(dbHL) {
-      const minDb = -10;
-      const maxDb = 120;
-      const normalized = clamp((dbHL - minDb) / (maxDb - minDb), 0, 1);
+    function referenceAtFrequency(freq) {
+      return referenceSPL[freqs.indexOf(freq)];
+    }
 
-      const minGain = 0.00008;
-      const maxGain = 1.0;
-      const gain = minGain * Math.pow(maxGain / minGain, normalized);
-      return gain;
+    function estimatedSPL(freq, dbHL) {
+      return referenceAtFrequency(freq) + dbHL;
+    }
+
+    function splToGain(dbSPL) {
+      // For non-limited tones, the amplitude ratio between two SPL values is
+      // 10 ^ ((SPL_1 - SPL_2) / 20). The 55 dB anchor is a digital illustration
+      // setting, NOT a physical SPL calibration of the output device.
+      const digitalAnchor = 55;
+      const amplitude = Math.pow(10, (dbSPL - digitalAnchor) / 20);
+      return Math.min(0.85, amplitude); // Limit strong signals within digital headroom.
     }
 
     function playTone(freq, dbHL) {
@@ -412,11 +425,13 @@
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now);
 
-      const targetGain = intensityToGain(dbHL);
-      toneGain.gain.setValueAtTime(0.00001, now);
-      toneGain.gain.exponentialRampToValueAtTime(Math.max(0.00001, targetGain), now + attack);
-      toneGain.gain.setValueAtTime(Math.max(0.00001, targetGain), now + releaseStart);
-      toneGain.gain.exponentialRampToValueAtTime(0.00001, now + duration);
+      const targetGain = splToGain(estimatedSPL(freq, dbHL));
+      // A zero-valued gain is not supported by exponentialRampToValueAtTime.
+      const silence = 0.00000001;
+      toneGain.gain.setValueAtTime(silence, now);
+      toneGain.gain.exponentialRampToValueAtTime(Math.max(silence, targetGain), now + attack);
+      toneGain.gain.setValueAtTime(Math.max(silence, targetGain), now + releaseStart);
+      toneGain.gain.exponentialRampToValueAtTime(silence, now + duration);
 
       osc.connect(toneGain);
       toneGain.connect(masterGain);
@@ -427,7 +442,7 @@
 
     function updateReadout(freq, intensity) {
       freqReadout.textContent = `Frequency: ${freq} Hz`;
-      intReadout.textContent = `Intensity: ${intensity} dB HL`;
+      intReadout.textContent = `Hearing level: ${intensity} dB HL`;
     }
 
     function showDot(clientX, clientY) {
