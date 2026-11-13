@@ -1,0 +1,820 @@
+<!-- Copyright © 2026 Shahryar Zainaee. All rights reserved. For educational use only. -->
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#172a46">
+<title>Creating Audiogram</title>
+<style>
+:root {color-scheme:light;--ink:#172a46;--muted:#607188;--line:#dce5ef;--surface:#f4f7fb;--paper:#fff;--right:#cb2d36;--left:#1958ad;--focus:#2463ca}
+* {box-sizing:border-box}
+html,body {height:100%;width:100%;margin:0;overflow:hidden}
+html {font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+body {color:var(--ink);background:var(--surface)}
+button,input,textarea {font:inherit}
+button {cursor:pointer}
+button:disabled {opacity:.42;cursor:not-allowed}
+:focus-visible {outline:2px solid #7cadf7;outline-offset:1px}
+.page {width:100%;max-width:2200px;height:100vh;height:100dvh;margin:auto;padding:clamp(5px,.85vmin,12px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(4px,.7vmin,9px);overflow:hidden}
+.headline {display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
+h1 {font-size:clamp(16px,2.2vmin,23px);line-height:1.2;margin:0;letter-spacing:-.025em;white-space:nowrap}
+.lede {font-size:clamp(10px,1.4vmin,12px);color:var(--muted);margin:0;text-align:right}
+.panel {background:var(--paper);border:1px solid var(--line);border-radius:11px;min-width:0;min-height:0}
+.layout {display:grid;grid-template-columns:clamp(265px,22vw,345px) minmax(0,1fr);gap:clamp(5px,.85vmin,12px);min-height:0;min-width:0;overflow:hidden}
+.tools {padding:clamp(7px,1.1vmin,14px);display:flex;flex-direction:column;gap:clamp(7px,1.1vmin,12px);min-height:0;overflow:hidden}
+.tool-grid {display:flex;flex-direction:column;gap:clamp(7px,1.1vmin,12px);min-width:0}
+.section {border-bottom:1px solid #e6ecf3;padding-bottom:clamp(7px,1vh,11px);min-width:0}
+.section:last-child {border-bottom:0;padding-bottom:0}
+.section-title {font-size:clamp(11px,1.5vmin,13px);font-weight:800;margin:0 0 6px}
+.fields {display:grid;grid-template-columns:1fr;gap:clamp(5px,.8vh,10px)}
+.field {display:flex;flex-direction:column;gap:3px;color:#41546d;font-size:clamp(10px,1.35vmin,12px);font-weight:650;min-width:0}
+.field input,.field textarea {width:100%;border:1px solid #cbd7e5;border-radius:7px;background:#fff;color:var(--ink);outline-offset:0;padding:5px 8px;min-width:0;font-size:clamp(12px,1.55vmin,14px)}
+.field input {height:clamp(28px,4vh,36px)}
+.field textarea {height:clamp(70px,11vh,118px);resize:none;line-height:1.4}
+.field input:focus,.field textarea:focus {border-color:var(--focus);outline:2px solid #c9dbfa}
+.field input::placeholder,.field textarea::placeholder {color:#9aa8b8}
+.colors,.mode-switch {display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.option {border:1.4px solid #d8e2ee;border-radius:7px;background:white;color:#34465e;padding:4px;min-height:clamp(29px,4.4vh,38px);font-weight:700;font-size:clamp(11px,1.5vmin,14px)}
+.color-option {display:flex;align-items:center;justify-content:center;gap:6px}
+.swatch {width:12px;height:12px;display:inline-block;border-radius:50%;flex:0 0 auto}
+.swatch.right {background:var(--right)}.swatch.left {background:var(--left)}
+.option[aria-pressed="true"] {background:#eef4ff;border-color:#5e84c2;box-shadow:inset 0 0 0 1px #dbe8fa}
+.symbols {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.symbol-option {font-size:clamp(19px,3vmin,26px);height:clamp(32px,5vh,46px);min-height:0;padding:0;line-height:1;font-weight:550}
+.utility-actions {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:6px}
+.secondary {border:1px solid #d1dce9;background:#f8fafc;color:#33455e;border-radius:7px;font-weight:650;padding:4px 2px;min-height:clamp(27px,4vh,34px);font-size:clamp(11px,1.35vmin,13px)}
+.secondary:hover:not(:disabled){background:#eaf1f9}
+.save-btn {width:100%;background:#1e4b86;color:white;border:0;border-radius:8px;font-weight:800;padding:5px 7px;min-height:clamp(32px,4.6vh,42px);font-size:clamp(12px,1.55vmin,15px)}
+.save-btn:hover {background:#153c70}
+.hint {font-size:clamp(10px,1.25vmin,11px);color:var(--muted);line-height:1.35;margin:5px 0 0}
+.chart-panel {display:grid;grid-template-rows:minmax(0,1fr) auto;gap:2px;padding:clamp(4px,.75vmin,9px);min-width:0;min-height:0;overflow:hidden}
+.result-layout {display:flex;flex-direction:row;justify-content:center;align-items:center;gap:clamp(7px,1vmin,15px);height:100%;min-height:0;min-width:0;overflow:hidden}
+.chart-holder {flex:0 0 auto;width:450px;height:450px;min-width:0;min-height:0;overflow:hidden}
+canvas {width:100%;height:100%;display:block;cursor:crosshair;touch-action:manipulation}
+canvas.eraser {cursor:not-allowed}
+.report {flex:1 1 0;min-width:0;max-width:560px;overflow:hidden;align-self:stretch;padding:clamp(10px,1.6vmin,24px);background:#f9fbfe;border:1px solid #e0e8f1;border-radius:9px;display:flex;flex-direction:column;gap:12px;justify-content:center}
+.report h2 {font-size:clamp(13px,1.8vmin,19px);letter-spacing:-.015em;margin:0 0 1px;font-weight:800}
+.report dl {margin:0;display:flex;flex-direction:column;gap:clamp(12px,2vh,22px);min-height:0}
+.report .detail {border-bottom:1px solid #e4ebf4;padding-bottom:clamp(7px,1.2vh,15px);min-width:0}
+.report .detail:last-child {border:0;padding:0;min-height:0;overflow:hidden}
+.report dt {font-size:clamp(10px,1.35vmin,12px);text-transform:uppercase;letter-spacing:.04em;font-weight:800;color:#61738e;margin-bottom:6px}
+.report dd {margin:0;font-size:clamp(13px,1.75vmin,17px);line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+.report .interpretation-preview {font-size:clamp(12px,1.6vmin,16px);max-height:100%;overflow:hidden}
+.status {margin:0;padding:3px 4px 1px;color:var(--muted);font-size:clamp(10px,1.2vmin,12px);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:16px}
+@media(max-height:760px) and (min-width:690px){
+  .tools {gap:6px;padding:7px}
+  .tool-grid {gap:6px}
+  .section {padding-bottom:5px}
+  .section-title {margin-bottom:3px}
+  .fields {gap:4px}
+  .field input {height:28px}
+  .field textarea {height:67px}
+  .option {min-height:28px}
+  .symbol-option {height:33px}
+  .utility-actions {margin-top:4px}
+  .hint {display:none}
+  .report {gap:8px}
+  .report dl {gap:8px}
+  .report .detail {padding-bottom:6px}
+}
+@media(max-height:510px) and (min-width:690px){
+  .layout {grid-template-columns:clamp(262px,31vw,360px) minmax(0,1fr)}
+  .tools {gap:3px;padding:5px}
+  .tool-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start}
+  .fields {grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .identity .interpretation-field {grid-column:1/-1}
+  .field {font-size:10px}
+  .field input {height:25px;font-size:11px;padding:3px}
+  .field textarea {height:40px;font-size:11px;line-height:1.15;padding:3px}
+  .section {border:0;padding:0}
+  .section-title {font-size:10px;margin-bottom:2px}
+  .option {min-height:25px;font-size:11px;padding:1px}
+  .symbol-option {height:25px;font-size:18px}
+  .utility-actions {margin-top:2px;gap:2px}
+  .secondary {min-height:24px;padding:1px}
+  .save-btn {min-height:27px}
+  .report {padding:8px;gap:4px}
+  .report h2 {font-size:12px}
+  .report dl {gap:5px}
+  .report dt {font-size:9px;margin:0 0 2px}
+  .report dd {font-size:11px;line-height:1.18}
+  .report .detail {padding-bottom:3px}
+  .report .interpretation-preview {font-size:10px}
+}
+@media(max-width:900px) and (orientation:portrait){
+  .page {padding:4px;gap:4px}
+  .headline {gap:4px}
+  h1 {font-size:clamp(14px,4vw,18px)}
+  .lede {display:none}
+  .layout {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:4px}
+  .tools {padding:6px;gap:4px}
+  .identity {padding:0;border:0}
+  .section-title {font-size:11px;margin-bottom:3px}
+  .fields {grid-template-columns:1.1fr 1fr 1fr;gap:3px 5px}
+  .field {font-size:10px;gap:1px}
+  .field input {height:27px;padding:2px 5px;font-size:11px}
+  .identity .interpretation-field {grid-column:1/-1}
+  .field textarea {height:38px;padding:3px 5px;font-size:11px;line-height:1.2}
+  .tool-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 6px}
+  .tool-grid .section {border:0;padding:0}
+  .option {min-height:27px;padding:2px;font-size:11px}
+  .symbols {gap:3px}
+  .symbol-option {height:27px;font-size:19px}
+  .utility-actions {margin-top:3px;gap:3px}
+  .secondary {min-height:23px;padding:1px;font-size:10px}
+  .save-btn {min-height:27px;font-size:11px}
+  .hint {display:none}
+  .chart-panel {padding:3px;gap:0}
+  .result-layout {flex-direction:column;gap:4px;justify-content:center}
+  .report {flex:0 0 auto;min-width:0;max-width:none;width:100%;padding:6px 8px;gap:3px;justify-content:start;align-self:auto}
+  .report h2 {display:none}
+  .report dl {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 6px}
+  .report .detail {border:0;padding:0}
+  .report dt {font-size:9px;margin-bottom:1px;letter-spacing:0}
+  .report dd {font-size:11px;line-height:1.18}
+  .report .detail:last-child {grid-column:1/-1}
+  .report .interpretation-preview {font-size:10px;max-height:4em}
+  .status {font-size:10px;padding:1px 2px}
+}
+@media(max-width:350px) and (orientation:portrait){
+  .tools {padding:4px;gap:3px}
+  .field input {height:25px;font-size:10px}
+  .field textarea {height:32px}
+  .option,.symbol-option {min-height:24px;height:24px}
+  .secondary {min-height:22px}
+  .save-btn {min-height:24px}
+  .section-title {font-size:10px}
+  .report {padding:3px 5px}
+  .report dl {gap:1px 3px}
+  .report dt {font-size:8px;line-height:1;margin:0 0 1px}
+  .report dd {font-size:9px;line-height:1.04}
+  .report .interpretation-preview {font-size:8px;max-height:2.2em}
+}
+
+@media(max-width:689px) and (orientation:landscape){
+  .layout {grid-template-columns:clamp(238px,40vw,294px) minmax(0,1fr);gap:4px}
+  .tools {padding:4px;gap:3px}
+  .identity {padding:0;border:0}
+  .fields {grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+  .identity .interpretation-field {grid-column:1/-1}
+  .field {font-size:9px;gap:1px}
+  .field input {height:24px;font-size:10px;padding:2px}
+  .field textarea {height:34px;font-size:10px;padding:2px;line-height:1.1}
+  .tool-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .tool-grid .section {padding:0;border:0}
+  .section-title {font-size:10px;margin-bottom:2px}
+  .colors,.symbols,.mode-switch,.utility-actions {gap:2px}
+  .option {min-height:24px;padding:1px;font-size:10px}
+  .symbol-option {height:24px;font-size:17px}
+  .utility-actions {margin-top:2px}
+  .secondary {min-height:22px;padding:1px;font-size:10px}
+  .save-btn {min-height:25px;font-size:11px}
+  .hint {display:none}
+  .chart-panel {padding:2px}
+  .result-layout {flex-direction:column;gap:3px}
+  .report {flex:0 0 auto;min-width:0;max-width:none;width:100%;padding:4px 7px;gap:2px;justify-content:flex-start;align-self:auto}
+  .report h2 {display:none}
+  .report dl {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 5px}
+  .report .detail {border:0;padding:0}
+  .report dt {font-size:9px;margin:0 0 1px;letter-spacing:0}
+  .report dd {font-size:10px;line-height:1.1}
+  .report .detail:last-child {grid-column:1/-1}
+  .report .interpretation-preview {font-size:9px;max-height:2.5em}
+  .status {font-size:9px}
+}
+
+@media(max-height:380px){.page{padding:3px;gap:2px}.status{display:none}.headline h1{font-size:14px}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="headline"><h1>Creating Audiogram</h1><p class="lede">Choose a color and symbol; tap the chart to plot.</p></header>
+<div class="layout">
+ <aside class="tools panel" aria-label="Settings">
+  <section class="section identity">
+   <div class="section-title">Audiogram details</div>
+   <div class="fields">
+    <label class="field">Student name<input id="studentName" type="text" placeholder="Student name" maxlength="80" autocomplete="name"></label>
+    <label class="field">Audiogram label<input id="chartLabel" type="text" placeholder="Case label" maxlength="95"></label>
+    <label class="field">Date<input id="chartDate" type="date" min="1000-01-01" max="9999-12-31"></label>
+    <label class="field interpretation-field">Interpretation<textarea id="interpretation" placeholder="Write your interpretation here…" maxlength="600" spellcheck="true"></textarea></label>
+   </div>
+  </section>
+  <div class="tool-grid">
+   <section class="section"><div class="section-title">1. Color</div>
+    <div class="colors" role="group" aria-label="Color">
+     <button type="button" class="option color-option" id="redBtn" aria-pressed="true"><span class="swatch right"></span> Red</button>
+     <button type="button" class="option color-option" id="blueBtn" aria-pressed="false"><span class="swatch left"></span> Blue</button>
+    </div>
+   </section>
+   <section class="section"><div class="section-title">2. Symbol</div>
+    <div class="symbols" role="group" aria-label="Symbol">
+     <button type="button" class="option symbol-option" data-symbol="O" aria-pressed="true" aria-label="Circle (O)">O</button>
+     <button type="button" class="option symbol-option" data-symbol="X" aria-pressed="false" aria-label="X">X</button>
+     <button type="button" class="option symbol-option" data-symbol="&lt;" aria-pressed="false" aria-label="Less-than bracket">&lt;</button>
+     <button type="button" class="option symbol-option" data-symbol="&gt;" aria-pressed="false" aria-label="Greater-than bracket">&gt;</button>
+    </div>
+   </section>
+   <section class="section"><div class="section-title">3. Plot or erase</div>
+    <div class="mode-switch" role="group" aria-label="Plotting mode">
+      <button type="button" class="option" id="placeBtn" aria-pressed="true">Place</button>
+      <button type="button" class="option" id="eraseBtn" aria-pressed="false">Erase</button>
+    </div>
+    <div class="utility-actions">
+      <button type="button" class="secondary" id="undoBtn" disabled>Undo</button>
+      <button type="button" class="secondary" id="redoBtn" disabled>Redo</button>
+      <button type="button" class="secondary" id="clearBtn">Clear</button>
+    </div>
+    <p class="hint">Click a location to plot. Choose Erase and click a symbol to remove it.</p>
+   </section>
+   <section class="section"><div class="section-title">4. Save</div>
+    <button type="button" class="save-btn" id="saveBtn">Save as PDF</button>
+   </section>
+  </div>
+ </aside>
+ <section class="chart-panel panel" aria-label="Audiogram and case details">
+  <div class="result-layout" id="resultLayout">
+    <div class="chart-holder" id="chartHolder">
+     <canvas id="audiogram" width="1600" height="1600" tabindex="0" aria-label="Audiogram. Click or tap to plot. For keyboard access, use arrow keys to choose frequency and hearing level, then Enter or Space to place or erase a point.">Your browser does not support Canvas.</canvas>
+    </div>
+    <aside class="report" id="report" aria-label="Audiogram details">
+      <h2>Audiogram details</h2>
+      <dl>
+        <div class="detail"><dt>Student Name</dt><dd id="reportName">—</dd></div>
+        <div class="detail"><dt>Case ID</dt><dd id="reportLabel">—</dd></div>
+        <div class="detail"><dt>Date</dt><dd id="reportDate">—</dd></div>
+        <div class="detail"><dt>Interpretations</dt><dd class="interpretation-preview" id="reportInterpretation">—</dd></div>
+      </dl>
+    </aside>
+  </div>
+  <p class="status" id="status" aria-live="polite">Ready. Select a symbol and click the audiogram.</p>
+ </section>
+</div>
+</main>
+<script>
+  (() => {
+    'use strict';
+    // PDF output uses a fixed US Letter (8.5 × 11 in) portrait page.
+    const frequencies = [125, 250, 500, 1000, 2000, 4000, 8000];
+    const minHL = -10, maxHL = 120;
+    const hues = { red: '#cb2d36', blue: '#1958ad' };
+    const storageKey = 'audiogram-symbol-practice-v4';
+    const el = id => document.getElementById(id);
+    const canvas = el('audiogram');
+    const ctx = canvas.getContext('2d');
+    const nameInput = el('studentName'), labelInput = el('chartLabel'), dateInput = el('chartDate'), interpretationInput = el('interpretation');
+    let color = 'red', symbol = 'O', mode = 'place', points = [];
+    let past = [], future = [], hover = null;
+    let keyboardFreq = 1000, keyboardDb = 20;
+    const pdfWidth = 612, pdfHeight = 792, pdfScale = 4; // 72 pt/in, 288 dpi.
+    // PDF design coordinates are in points. A one-inch margin is 72 points.
+    // Only the PDF renderer uses these fixed dimensions; screen resizing cannot change them.
+    const PDF_MARGIN = 72;
+    const pdfGeom = {w:pdfWidth,h:pdfHeight,scale:pdfScale,isExport:true,
+      plot:{left:136,right:477,top:375,bottom:716}};
+    let screenGeom = pdfGeom;
+    function screenLayout(w,h,scale) {
+      const small=w<360;
+      const left=small?37:Math.max(52,Math.min(72,w*.10));
+      const top=small?59:Math.max(74,Math.min(91,h*.12));
+      const square=Math.max(40,Math.min(w-left-15,h-top-19));
+      const x=Math.round(left+(w-left-15-square)/2);
+      const y=Math.round(top+(h-top-19-square)/2);
+      return {w,h,scale,isExport:false,compact:small,short:h<300,
+        plot:{left:x,right:x+square,top:y,bottom:y+square}};
+    }
+    function americanDate(iso) {
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return '';
+      const p=iso.split('-');return `${Number(p[1])}/${Number(p[2])}/${p[0]}`;
+    }
+    function updateReport() {
+      el('reportName').textContent=nameInput.value.trim()||'—';
+      el('reportLabel').textContent=labelInput.value.trim()||'—';
+      el('reportDate').textContent=americanDate(dateInput.value)||'—';
+      el('reportInterpretation').textContent=interpretationInput.value.trim()||'—';
+    }
+    function safeDateToday() {
+      const t = new Date();
+      const local = new Date(t.getTime() - t.getTimezoneOffset()*60000);
+      return local.toISOString().slice(0,10);
+    }
+    dateInput.value = safeDateToday();
+    const xOf = (f,g=screenGeom) => g.plot.left + Math.log2(f/125)/6 * (g.plot.right-g.plot.left);
+    const yOf = (d,g=screenGeom) => g.plot.top + (d-minHL)/(maxHL-minHL) * (g.plot.bottom-g.plot.top);
+    const freqName = f => f>=1000 ? (f/1000)+'k' : String(f);
+    const shortestDistance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
+    function printText(c,text,x,y,options={}) {
+      const {size=16,weight=400,align='left',color='#20334c',maxWidth} = options;
+      c.fillStyle=color;
+      c.font=`${weight} ${size}px system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
+      c.textAlign=align; c.textBaseline='middle';
+      if (maxWidth) c.fillText(String(text),x,y,maxWidth);
+      else c.fillText(String(text),x,y);
+    }
+    function drawSymbol(c,s,x,y,hue,r=10,alpha=1) {
+      c.save(); c.strokeStyle=hue; c.lineWidth=Math.max(1.5,r*.35);
+      c.lineCap='round'; c.lineJoin='round'; c.globalAlpha=alpha;
+      c.beginPath();
+      if(s==='O') c.arc(x,y,r,0,Math.PI*2);
+      else if(s==='X') {
+        c.moveTo(x-r*.9,y-r*.9); c.lineTo(x+r*.9,y+r*.9);
+        c.moveTo(x+r*.9,y-r*.9); c.lineTo(x-r*.9,y+r*.9);
+      } else if(s==='<') {
+        c.moveTo(x+r*.8,y-r*1.1); c.lineTo(x-r*.8,y); c.lineTo(x+r*.8,y+r*1.1);
+      } else if(s==='>') {
+        c.moveTo(x-r*.8,y-r*1.1); c.lineTo(x+r*.8,y); c.lineTo(x-r*.8,y+r*1.1);
+      }
+      c.stroke(); c.restore();
+    }
+    function wrapLines(c,txt,maxWidth) {
+      const lines=[];
+      for(const paragraph of String(txt||'').split('\n')) {
+        if(!paragraph.trim()){lines.push('');continue;}
+        let line='';
+        for(const word of paragraph.split(/\s+/)) {
+          if(!word)continue;
+          const attempt=line?line+' '+word:word;
+          if(c.measureText(attempt).width<=maxWidth){line=attempt;continue;}
+          if(line){lines.push(line);line='';}
+          // Very long words must wrap too, so no information is clipped.
+          let fragment='';
+          for(const char of word){
+            if(fragment&&c.measureText(fragment+char).width>maxWidth){lines.push(fragment);fragment='';}
+            fragment+=char;
+          }
+          line=fragment;
+        }
+        lines.push(line);
+      }
+      return lines;
+    }
+    function draw(c,includeHover=true,g=screenGeom) {
+      const {w,h,plot,compact}=g;
+      c.setTransform(g.scale,0,0,g.scale,0,0);
+      c.clearRect(0,0,w,h);
+      c.fillStyle='#fff';c.fillRect(0,0,w,h);
+       printText(c,'Pure Tone Audiogram',(plot.left+plot.right)/2,compact?12:Math.max(13,plot.top-61),
+         {size:Math.max(11,Math.min(22,w*.033)),weight:800,align:'center',color:'#172a46'});
+       printText(c,'Frequency (Hz)',(plot.left+plot.right)/2,compact?32:plot.top-34,
+         {size:Math.max(10,Math.min(15,w*.025)),weight:750,align:'center',color:'#344c67'});
+      const axisSize=compact?10:Math.max(11,Math.min(15,w*.025));
+      c.save();c.translate(compact?11:19,(plot.top+plot.bottom)/2);
+      c.rotate(-Math.PI/2);
+      printText(c,'Hearing level (dB HL)',0,0,{size:axisSize,weight:750,align:'center',color:'#344c67'});
+      c.restore();
+      for(let db=minHL;db<=maxHL;db+=5){
+        const y=yOf(db,g),major=db%10===0;
+        c.beginPath();c.moveTo(plot.left,y);c.lineTo(plot.right,y);
+        c.lineWidth=db===0?1.65:major?1:.6;
+        c.strokeStyle=db===0?'#aebdce':major?'#d3dce7':'#edf1f6';
+        c.setLineDash(major?[]:[2,4]);c.stroke();c.setLineDash([]);
+        if(major)printText(c,String(db),plot.left-(compact?5:9),y,
+          {size:compact?8:Math.max(9,Math.min(12,w*.018)),
+            weight:db===0?750:500,align:'right',color:'#475e79'});
+      }
+      frequencies.forEach(f=>{
+        const x=xOf(f,g);
+        c.beginPath();c.moveTo(x,plot.top);c.lineTo(x,plot.bottom);
+        c.lineWidth=1;c.strokeStyle='#cbd6e4';c.stroke();
+        printText(c,freqName(f),x,plot.top-12,
+          {size:Math.max(9,Math.min(14,w*.021)),weight:730,align:'center',color:'#344c67'});
+      });
+      c.strokeStyle='#7a8fa9';c.lineWidth=1;
+      c.strokeRect(plot.left,plot.top,plot.right-plot.left,plot.bottom-plot.top);
+      const radius=Math.max(3,Math.min(9,(plot.bottom-plot.top)/26*.43,(plot.right-plot.left)/6*.22));
+      for(const col of ['red','blue'])for(const sym of ['O','X','<','>']){
+        const series=points.filter(p=>p.color===col&&p.symbol===sym).sort((a,b)=>a.freq-b.freq);
+        if(series.length<2)continue;
+        c.save();c.beginPath();
+        series.forEach((p,i)=>i?c.lineTo(xOf(p.freq,g),yOf(p.db,g)):c.moveTo(xOf(p.freq,g),yOf(p.db,g)));
+        c.lineWidth=Math.max(1.3,radius*.24);c.strokeStyle=hues[col];c.globalAlpha=.82;
+        if(sym==='<'||sym==='>')c.setLineDash([5,4]);
+        c.stroke();c.restore();
+      }
+      points.forEach(p=>drawSymbol(c,p.symbol,xOf(p.freq,g),yOf(p.db,g),hues[p.color],radius));
+      if(includeHover&&hover&&mode==='place')
+        drawSymbol(c,symbol,xOf(hover.freq,g),yOf(hover.db,g),hues[color],radius,.4);
+    }
+    let lastSized=0;
+    function render() {
+      const result=el('resultLayout');
+      const r=result.getBoundingClientRect();
+      const stacked=window.matchMedia('(max-width: 900px) and (orientation: portrait), (max-width: 689px) and (orientation: landscape)').matches;
+      const roomW=Math.max(140,r.width),roomH=Math.max(130,r.height);
+      const report=el('report');
+      let side;
+      if(stacked) {
+        const reportH=Math.min(140,Math.max(window.innerWidth<=350?45:56,roomH*.18));
+        side=Math.max(120,Math.floor(Math.min(roomW-3,roomH-reportH-7)));
+        report.style.height=Math.round(reportH)+'px';
+        report.style.width='100%';
+      } else {
+        const reserve=Math.min(360,Math.max(132,roomW*.29));
+        side=Math.max(120,Math.floor(Math.min(roomH-3,roomW-reserve-10)));
+        report.style.height='100%';
+        report.style.width='';
+      }
+      const holder=el('chartHolder');
+      const px=side+'px';
+      if(holder.style.width!==px){holder.style.width=px;holder.style.height=px;}
+      const b=holder.getBoundingClientRect();
+      const w=Math.max(120,Math.round(b.width)),h=Math.max(120,Math.round(b.height));
+      const scale=Math.min(2,window.devicePixelRatio||1);
+      const pixelW=Math.round(w*scale),pixelH=Math.round(h*scale);
+      if(canvas.width!==pixelW)canvas.width=pixelW;
+      if(canvas.height!==pixelH)canvas.height=pixelH;
+      screenGeom=screenLayout(w,h,scale);
+      draw(ctx,true,screenGeom);
+      updateReport();
+      el('undoBtn').disabled=past.length===0;
+      el('redoBtn').disabled=future.length===0;
+    }
+    function setStatus(msg) { el('status').textContent=msg; }
+    function snapshot() { past.push(JSON.stringify(points)); if(past.length>100) past.shift(); future=[]; }
+    function persist() {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({name:nameInput.value,label:labelInput.value,date:dateInput.value,interpretation:interpretationInput.value,points}));
+      } catch (_) { /* Some browsers do not allow storage on local files. */ }
+    }
+    function place(freq,db) {
+      snapshot();
+      // A repeated symbol at the same frequency replaces its earlier position.
+      points=points.filter(p=>!(p.freq===freq&&p.color===color&&p.symbol===symbol));
+      points.push({freq,db,color,symbol});
+      setStatus(`Placed ${color} ${symbol} at ${freq} Hz, ${db} dB HL.`);
+      render(); persist();
+    }
+    function eraseAt(x,y) {
+      let best=-1, distance=Infinity;
+      points.forEach((p,i)=>{
+        const d=shortestDistance({x,y},{x:xOf(p.freq),y:yOf(p.db)});
+        if(d<distance) {distance=d;best=i;}
+      });
+      if(best<0 || distance>Math.max(12,(screenGeom.plot.bottom-screenGeom.plot.top)/26*.75)) {setStatus('No symbol nearby. Click closer to the symbol you want to erase.');return;}
+      snapshot();
+      const erased=points.splice(best,1)[0];
+      setStatus(`Erased ${erased.color} ${erased.symbol} at ${erased.freq} Hz, ${erased.db} dB HL.`);
+      render();persist();
+    }
+    function relativePoint(ev) {
+      const box=canvas.getBoundingClientRect();
+      return {x:(ev.clientX-box.left),y:(ev.clientY-box.top)};
+    }
+    function gridHit(x,y) {
+      const plot=screenGeom.plot;
+      if(x<plot.left || x>plot.right || y<plot.top || y>plot.bottom) return null;
+      let freq=frequencies[0], difference=Infinity;
+      frequencies.forEach(f=>{const d=Math.abs(x-xOf(f));if(d<difference){difference=d;freq=f;}});
+      const db=Math.max(minHL,Math.min(maxHL,5*Math.round((minHL+(y-plot.top)/(plot.bottom-plot.top)*(maxHL-minHL))/5)));
+      return {freq,db};
+    }
+    // "click" works with mouse, touch, and pen in modern browsers. Unlike pointerdown,
+    // it does not plot an accidental point when a student swipes to scroll on a phone.
+    function handlePlotClick(ev) {
+      if (ev.button !== undefined && ev.button !== 0) return;
+      const xy=relativePoint(ev);
+      if(mode==='erase') { eraseAt(xy.x,xy.y); return; }
+      const hit=gridHit(xy.x,xy.y);
+      if(hit) place(hit.freq,hit.db);
+      else setStatus('Click within the bordered graph to place a symbol.');
+    }
+    canvas.addEventListener('click',handlePlotClick);
+    function updateHover(ev) {
+      // Touch movement is for panning/scrolling, not hover previews.
+      if(ev.pointerType && ev.pointerType!=='mouse' && ev.pointerType!=='pen') return;
+      const xy=relativePoint(ev), target=gridHit(xy.x,xy.y);
+      if(target && (!hover || target.freq!==hover.freq || target.db!==hover.db)) {
+        hover=target;
+        if(mode==='place') setStatus(`Target: ${hover.freq} Hz, ${hover.db} dB HL  ·  ${color} ${symbol}. Click to place.`);
+        else setStatus('Erase mode: click an existing symbol to remove it.');
+        render();
+      } else if (!target && hover) { hover=null; render(); }
+    }
+    if('PointerEvent' in window) canvas.addEventListener('pointermove',updateHover);
+    else canvas.addEventListener('mousemove',updateHover);
+    function leaveChart() {
+      // Keep the keyboard cursor visible if the canvas has keyboard focus.
+      hover = document.activeElement===canvas ? {freq:keyboardFreq,db:keyboardDb} : null;
+      render();
+    }
+    canvas.addEventListener('mouseleave',leaveChart);
+
+    canvas.addEventListener('focus',()=>{
+      hover={freq:keyboardFreq,db:keyboardDb};
+      render();
+      setStatus(`Keyboard: ${keyboardFreq} Hz, ${keyboardDb} dB HL. Arrow keys move; Enter or Space ${mode==='place'?'places':'erases'} a symbol.`);
+    });
+    canvas.addEventListener('blur',()=>{hover=null;render();});
+    canvas.addEventListener('keydown',ev=>{
+      const i=frequencies.indexOf(keyboardFreq);
+      if(ev.key==='ArrowLeft') keyboardFreq=frequencies[Math.max(0,i-1)];
+      else if(ev.key==='ArrowRight') keyboardFreq=frequencies[Math.min(frequencies.length-1,i+1)];
+      else if(ev.key==='ArrowUp') keyboardDb=Math.max(minHL,keyboardDb-5);
+      else if(ev.key==='ArrowDown') keyboardDb=Math.min(maxHL,keyboardDb+5);
+      else if(ev.key==='Enter'||ev.key===' '||ev.key==='Spacebar') {
+        ev.preventDefault();
+        if(mode==='place') place(keyboardFreq,keyboardDb);
+        else eraseAt(xOf(keyboardFreq),yOf(keyboardDb));
+        hover={freq:keyboardFreq,db:keyboardDb};render();
+        return;
+      } else return;
+      ev.preventDefault(); hover={freq:keyboardFreq,db:keyboardDb}; render();
+      setStatus(`Target: ${keyboardFreq} Hz, ${keyboardDb} dB HL. Press Enter or Space to ${mode==='place'?'place':'erase'}.`);
+    });
+    function setColor(next) {
+      color=next; mode='place'; refreshControls(); render();
+      setStatus(`Selected ${color} ${symbol}. Click the audiogram to place it.`);
+    }
+    function setSymbol(next) {
+      symbol=next; mode='place'; refreshControls(); render();
+      setStatus(`Selected ${color} ${symbol}. Click the audiogram to place it.`);
+    }
+    function refreshControls() {
+      el('redBtn').setAttribute('aria-pressed',String(color==='red'));
+      el('blueBtn').setAttribute('aria-pressed',String(color==='blue'));
+      document.querySelectorAll('[data-symbol]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.symbol===symbol)));
+      el('placeBtn').setAttribute('aria-pressed',String(mode==='place'));
+      el('eraseBtn').setAttribute('aria-pressed',String(mode==='erase'));
+      canvas.classList.toggle('eraser',mode==='erase');
+    }
+    el('redBtn').addEventListener('click',()=>setColor('red'));
+    el('blueBtn').addEventListener('click',()=>setColor('blue'));
+    document.querySelectorAll('[data-symbol]').forEach(b=>b.addEventListener('click',()=>setSymbol(b.dataset.symbol)));
+    el('placeBtn').addEventListener('click',()=>{mode='place';refreshControls();render();setStatus('Place mode: click within the graph to add a symbol.');});
+    el('eraseBtn').addEventListener('click',()=>{mode='erase';refreshControls();render();setStatus('Erase mode: click a plotted symbol to remove it.');});
+    el('undoBtn').addEventListener('click',undo);
+    el('redoBtn').addEventListener('click',redo);
+    function undo() {
+      if(!past.length) return;
+      future.push(JSON.stringify(points)); points=JSON.parse(past.pop());
+      setStatus('Last change undone.'); render(); persist();
+    }
+    function redo() {
+      if(!future.length) return;
+      past.push(JSON.stringify(points)); points=JSON.parse(future.pop());
+      setStatus('Change restored.'); render(); persist();
+    }
+    el('clearBtn').addEventListener('click',()=>{
+      if(points.length===0) return;
+      if(!window.confirm('Remove all plotted symbols? Your name, label, and date will stay.')) return;
+      snapshot();points=[];hover=null;setStatus('All symbols cleared.');render();persist();
+    });
+    [nameInput,labelInput,dateInput,interpretationInput].forEach(input=>input.addEventListener('input',()=>{render();persist();}));
+    window.addEventListener('keydown',ev=>{
+      if(!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+      if(/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+      if(ev.key.toLowerCase()==='z') {ev.preventDefault(); if(ev.shiftKey)redo();else undo();}
+      if(ev.key.toLowerCase()==='y') {ev.preventDefault();redo();}
+    });
+    function slug(txt) {return txt.trim().replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'').slice(0,48)||'Student';}
+    // Export page is independent of the responsive browser layout.
+    // The PDF is US Letter portrait (612 x 792 points) with exact 1-inch margins.
+    // Text sizes are points at actual printed size, not CSS screen pixels.
+    function drawPdfChart(c) {
+      const g=pdfGeom, plot=g.plot;
+      c.setTransform(pdfScale,0,0,pdfScale,0,0);
+      c.clearRect(0,0,pdfWidth,pdfHeight);
+      c.fillStyle='#fff';c.fillRect(0,0,pdfWidth,pdfHeight);
+
+      printText(c,'Pure Tone Audiogram',306,330,
+        {size:17,weight:800,align:'center',color:'#172a46'});
+      printText(c,'Frequency (Hz)',306,351,
+        {size:11.5,weight:750,align:'center',color:'#344c67'});
+
+      c.save();c.translate(80,(plot.top+plot.bottom)/2);
+      c.rotate(-Math.PI/2);
+      printText(c,'Hearing level (dB HL)',0,0,
+        {size:11.5,weight:750,align:'center',color:'#344c67'});
+      c.restore();
+
+      for(let db=minHL;db<=maxHL;db+=5){
+        const y=yOf(db,g),major=db%10===0;
+        c.beginPath();c.moveTo(plot.left,y);c.lineTo(plot.right,y);
+        c.lineWidth=db===0?1.2:major?.7:.4;
+        c.strokeStyle=db===0?'#aebdce':major?'#cad6e3':'#e6ebf1';
+        c.setLineDash(major?[]:[2.2,2.8]);c.stroke();c.setLineDash([]);
+        if(major)printText(c,String(db),plot.left-12,y,
+          {size:9.4,weight:db===0?700:500,align:'right',color:'#405771'});
+      }
+      frequencies.forEach(f=>{
+        const x=xOf(f,g);
+        c.beginPath();c.moveTo(x,plot.top);c.lineTo(x,plot.bottom);
+        c.lineWidth=.7;c.strokeStyle='#c5d0df';c.stroke();
+        printText(c,freqName(f),x,plot.top-12,
+          {size:10.2,weight:700,align:'center',color:'#344c67'});
+      });
+      c.strokeStyle='#738ba9';c.lineWidth=1;
+      c.strokeRect(plot.left,plot.top,plot.right-plot.left,plot.bottom-plot.top);
+
+      const radius=4.7;
+      for(const col of ['red','blue'])for(const sym of ['O','X','<','>']){
+        const series=points.filter(p=>p.color===col&&p.symbol===sym).sort((a,b)=>a.freq-b.freq);
+        if(series.length<2)continue;
+        c.save();c.beginPath();
+        series.forEach((p,i)=>i?c.lineTo(xOf(p.freq,g),yOf(p.db,g)):c.moveTo(xOf(p.freq,g),yOf(p.db,g)));
+        c.lineWidth=1.7;c.strokeStyle=hues[col];c.globalAlpha=.88;
+        if(sym==='<'||sym==='>')c.setLineDash([4.5,3.6]);
+        c.stroke();c.restore();
+      }
+      points.forEach(p=>drawSymbol(c,p.symbol,xOf(p.freq,g),yOf(p.db,g),hues[p.color],radius));
+    }
+
+    function pdfLines(c,text,maxWidth,size,weight=500){
+      c.font=`${weight} ${size}px system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
+      return wrapLines(c,text,maxWidth);
+    }
+
+    function drawPdfReport(c) {
+      // All edges are >= 72 pt from the paper edge. At 100% print scale,
+      // the report and graph never cross the required 1-inch margins.
+      const x=74, y=74, width=464, height=236;
+      const innerX=90, innerWidth=432;
+      c.save();
+      c.fillStyle='#f8fafc';c.fillRect(x,y,width,height);
+      c.strokeStyle='#dce5ef';c.lineWidth=.8;c.strokeRect(x+.4,y+.4,width-.8,height-.8);
+      printText(c,'Audiogram Details',innerX,91,
+        {size:12.5,weight:800,color:'#172a46'});
+      c.fillStyle='#d8e1ec';c.fillRect(innerX,103,innerWidth,0.7);
+
+      // Balanced metadata columns: student, case label, American-format date.
+      const cols=[
+        {x:innerX,width:146,title:'STUDENT NAME',value:nameInput.value.trim()||'—'},
+        {x:innerX+154,width:153,title:'CASE ID',value:labelInput.value.trim()||'—'},
+        {x:innerX+315,width:117,title:'DATE',value:americanDate(dateInput.value)||'—'}
+      ];
+      for(const col of cols){
+        printText(c,col.title,col.x,118,
+          {size:9.1,weight:800,color:'#61738e'});
+        let font=11.1, lines=[];
+        for(;font>=8.5;font-=.2){
+          lines=pdfLines(c,col.value,col.width,font);
+          if(lines.length<=2)break;
+        }
+        if(lines.length>2)throw new Error('The student name or case label is too long to fit clearly. Please shorten it for the PDF.');
+        lines.forEach((line,i)=>printText(c,line,col.x,135+i*12.3,
+          {size:Math.max(font,8.5),weight:500,color:'#20334c',maxWidth:col.width}));
+      }
+      c.fillStyle='#d8e1ec';c.fillRect(innerX,159,innerWidth,.7);
+      printText(c,'INTERPRETATIONS',innerX,175,
+        {size:9.4,weight:800,color:'#61738e'});
+
+      // Preserve full interpretation rather than silently cropping it.
+      const contents=interpretationInput.value.trim()||'—';
+      const firstY=195, lastY=300, textWidth=innerWidth;
+      let size=11.0, lines=[];
+      for(;size>=9.2;size-=.2){
+        lines=pdfLines(c,contents,textWidth,size);
+        const lineHeight=size*1.24;
+        if(firstY+Math.max(0,lines.length-1)*lineHeight<=lastY)break;
+      }
+      if(firstY+Math.max(0,lines.length-1)*size*1.24>lastY) {
+        throw new Error('The interpretation is too long to fit legibly within the 1-inch PDF margins. Please shorten it.');
+      }
+      lines.forEach((line,i)=>printText(c,line,innerX,firstY+i*size*1.24,
+        {size,weight:500,color:'#20334c',maxWidth:textWidth}));
+      c.restore();
+    }
+
+    function renderLetterCanvas() {
+      const page=document.createElement('canvas');
+      page.width=pdfWidth*pdfScale;
+      page.height=pdfHeight*pdfScale;
+      const c=page.getContext('2d');
+      if(!c)throw new Error('Canvas unavailable');
+      drawPdfChart(c);
+      drawPdfReport(c);
+      return page;
+    }
+
+    // Export two independent page regions at fixed Letter coordinates.
+    // Splitting the graph from the report allows its own tagged-PDF Figure
+    // element with alternate text, rather than labeling the entire page image.
+    function cropForPdf(page,box) {
+      const c=document.createElement('canvas');
+      c.width=Math.round(box.width*pdfScale);
+      c.height=Math.round(box.height*pdfScale);
+      const context=c.getContext('2d');
+      if(!context)throw new Error('Could not render the PDF image.');
+      context.drawImage(page,
+        Math.round(box.x*pdfScale),Math.round(box.y*pdfScale),c.width,c.height,
+        0,0,c.width,c.height);
+      return c;
+    }
+
+    // A small, fully offline tagged PDF writer. Its two JPEG images have
+    // separate structure elements. The chart's Figure /Alt is "Audiogram".
+    // Tags are in the intended reading order: report first, graph second.
+    function pdfFromPageCanvas(page) {
+      const reportBox={x:72,y:72,width:468,height:240};
+      const chartBox={x:72,y:312,width:468,height:408};
+      const toJpeg=box=>{
+        const cropped=cropForPdf(page,box);
+        const encoded=cropped.toDataURL('image/jpeg',.97).split(',')[1];
+        if(!encoded)throw new Error('Could not encode the PDF image.');
+        const binary=atob(encoded),bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+        return {bytes,width:cropped.width,height:cropped.height};
+      };
+      const report=toJpeg(reportBox),chart=toJpeg(chartBox);
+      const ascii=s=>{const out=new Uint8Array(s.length);
+        for(let i=0;i<s.length;i++)out[i]=s.charCodeAt(i)&255;
+        return out;};
+      const utf16hex=s=>{
+        let hex='FEFF';
+        for(let i=0;i<s.length;i++)hex+=s.charCodeAt(i).toString(16).padStart(4,'0').toUpperCase();
+        return '<'+hex+'>';
+      };
+      const reportAlt='Audiogram details. Student: '+(nameInput.value.trim()||'not provided')+
+        '. Audiogram label: '+(labelInput.value.trim()||'not provided')+
+        '. Date: '+(americanDate(dateInput.value)||'not provided')+
+        '. Interpretation: '+(interpretationInput.value.trim()||'not provided');
+      const chunks=[], offsets=[0];let length=0;
+      const add=p=>{chunks.push(p);length+=p.length;};
+      const txt=s=>add(ascii(s));
+      const begin=n=>{offsets[n]=length;txt(n+' 0 obj\n');};
+      const end=()=>txt('endobj\n');
+      add(new Uint8Array([37,80,68,70,45,49,46,55,10,37,226,227,207,211,10]));
+      begin(1);txt('<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R '+
+        '/MarkInfo << /Marked true >> /Lang (en-US) >>\n');end();
+      begin(2);txt('<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n');end();
+      begin(3);txt('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] '+
+        '/StructParents 0 /Resources << /XObject << /ImReport 4 0 R /ImChart 5 0 R >> >> '+
+        '/Contents 6 0 R >>\n');end();
+      function addImage(n,image){
+        begin(n);txt('<< /Type /XObject /Subtype /Image /Width '+image.width+
+          ' /Height '+image.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 '+
+          '/Filter /DCTDecode /Length '+image.bytes.length+' >>\nstream\n');
+        add(image.bytes);txt('\nendstream\n');end();
+      }
+      addImage(4,report);addImage(5,chart);
+      // PDF coordinates are bottom-up; 1-inch white margins are preserved.
+      function imageCommand(box,name,mcid){
+        const bottom=pdfHeight-box.y-box.height;
+        return '/Figure <</MCID '+mcid+'>> BDC\nq\n'+
+          box.width+' 0 0 '+box.height+' '+box.x+' '+bottom+' cm\n'+
+          '/'+name+' Do\nQ\nEMC\n';
+      }
+      const content=imageCommand(reportBox,'ImReport',0)+imageCommand(chartBox,'ImChart',1);
+      begin(6);txt('<< /Length '+ascii(content).length+' >>\nstream\n'+
+        content+'endstream\n');end();
+      begin(7);txt('<< /Type /StructTreeRoot /K [8 0 R 9 0 R] '+
+        '/ParentTree 10 0 R /ParentTreeNextKey 1 >>\n');end();
+      begin(8);txt('<< /Type /StructElem /S /Figure /P 7 0 R '+
+        '/Pg 3 0 R /K 0 /Alt '+utf16hex(reportAlt)+' >>\n');end();
+      begin(9);txt('<< /Type /StructElem /S /Figure /P 7 0 R '+
+        '/Pg 3 0 R /K 1 /Alt '+utf16hex('Audiogram')+' >>\n');end();
+      begin(10);txt('<< /Nums [0 [8 0 R 9 0 R]] >>\n');end();
+      begin(11);txt('<< /Title (Pure Tone Audiogram) '+
+        '/Producer (Audiogram Practice) >>\n');end();
+      const xref=length;
+      txt('xref\n0 12\n0000000000 65535 f \n');
+      for(let i=1;i<=11;i++)txt(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+      txt('trailer\n<< /Size 12 /Root 1 0 R /Info 11 0 R >>\nstartxref\n'+
+        xref+'\n%%EOF\n');
+      return new Blob(chunks,{type:'application/pdf'});
+    }
+
+    el('saveBtn').addEventListener('click',()=>{
+      if(!nameInput.value.trim()){alert('Please enter your name before downloading.');nameInput.focus();return;}
+      if(!labelInput.value.trim()){alert('Please enter an audiogram label before downloading.');labelInput.focus();return;}
+      if(!dateInput.value || !dateInput.validity.valid){alert('Please enter a valid date before downloading.');dateInput.focus();return;}
+      if(points.length===0){alert('Please plot at least one symbol before downloading.');return;}
+      try {
+        const page=renderLetterCanvas();
+        const pdf=pdfFromPageCanvas(page);
+        const filename=`Audiogram_${slug(nameInput.value)}_${slug(labelInput.value)}_${americanDate(dateInput.value).replace(/\//g,'-')}.pdf`;
+        const url=URL.createObjectURL(pdf);
+        const a=document.createElement('a');a.href=url;a.download=filename;
+        document.body.appendChild(a);a.click();a.remove();
+        // Delay release so Safari/Firefox can finish opening the Blob.
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        setStatus('PDF created (US Letter, portrait). Save it and submit it to your instructor.');
+      } catch(error) {
+        console.error(error);
+        alert(error && error.message ? error.message : 'Could not create the PDF in this browser. Please try Chrome, Edge, Firefox or Safari.');
+      }
+    });
+    function restore() {
+      try {
+        const saved=JSON.parse(localStorage.getItem(storageKey)||localStorage.getItem('audiogram-symbol-practice-v2')||localStorage.getItem('csd431-audiogram-symbol-practice-v1')||'null');
+        if(!saved || !Array.isArray(saved.points))return;
+        if(typeof saved.name==='string')nameInput.value=saved.name.slice(0,80);
+        if(typeof saved.label==='string')labelInput.value=saved.label.slice(0,95);
+        if(typeof saved.date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(saved.date))dateInput.value=saved.date;
+        if(typeof saved.interpretation==='string') interpretationInput.value=saved.interpretation.slice(0,600);
+        points=saved.points.filter(p=>frequencies.includes(p.freq) && Number.isInteger(p.db) && p.db>=minHL && p.db<=maxHL && p.db%5===0 && ['red','blue'].includes(p.color) && ['O','X','<','>'].includes(p.symbol)).slice(0,500);
+        if(points.length)setStatus('Your locally saved draft has been restored.');
+      }catch(_){/* Storage is optional. */}
+    }
+    restore();refreshControls();render();
+    // Resize the plotted chart itself as the viewport or containing panel changes.
+    window.addEventListener('resize',render);
+    if('ResizeObserver' in window) {
+      new ResizeObserver(render).observe(el('audiogram').parentElement);
+    }
+  })();
+  </script>
+</body>
+</html>
