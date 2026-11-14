@@ -35,14 +35,13 @@ h1 {font-size:clamp(16px,2.2vmin,23px);line-height:1.2;margin:0;letter-spacing:-
 .field textarea {height:clamp(70px,11vh,118px);resize:none;line-height:1.4}
 .field input:focus,.field textarea:focus {border-color:var(--focus);outline:2px solid #c9dbfa}
 .field input::placeholder,.field textarea::placeholder {color:#9aa8b8}
-.colors,.mode-switch {display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mode-switch {display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .option {border:1.4px solid #d8e2ee;border-radius:7px;background:white;color:#34465e;padding:4px;min-height:clamp(29px,4.4vh,38px);font-weight:700;font-size:clamp(11px,1.5vmin,14px)}
-.color-option {display:flex;align-items:center;justify-content:center;gap:6px}
-.swatch {width:12px;height:12px;display:inline-block;border-radius:50%;flex:0 0 auto}
-.swatch.right {background:var(--right)}.swatch.left {background:var(--left)}
 .option[aria-pressed="true"] {background:#eef4ff;border-color:#5e84c2;box-shadow:inset 0 0 0 1px #dbe8fa}
 .symbols {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .symbol-option {font-size:clamp(19px,3vmin,26px);height:clamp(32px,5vh,46px);min-height:0;padding:0;line-height:1;font-weight:550}
+.symbol-red {color:var(--right)}
+.symbol-blue {color:var(--left)}
 .utility-actions {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:6px}
 .secondary {border:1px solid #d1dce9;background:#f8fafc;color:#33455e;border-radius:7px;font-weight:650;padding:4px 2px;min-height:clamp(27px,4vh,34px);font-size:clamp(11px,1.35vmin,13px)}
 .secondary:hover:not(:disabled){background:#eaf1f9}
@@ -165,7 +164,7 @@ canvas.eraser {cursor:not-allowed}
   .tool-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
   .tool-grid .section {padding:0;border:0}
   .section-title {font-size:10px;margin-bottom:2px}
-  .colors,.symbols,.mode-switch,.utility-actions {gap:2px}
+  .symbols,.mode-switch,.utility-actions {gap:2px}
   .option {min-height:24px;padding:1px;font-size:10px}
   .symbol-option {height:24px;font-size:17px}
   .utility-actions {margin-top:2px}
@@ -190,7 +189,7 @@ canvas.eraser {cursor:not-allowed}
 </head>
 <body>
 <main class="page">
-<header class="headline"><h1>Creating Audiogram</h1><p class="lede">Choose a color and symbol; tap the chart to plot.</p></header>
+<header class="headline"><h1>Creating Audiogram</h1><p class="lede">Choose a symbol; tap the chart to plot.</p></header>
 <div class="layout">
  <aside class="tools panel" aria-label="Settings">
   <section class="section identity">
@@ -203,21 +202,15 @@ canvas.eraser {cursor:not-allowed}
    </div>
   </section>
   <div class="tool-grid">
-   <section class="section"><div class="section-title">1. Color</div>
-    <div class="colors" role="group" aria-label="Color">
-     <button type="button" class="option color-option" id="redBtn" aria-pressed="true"><span class="swatch right"></span> Red</button>
-     <button type="button" class="option color-option" id="blueBtn" aria-pressed="false"><span class="swatch left"></span> Blue</button>
-    </div>
-   </section>
-   <section class="section"><div class="section-title">2. Symbol</div>
+   <section class="section"><div class="section-title">1. Symbol</div>
     <div class="symbols" role="group" aria-label="Symbol">
-     <button type="button" class="option symbol-option" data-symbol="O" aria-pressed="true" aria-label="Circle (O)">O</button>
-     <button type="button" class="option symbol-option" data-symbol="X" aria-pressed="false" aria-label="X">X</button>
-     <button type="button" class="option symbol-option" data-symbol="&lt;" aria-pressed="false" aria-label="Less-than bracket">&lt;</button>
-     <button type="button" class="option symbol-option" data-symbol="&gt;" aria-pressed="false" aria-label="Greater-than bracket">&gt;</button>
+     <button type="button" class="option symbol-option symbol-red" data-symbol="O" aria-pressed="true" aria-label="Circle (O)">O</button>
+     <button type="button" class="option symbol-option symbol-blue" data-symbol="X" aria-pressed="false" aria-label="X">X</button>
+     <button type="button" class="option symbol-option symbol-red" data-symbol="&lt;" aria-pressed="false" aria-label="Less-than bracket">&lt;</button>
+     <button type="button" class="option symbol-option symbol-blue" data-symbol="&gt;" aria-pressed="false" aria-label="Greater-than bracket">&gt;</button>
     </div>
    </section>
-   <section class="section"><div class="section-title">3. Plot or erase</div>
+   <section class="section"><div class="section-title">2. Plot or erase</div>
     <div class="mode-switch" role="group" aria-label="Plotting mode">
       <button type="button" class="option" id="placeBtn" aria-pressed="true">Place</button>
       <button type="button" class="option" id="eraseBtn" aria-pressed="false">Erase</button>
@@ -229,7 +222,7 @@ canvas.eraser {cursor:not-allowed}
     </div>
     <p class="hint">Click a location to plot. Choose Erase and click a symbol to remove it.</p>
    </section>
-   <section class="section"><div class="section-title">4. Save</div>
+   <section class="section"><div class="section-title">3. Save</div>
     <button type="button" class="save-btn" id="saveBtn">Save as PDF</button>
    </section>
   </div>
@@ -265,7 +258,8 @@ canvas.eraser {cursor:not-allowed}
     const canvas = el('audiogram');
     const ctx = canvas.getContext('2d');
     const nameInput = el('studentName'), labelInput = el('chartLabel'), dateInput = el('chartDate'), interpretationInput = el('interpretation');
-    let color = 'red', symbol = 'O', mode = 'place', points = [];
+    let symbol = 'O', mode = 'place', points = [];
+    const colorForSymbol = s => (s === 'X' || s === '>') ? 'blue' : 'red';
     let past = [], future = [], hover = null;
     let keyboardFreq = 1000, keyboardDb = 20;
     const pdfWidth = 612, pdfHeight = 792, pdfScale = 4; // 72 pt/in, 288 dpi.
@@ -395,7 +389,7 @@ canvas.eraser {cursor:not-allowed}
       }
       points.forEach(p=>drawSymbol(c,p.symbol,xOf(p.freq,g),yOf(p.db,g),hues[p.color],radius));
       if(includeHover&&hover&&mode==='place')
-        drawSymbol(c,symbol,xOf(hover.freq,g),yOf(hover.db,g),hues[color],radius,.4);
+        drawSymbol(c,symbol,xOf(hover.freq,g),yOf(hover.db,g),hues[colorForSymbol(symbol)],radius,.4);
     }
     let lastSized=0;
     function render() {
@@ -441,7 +435,8 @@ canvas.eraser {cursor:not-allowed}
     function place(freq,db) {
       snapshot();
       // A repeated symbol at the same frequency replaces its earlier position.
-      points=points.filter(p=>!(p.freq===freq&&p.color===color&&p.symbol===symbol));
+      points=points.filter(p=>!(p.freq===freq&&p.symbol===symbol));
+      const color=colorForSymbol(symbol);
       points.push({freq,db,color,symbol});
       setStatus(`Placed ${color} ${symbol} at ${freq} Hz, ${db} dB HL.`);
       render(); persist();
@@ -487,7 +482,7 @@ canvas.eraser {cursor:not-allowed}
       const xy=relativePoint(ev), target=gridHit(xy.x,xy.y);
       if(target && (!hover || target.freq!==hover.freq || target.db!==hover.db)) {
         hover=target;
-        if(mode==='place') setStatus(`Target: ${hover.freq} Hz, ${hover.db} dB HL  ·  ${color} ${symbol}. Click to place.`);
+        if(mode==='place') setStatus(`Target: ${hover.freq} Hz, ${hover.db} dB HL  ·  ${colorForSymbol(symbol)} ${symbol}. Click to place.`);
         else setStatus('Erase mode: click an existing symbol to remove it.');
         render();
       } else if (!target && hover) { hover=null; render(); }
@@ -523,24 +518,16 @@ canvas.eraser {cursor:not-allowed}
       ev.preventDefault(); hover={freq:keyboardFreq,db:keyboardDb}; render();
       setStatus(`Target: ${keyboardFreq} Hz, ${keyboardDb} dB HL. Press Enter or Space to ${mode==='place'?'place':'erase'}.`);
     });
-    function setColor(next) {
-      color=next; mode='place'; refreshControls(); render();
-      setStatus(`Selected ${color} ${symbol}. Click the audiogram to place it.`);
-    }
     function setSymbol(next) {
       symbol=next; mode='place'; refreshControls(); render();
-      setStatus(`Selected ${color} ${symbol}. Click the audiogram to place it.`);
+      setStatus(`Selected ${colorForSymbol(symbol)} ${symbol}. Click the audiogram to place it.`);
     }
     function refreshControls() {
-      el('redBtn').setAttribute('aria-pressed',String(color==='red'));
-      el('blueBtn').setAttribute('aria-pressed',String(color==='blue'));
       document.querySelectorAll('[data-symbol]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.symbol===symbol)));
       el('placeBtn').setAttribute('aria-pressed',String(mode==='place'));
       el('eraseBtn').setAttribute('aria-pressed',String(mode==='erase'));
       canvas.classList.toggle('eraser',mode==='erase');
     }
-    el('redBtn').addEventListener('click',()=>setColor('red'));
-    el('blueBtn').addEventListener('click',()=>setColor('blue'));
     document.querySelectorAll('[data-symbol]').forEach(b=>b.addEventListener('click',()=>setSymbol(b.dataset.symbol)));
     el('placeBtn').addEventListener('click',()=>{mode='place';refreshControls();render();setStatus('Place mode: click within the graph to add a symbol.');});
     el('eraseBtn').addEventListener('click',()=>{mode='erase';refreshControls();render();setStatus('Erase mode: click a plotted symbol to remove it.');});
@@ -804,7 +791,7 @@ canvas.eraser {cursor:not-allowed}
         if(typeof saved.label==='string')labelInput.value=saved.label.slice(0,95);
         if(typeof saved.date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(saved.date))dateInput.value=saved.date;
         if(typeof saved.interpretation==='string') interpretationInput.value=saved.interpretation.slice(0,600);
-        points=saved.points.filter(p=>frequencies.includes(p.freq) && Number.isInteger(p.db) && p.db>=minHL && p.db<=maxHL && p.db%5===0 && ['red','blue'].includes(p.color) && ['O','X','<','>'].includes(p.symbol)).slice(0,500);
+        points=saved.points.filter(p=>frequencies.includes(p.freq) && Number.isInteger(p.db) && p.db>=minHL && p.db<=maxHL && p.db%5===0 && ['O','X','<','>'].includes(p.symbol)).slice(0,500).map(p=>({...p,color:colorForSymbol(p.symbol)}));
         if(points.length)setStatus('Your locally saved draft has been restored.');
       }catch(_){/* Storage is optional. */}
     }
